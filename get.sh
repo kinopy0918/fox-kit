@@ -13,7 +13,8 @@
 # 追加（任意）:
 #   FOX_PROFILE=<URL か フォルダ>  会社ごとの規則（rules/*.md）を足す
 #   FOX_REMOTE=1 / FOX_SSH_KEY="ssh-ed25519 …"  遠隔で面倒を見るための Tailscale＋SSH
-#   FOX_DEDICATED=1                専用機として、電源接続中はスリープしない
+#   FOX_MAC_USE=office|mobile      パソコンの使い方（据え置きの専用機／持ち歩き）。FOX_DEDICATED=1 は office と同じ
+#   FOX_ANTIGRAVITY=yes|no         Antigravity（編集ソフト）を入れるか
 #   FOX_RESET=1                    覚えている答えと進み具合を消して、最初からやり直す
 #   FOX_VERSION=0.1.0              この版を入れる（既定は最新の公開版）
 #   FOX_UPDATE=1                   更新として動く（fox-kit update から。手を入れたファイルは上書きしない）
@@ -34,7 +35,7 @@ KIT_DIR="$HOME/Tools/portable-fox"
 STATE="$HOME/.config/fox-kit/state.env"
 LOG="$HOME/Library/Logs/fox-install.log"
 mkdir -p "${STATE:h}" "${LOG:h}"
-TOTAL=7
+TOTAL=8
 
 # ------------------------------------------------------------------ 表示の道具
 c()    { printf '\033[%sm%s\033[0m' "$1" "$2"; }
@@ -258,12 +259,21 @@ if [[ -n "${FOX_REMOTE:-}" ]]; then
     TODO+=("$(t "開いた設定画面で「リモートログイン」をオンにする" "システム設定 > 一般 > 共有 > リモートログイン をオン")")
   fi
 fi
-if [[ -n "${FOX_DEDICATED:-}" ]]; then
-  sudo pmset -c sleep 0 disksleep 0 >/dev/null && ok "$(t "電源につないでいる間は眠らない設定にしました" "pmset -c sleep 0")"
+
+# ------------------------------------------------------------------ 5. パソコンの設定
+step 5 "$(t "パソコンの設定（眠る・眠らない／Antigravity）" "Mac 設定（電源・スリープ・Antigravity）")"
+[[ -n "${FOX_DEDICATED:-}" ]] && export FOX_MAC_USE="${FOX_MAC_USE:-office}"
+if done_ mac; then
+  ok "$(t "設定済みです（やり直すときは fox-kit mac）" "done（fox-kit mac で再設定）")"
+elif [[ -x "$HOME/Tools/fox-mac/mac.sh" ]] && { has_tty || [[ -n "${FOX_MAC_USE:-}" ]]; }; then
+  if [[ -n "${FOX_SKIP_MAC:-}" ]]; then warn "飛ばしました（検証用）"
+  else "$HOME/Tools/fox-mac/mac.sh" < /dev/tty && mark mac || warn "$(t "途中で止まりました。あとで fox-kit mac でやり直せます" "mac.sh 失敗（fox-kit mac で再実行）")"; fi
+else
+  TODO+=("$(t "パソコンの設定（眠る・眠らない／Antigravity）：この黒い画面で  fox-kit mac  と打つ" "fox-kit mac")")
 fi
 
 # ------------------------------------------------------------------ 5. ログイン
-step 5 "$(t "AIのアカウントにログイン" "Claude にログイン")"
+step 6 "$(t "AIのアカウントにログイン" "Claude にログイン")"
 logged_in() { claude auth status 2>/dev/null | grep -qi '"loggedIn": *true'; }
 if [[ -n "${FOX_SKIP_LOGIN:-}${FOX_SKIP_CLAUDE:-}" ]]; then
   warn "飛ばしました（検証用）"
@@ -279,7 +289,7 @@ else
 fi
 
 # ------------------------------------------------------------------ 6. あいさつ
-step 6 "$(t "AIにあいさつしてもらう" "動作確認")"
+step 7 "$(t "AIにあいさつしてもらう" "動作確認")"
 if done_ login; then
   if (cd ~ && claude -p "一言で自己紹介して。あなたの名前と、誰の秘書かを言って" --output-format text); then
     mark hello
@@ -291,7 +301,7 @@ else
 fi
 
 # ------------------------------------------------------------------ 7. 初期設定の聞き取り
-step 7 "$(t "AIと最初のお話（初期設定）" "初期設定の聞き取り")"
+step 8 "$(t "AIと最初のお話（初期設定）" "初期設定の聞き取り")"
 if done_ interview; then
   ok "$(t "初期設定は済んでいます（やり直すときは fox-kit setup）" "interview: done")"
 elif done_ login && [[ -z "${FOX_NO_INTERVIEW:-}" ]] && [[ -d "$HOME/.claude/skills/fox-setup" ]] && has_tty; then
