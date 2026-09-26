@@ -1,0 +1,46 @@
+#!/bin/zsh
+# fox-kit — 入れたあとの操作をまとめたコマンド
+#   fox-kit           … いまの状態（= status）
+#   fox-kit status    … 版・ログイン・保存先・Discord/Slack・新しい版があるか
+#   fox-kit update    … 新しい版に更新（手を入れたファイルは上書きしない）
+#   fox-kit setup     … 初期設定の聞き取りをもう一度
+#   fox-kit connect   … Discord / Slack とつなぐ
+#   fox-kit guide     … 手順書を開く
+set -uo pipefail
+REPO="kinopy0918/fox-kit"
+GUIDE="${FOX_GUIDE_URL:-https://kinopy0918.github.io/fox-kit}"
+GET="$GUIDE/get.sh"
+REC="$HOME/.config/fox-kit/install.json"
+export PATH="$HOME/.local/bin:$PATH"
+
+j() { python3 -c "import json,sys;d=json.load(open(sys.argv[1]));print(d.get(sys.argv[2],''))" "$1" "$2" 2>/dev/null; }
+latest() { curl -fsSL --max-time 8 "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null \
+  | python3 -c "import json,sys;print(json.load(sys.stdin).get('tag_name','').lstrip('v'))" 2>/dev/null; }
+
+cmd="${1:-status}"
+case "$cmd" in
+  status)
+    ver="$( [[ -f $REC ]] && j "$REC" version )"
+    echo "fox-kit ${ver:-（未インストール）}"
+    if claude auth status 2>/dev/null | grep -qi '"loggedIn": *true'; then echo "  ログイン: できています"; else echo "  ログイン: まだです（fox-kit update で続きから）"; fi
+    base="$( [[ -f $HOME/.config/fox-kit/storage.json ]] && j "$HOME/.config/fox-kit/storage.json" base )"
+    echo "  保存先: ${base:-まだ決めていません（fox-kit setup）}"
+    if [[ -f $HOME/.config/fox-bridge/config.json ]]; then
+      p="$(j "$HOME/.config/fox-bridge/config.json" platform)"
+      st="$(launchctl print gui/$(id -u)/com.fox-bridge 2>/dev/null | grep -q 'state = running' && echo 動いています || echo 止まっています)"
+      echo "  やり取り: ${p}（返事の常駐: $st）"
+    else
+      echo "  やり取り: この画面だけ（Discord/Slack は fox-kit connect）"
+    fi
+    new="$(latest)"
+    if [[ -n "$new" && -n "$ver" && "$new" != "$ver" ]]; then echo "  ★新しい版 $new があります → fox-kit update"; fi
+    ;;
+  update)
+    echo "新しい版に更新します。あなたが手を入れたファイルは上書きしません。"
+    FOX_UPDATE=1 /bin/zsh -c "$(curl -fsSL "$GET")"
+    ;;
+  setup)   cd ~ && claude "/fox-setup" ;;
+  connect) open "$HOME/Tools/fox-bridge/つなぐ.command" ;;
+  guide)   open "$GUIDE" ;;
+  *) sed -n '2,8p' "$0" | sed 's/^# //' ;;
+esac

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Discordとつなぐ</title>
+<meta name="description" content="AI秘書をDiscordとつないで、スマホから話せるようにする手順">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css"><script src="site.js"></script>
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="index.html">fox-kit</a>
+  <nav><a href="index.html">入れ方</a><a class="on" href="discord.html">Discord</a><a href="slack.html">Slack</a><a href="trouble.html">困ったとき</a></nav>
+  <div class="lv"><button data-lv="beginner">はじめて</button><button data-lv="expert">慣れている</button></div>
+</div></header>
+<main>
+<h1>Discordとつなぐ</h1>
+<p class="lead">つなぐと、スマホのDiscordからAIに話しかけられるようになります。<b>手でやるのは3か所だけ</b>。残り（チャンネル作り・いつでも返事できる設定・つながったかの確認）は自動です。</p>
+
+<div class="need">
+  <div><b>時間</b>10分ほど</div>
+  <div><b>いるもの</b>Discordのアカウント（無ければ途中で作れます）</div>
+  <div><b>始め方</b><span class="for-b">初期設定で「Discord」を選ぶと、設定係の画面が開きます。あとからなら「つなぐ」をダブルクリック。</span><span class="for-e"><code>~/Tools/fox-bridge/つなぐ.command</code> または <code>python3 connect.py</code></span></div>
+</div>
+
+<div class="note">英語の画面が出てきます。ボタンの名前は <span class="btn">英語<i>（日本語の意味）</i></span> の形で書いています。</div>
+
+<h2>手でやる3か所</h2>
+<ol class="steps">
+  <li><b class="t">AIの部屋（サーバー）を用意する</b>
+    <span class="for-b">新しく作るのがおすすめです。画面の左はしの <span class="btn">＋<i>（サーバーを追加）</i></span> →「オリジナルの作成」→「自分と友達のため」→ 名前（例：「ヤマダAIの部屋」）を入れて「新規作成」。<br>いつも使っているサーバーに入れることもできます。</span>
+    <span class="for-e">新規作成 or 既存（管理者権限が必要）。</span></li>
+  <li><b class="t">AIの分身（ボット）を作って、鍵をコピーする</b>
+    設定係が <a href="https://discord.com/developers/applications">開発者用の画面</a> を開きます。
+    <ol>
+      <li>右上の <span class="btn">New Application<i>（新しいアプリ）</i></span></li>
+      <li>名前にAIの名前を入れ、同意にチェック → <span class="btn">Create<i>（作成）</i></span></li>
+      <li>左の一覧の <span class="btn">Bot</span></li>
+      <li><span class="btn">Reset Token<i>（鍵を作り直す）</i></span> → <span class="btn">Yes, do it!<i>（はい）</i></span>（パスワードを聞かれたら入れる）</li>
+      <li>出てきた長い文字列の <span class="btn">Copy<i>（コピー）</i></span> → 設定係の画面に貼り付けて <span class="btn">return</span></li>
+    </ol>
+    <span class="for-b">貼り付けても画面には何も出ません（見えないようにしています）。そのまま return を押して大丈夫です。</span></li>
+  <li><b class="t">ボットをサーバーに招待する</b>
+    設定係が招待の画面を開きます。「サーバーに追加」で1のサーバーを選び → <span class="btn">はい</span> → <span class="btn">認証</span>。
+    <span class="for-e">権限は固定済み（チャンネル閲覧・送信・履歴・添付・埋め込み・チャンネル管理・リアクション）。</span></li>
+</ol>
+
+<h2>自動で進むこと</h2>
+<ul>
+  <li>AIが文章を読めるようにする設定 <span class="for-e">（<code>PATCH /applications/@me</code> で限定版 Message Content を有効化。できない場合だけ、Botの画面で <span class="btn">MESSAGE CONTENT INTENT</span> をオン→<span class="btn">Save Changes</span> を案内）</span></li>
+  <li>AIの名前のカテゴリと、<b>#相談</b>（ここに書くとAIが返事）・#お知らせ・#記録 のチャンネル作成</li>
+  <li>いつでも返事ができる設定（Macが起きている間）</li>
+  <li>つながったかの確認：#相談 に「はじめまして」と送ると、AIが返事をします</li>
+</ul>
+
+<div class="note"><b>鍵（長い文字列）は、誰にも見せないでください。</b>AIとの会話やチャットにも貼らないでください。貼ってしまったら、手順2の <span class="btn">Reset Token</span> で作り直せば古い鍵は使えなくなります。</div>
+<div class="note okbox">Macのふたを閉じる・電源を切ると、返事が止まります。いつでも返事をさせたいMacは、電源につないだままにしてください。</div>
+</main>
+<footer>うまくいかないときは <a href="trouble.html">困ったとき</a> へ。</footer>
+</body>
+</html>

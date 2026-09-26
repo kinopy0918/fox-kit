@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# 秘密をGitHubへ上げないための最後の関所。
+#
+# なぜ要るか: fox-secrets-sync の README は「.gitignore ＋ グローバル commit hook で
+# ブロック」と書いているが、hookの実体は存在しなかった（2026-08-27に判明）。
+# 同じ日に Mac mini から47リポジトリへ push できるようにしたので、
+# **守りが無いまま射程だけ広がった**状態だった。それを塞ぐもの。
+#
+# 設計:
+# - ステージされた差分の「追加行だけ」を見る。既存行は対象外（過去の混入は別途対応）。
+# - 誤検知で作業を止めないよう、逃げ道を1つだけ用意する: FOX_ALLOW_SECRET=1
+#   （必ず中身を見てから使うこと。習慣で付けるなら関所の意味が無い）
+# - バイナリは中身を見ない。巨大な差分でも数秒で終わる程度に絞る。
+set -uo pipefail
+
+if [ "${FOX_ALLOW_SECRET:-0}" = "1" ]; then
+    echo "⚠️  FOX_ALLOW_SECRET=1 のため秘密チェックを飛ばしました"
+    exit 0
+fi
+
+# ── ファイル名で弾くもの ───────────────────────────────
+# .env や鍵ファイルは、中身が何であれリポジトリに入れない。
+staged="$(git diff --cached --name-only --diff-filter=ACM)"
+bad_names=""
+while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    base="${f##*/}"
+    case "$base" in
+        .env|.env.*)
+            # .env.example / .env.sample は雛形なので通す
+            case "$base" in .env.example|.env.sample|.env.template) ;; *) bad_names="$bad_names\n  $f" ;; esac ;;
+        *.pem|*.key|id_rsa|id_ed25519|id_ecdsa|*.p12|*.pfx|*service-account*.json|*sa-key*.json)
+            bad_names="$bad_names\n  $f" ;;
+    esac
+done <<< "$staged"
+
+# ── 中身で弾くもの ─────────────────────────────────
+# 追加行(^+)だけを対象にする。プレフィックスが決まっているものだけを見て、
+# 「password=」のような一般語は入れない（誤検知で関所が信用されなくなる方が損）。
+patterns='sk-ant-[A-Za-z0-9_-]{20}|sk-[A-Za-z0-9]{32}|gh[pousr]_[A-Za-z0-9]{30}|github_pat_[A-Za-z0-9_]{30}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[A-Za-z0-9-]{10}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|discord(app)?\.com/api/webhooks/[0-9]{15}|glpat-[A-Za-z0-9_-]{20}'
+
+hits="$(git diff --cached --unified=0 --diff-filter=ACM -- . \
+        | grep -E '^\+' | grep -v '^+++' \
+        | grep -nEo "$patterns" 2>/dev/null | sort -u | head -10)"
+
+if [ -z "$bad_names" ] && [ -z "$hits" ]; then
+    exit 0
+fi
+
+echo
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  コミットを止めました。秘密が混ざっている可能性があります  ║"
+echo "╚══════════════════════════════════════════════════════════╝"
+if [ -n "$bad_names" ]; then
+    echo
+    echo "▼ リポジトリに入れてはいけないファイル:"
+    printf "$bad_names\n"
+    echo "   → .gitignore に足して  git rm --cached <file>  で外す"
+fi
+if [ -n "$hits" ]; then
+    echo
+    echo "▼ 追加行に見つかった秘密らしき文字列（前後は伏せています）:"
+    # 値そのものをターミナルに全部出すと、そこからも漏れる。頭だけ見せる。
+    echo "$hits" | sed -E 's/^([0-9]+:)?(.{0,12}).*/  \2…/' | sort -u
+    echo "   → 秘密は fox-secrets-sync 経由（Drive・暗号化）で共有する"
+fi
+echo
+echo "誤検知だと確認できたときだけ:  FOX_ALLOW_SECRET=1 git commit ..."
+echo
+exit 1

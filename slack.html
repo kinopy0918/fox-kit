@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Slackとつなぐ</title>
+<meta name="description" content="AI秘書をSlackとつないで、スマホから話せるようにする手順">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css"><script src="site.js"></script>
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="index.html">fox-kit</a>
+  <nav><a href="index.html">入れ方</a><a href="discord.html">Discord</a><a class="on" href="slack.html">Slack</a><a href="trouble.html">困ったとき</a></nav>
+  <div class="lv"><button data-lv="beginner">はじめて</button><button data-lv="expert">慣れている</button></div>
+</div></header>
+<main>
+<h1>Slackとつなぐ</h1>
+<p class="lead">会社でSlackを使っているなら、こちら。<b>手でやるのは2か所だけ</b>。チャンネル作りと、いつでも返事ができる設定は自動です。</p>
+
+<div class="need">
+  <div><b>時間</b>10分ほど</div>
+  <div><b>いるもの</b>Slackのワークスペース（無ければ途中で作れます）</div>
+  <div><b>注意</b>会社のSlackでは、アプリを入れるのに管理者の許可が要ることがあります</div>
+</div>
+<div class="note">英語の画面が出てきます。ボタンの名前は <span class="btn">英語<i>（日本語の意味）</i></span> の形で書いています。</div>
+
+<h2>手でやる2か所</h2>
+<ol class="steps">
+  <li><b class="t">AIの分身（アプリ）を作る</b>
+    設定係が、<b>設定が入った状態の作成画面</b>を開きます。
+    <ol>
+      <li>AIを入れるワークスペースを選ぶ → <span class="btn">Next<i>（次へ）</i></span></li>
+      <li>もう一度 <span class="btn">Next</span> → <span class="btn">Create<i>（作成）</i></span></li>
+      <li><span class="btn">Install to Workspace<i>（ワークスペースに入れる）</i></span> → <span class="btn">許可する</span></li>
+    </ol>
+    <span class="for-e">manifest: bot scopes = channels:history/read/manage/join, chat:write, files:read/write, users:read, reactions:write。Socket Mode 不使用（ポーリング方式）なので app-level token（xapp）は不要。</span></li>
+  <li><b class="t">鍵をコピーして貼る</b>
+    左の一覧の <span class="btn">OAuth &amp; Permissions<i>（許可の設定）</i></span> → <span class="btn">Bot User OAuth Token</span>（<code>xoxb-</code> で始まる）の <span class="btn">Copy</span> → 設定係の画面に貼り付けて <span class="btn">return</span>。
+    <span class="for-b">「User」ではなく「Bot」の方です。貼り付けても画面には何も出ません。</span></li>
+</ol>
+
+<h2>自動で進むこと</h2>
+<ul>
+  <li>AI用のチャンネル作成（ここに書くとAIが返事）</li>
+  <li>いつでも返事ができる設定（Macが起きている間）</li>
+  <li>つながったかの確認：開いたチャンネルに「はじめまして」と送ると、AIが返事をします</li>
+</ul>
+<div class="note">Slackの無料プランでは、見られる会話の履歴が直近90日分になります。</div>
+<div class="note"><b>鍵（xoxb- で始まる文字列）は、誰にも見せないでください。</b>AIとの会話にも貼らないでください。</div>
+</main>
+<footer>うまくいかないときは <a href="trouble.html">困ったとき</a> へ。</footer>
+</body>
+</html>

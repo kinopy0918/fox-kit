@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""PageSpeed Insights CLI — 今この瞬間のスコアを叩く
+
+  psi https://www.getc.co.jp/
+  psi https://www.getc.co.jp/ --mobile
+  psi https://www.getc.co.jp/ --full        # 改善項目も表示
+  psi https://a.com/ https://b.com/         # 複数URL
+  psi https://www.getc.co.jp/ --json > r.json
+"""
+import json
+import os
+import subprocess
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+ENDPOINT = "https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed"
+KEY_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), ".api_key")
+QUOTA_PROJECT = "main-presence-337307"
+
+C = {"g": "\033[32m", "y": "\033[33m", "r": "\033[31m", "b": "\033[1m", "d": "\033[2m", "0": "\033[0m"}
+if not sys.stdout.isatty():
+    C = dict.fromkeys(C, "")
+
+
+def band(score):
+    return C["g"] if score >= 90 else C["y"] if score >= 50 else C["r"]
+
+
+def auth_headers():
+    """APIキーがあれば使う。無ければ gcloud の OAuth にフォールバック。"""
+    if os.path.exists(KEY_FILE):
+        with open(KEY_FILE) as f:
+            k = f.read().strip()
+        if k:
+            return {}, k
+    try:
+        # 使う Google アカウントは PSI_GCLOUD_ACCOUNT で固定できる（未設定なら gcloud の既定）
+        cmd = ["gcloud", "auth", "print-access-token"]
+        acct = os.environ.get("PSI_GCLOUD_ACCOUNT", "").strip()
+        if acct:
+            cmd += ["--account", acct]
+        t = subprocess.run(cmd, capture_output=True, text=True, timeout=30).stdout.strip()
+        if t:
+            return {"Authorization": "Bearer " + t, "x-goog-user-project": QUOTA_PROJECT}, None
+    except Exception:
+        pass
+    sys.exit("認証情報なし: ~/Tools/psi/.api_key を置くか gcloud auth login してください")
+
+
+def run(url, strategy):
+    headers, key = auth_headers()
+    q = {"url": url, "strategy": strategy, "category": "performance"}
+    if key:
+        q["key"] = key
+    req = urllib.request.Request(ENDPOINT + "?" + urllib.parse.urlencode(q), headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")
+        try:
+            msg = json.loads(body)["error"]["message"]
+        except Exception:
+            msg = body[:300]
+        return {"__error": f"HTTP {e.code}: {msg}"}
+    except Exception as e:
+        return {"__error": str(e)}
+
+
+METRICS = [
+    ("first-contentful-paint", "FCP"),
+    ("largest-contentful-paint", "LCP"),
+    ("total-blocking-time", "TBT"),
+    ("cumulative-layout-shift", "CLS"),
+    ("speed-index", "Speed Index"),
+]
+FIELD = [
+    ("LARGEST_CONTENTFUL_PAINT_MS", "LCP", "ms"),
+    ("FIRST_CONTENTFUL_PAINT_MS", "FCP", "ms"),
+    ("EXPERIMENTAL_TIME_TO_FIRST_BYTE", "TTFB", "ms"),
+    ("INTERACTION_TO_NEXT_PAINT", "INP", "ms"),
+    ("CUMULATIVE_LAYOUT_SHIFT_SCORE", "CLS", ""),
+]
+
+
+def show(d, strategy, full=False):
+    if "__error" in d:
+        print(f"  {C['r']}ERROR{C['0']} {d['__error']}")
+        return
+    lr = d["lighthouseResult"]
+    a = lr["audits"]
+    s = round(lr["categories"]["performance"]["score"] * 100)
+    print(f"  {C['b']}{strategy:<9}{C['0']} スコア {band(s)}{C['b']}{s:>3}{C['0']}", end="   ")
+    print("  ".join(f"{lbl} {a[k].get('displayValue','-')}" for k, lbl in METRICS if k in a))
+    tb = a.get("total-byte-weight", {}).get("numericValue")
+    sr = a.get("server-response-time", {}).get("numericValue")
+    extra = []
+    if tb:
+        extra.append(f"総バイト {round(tb/1024):,}KB")
+    if sr:
+        extra.append(f"サーバー応答 {round(sr)}ms")
+    if extra:
+        print(f"  {C['d']}{'':<9} " + " / ".join(extra) + C["0"])
+
+    le = d.get("loadingExperience", {}) or {}
+    if le.get("metrics"):
+        cat = le.get("overall_category", "")
+        col = C["g"] if cat == "FAST" else C["y"] if cat == "AVERAGE" else C["r"]
+        vals = []
+        for k, lbl, unit in FIELD:
+            m = le["metrics"].get(k)
+            if m:
+                vals.append(f"{lbl} {m.get('percentile')}{unit}")
+        print(f"  {C['d']}{'':<9} 実ユーザー(CrUX) {col}{cat}{C['0']}{C['d']} — " + " / ".join(vals) + C["0"])
+
+    if full:
+        rows = []
+        for k, x in a.items():
+            det = x.get("details") or {}
+            ms = (det.get("overallSavingsMs") or 0)
+            by = (det.get("overallSavingsBytes") or det.get("debugData", {}).get("wastedBytes") or 0)
+            if x.get("score") is not None and x["score"] < 0.9 and (ms > 50 or by > 20000):
+                rows.append((by, ms, x.get("title", k)))
+        if rows:
+            print(f"  {C['d']}{'':<9} 改善項目:{C['0']}")
+            for by, ms, t in sorted(rows, reverse=True):
+                bits = []
+                if ms > 50:
+                    bits.append(f"{round(ms)}ms")
+                if by > 20000:
+                    bits.append(f"{round(by/1024)}KB")
+                print(f"  {'':<11}- {t} ({' / '.join(bits)})")
+
+
+def main():
+    args = [x for x in sys.argv[1:]]
+    flags = {x for x in args if x.startswith("-")}
+    urls = [x for x in args if not x.startswith("-")]
+    if not urls:
+        print(__doc__)
+        sys.exit(1)
+    strategies = []
+    if "--mobile" in flags:
+        strategies.append("mobile")
+    if "--desktop" in flags:
+        strategies.append("desktop")
+    if not strategies:
+        strategies = ["mobile", "desktop"]
+
+    if "--json" in flags:
+        out = {u: {s: run(u, s) for s in strategies} for u in urls}
+        json.dump(out, sys.stdout, ensure_ascii=False, indent=1)
+        return
+
+    full = "--full" in flags
+    for u in urls:
+        print(f"\n{C['b']}{u}{C['0']}")
+        for s in strategies:
+            show(run(u, s), s, full)
+    print()
+
+
+if __name__ == "__main__":
+    main()

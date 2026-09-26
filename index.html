@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>fox-kit</title>
+<meta name="description" content="あなた専用のAI秘書を、Macに1行で入れる手順書">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css"><script src="site.js"></script>
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="index.html">fox-kit</a>
+  <nav><a class="on" href="index.html">入れ方</a><a href="discord.html">Discord</a><a href="slack.html">Slack</a><a href="trouble.html">困ったとき</a></nav>
+  <div class="lv"><button data-lv="beginner">はじめて</button><button data-lv="expert">慣れている</button></div>
+</div></header>
+<main>
+<h1>AI秘書を、<span>1行</span>で入れる。</h1>
+<p class="lead for-b">あなたの仕事を手伝うAI秘書を、このMacに用意します。黒い画面に1行はり付けるだけで、あとは画面の質問に答えていけば終わります。</p>
+<p class="lead for-e">Claude Code を汎用FOXとして組み立てるインストーラ。本体・作法集（32項目）・資料品質ループ・保存先・Discord/Slack 接続まで。</p>
+
+<h2>はじめる前に（3つだけ）</h2>
+<div class="need">
+  <div><b>いるもの 1</b>Mac（2020年以降のものがおすすめ）</div>
+  <div><b>いるもの 2</b>Claude の契約（Pro／Max／Team）<br><span class="for-b">会社で使うなら、会社で契約したもの</span></div>
+  <div><b>時間</b>20〜30分<br><span class="for-b">パソコンの画面を2つ並べられると楽です</span></div>
+</div>
+
+<h2>入れ方</h2>
+<ol class="steps">
+  <li><b class="t">「ターミナル」を開く</b>
+    <span class="for-b">キーボードの <span class="btn">command</span> を押しながら <span class="btn">スペース</span> を押し、「ターミナル」と打って <span class="btn">return</span>。文字だけの画面（黒か白）が開きます。</span>
+    <span class="for-e">⌘+Space → ターミナル</span></li>
+  <li><b class="t">次の1行をコピーして、ターミナルに貼り付けて <span class="btn">return</span></b>
+    <div class="cmd">/bin/zsh -c "$(curl -fsSL https://kinopy0918.github.io/fox-kit/get.sh)"</div></li>
+  <li><b class="t">画面の質問に答える</b>
+    最初に「はじめてか・慣れているか」を聞かれます。<span class="for-b">「1（はじめて）」を選ぶと、この先の案内も、入れたあとのAIの話し方も、むずかしい言葉を使わなくなります。</span>
+    続けて、あなたのお名前・AIの名前・このMacの呼び方・主な用途を聞かれます。</li>
+  <li><b class="t">Appleの追加部品が必要と出たら「インストール」</b>
+    <span class="for-b">初めて使うMacでは「コマンドライン・デベロッパ・ツールをインストールしますか？」と出ることがあります。「インストール」を押して、終わるまで待ってください（10〜20分）。</span>
+    <span class="for-e">素のMacでは xcode-select --install が走り、完了まで待ちます（python3 用）。</span></li>
+  <li><b class="t">ブラウザでログイン</b>
+    AIの契約をしたアカウントで「ログイン」→「許可」。<b>会社のMacなら会社のアカウント</b>で。</li>
+  <li><b class="t">AIとの最初のお話（初期設定）</b>
+    AIが、仕事のこと・使っている道具・資料の保存先・任せたい仕事を1つずつ聞いてきます。答えるだけで設定が進みます。
+    <span class="for-b">資料の保存先は「Googleドライブ」をおすすめします（アプリが無ければAIが入れます）。</span></li>
+  <li><b class="t">スマホからも話せるようにする（おすすめ）</b>
+    初期設定の途中で「Discord か Slack か」を選ぶと、つなぐための画面が開きます。
+    手順は <a href="discord.html">Discordとつなぐ</a>／<a href="slack.html">Slackとつなぐ</a> に1つずつ書いてあります。</li>
+</ol>
+
+<div class="note okbox for-b"><b>途中で止まっても大丈夫です。</b>同じ1行をもう一度貼り付けると、答えた内容を覚えていて、続きから始まります。</div>
+<div class="note">このAIは、いちいち「実行してよいですか？」と聞かずに作業を進める設定になります。<b>お金が動くこと・社外に送ること・あなたしか知らない判断</b>は、必ず先に確認する決まりが入っています。</div>
+
+<div class="for-e">
+<h2>会社で配るとき（質問を省く）</h2>
+<div class="cmd">FOX_LEVEL=beginner FOX_OWNER="山田さん" FOX_AGENT="ヤマダAI" FOX_MACHINE="事務所のMac" FOX_ROLE="経理の自動化" \
+/bin/zsh -c "$(curl -fsSL https://kinopy0918.github.io/fox-kit/get.sh)"</div>
+<table>
+<tr><th>変数</th><th>意味</th></tr>
+<tr><td><code>FOX_LEVEL</code></td><td><code>beginner</code>（専門用語なし）／<code>expert</code></td></tr>
+<tr><td><code>FOX_PROFILE</code></td><td>会社ごとの規則（<code>rules/*.md</code> を含む tar.gz のURLかフォルダ）。CLAUDE.md から常時読み込み</td></tr>
+<tr><td><code>FOX_REMOTE=1</code> ＋ <code>FOX_SSH_KEY</code></td><td>遠隔保守用の Tailscale＋SSH</td></tr>
+<tr><td><code>FOX_DEDICATED=1</code></td><td>専用機：電源接続中はスリープしない</td></tr>
+<tr><td><code>FOX_RESET=1</code></td><td>覚えた答え（<code>~/.config/fox-kit/state.env</code>）を消して最初から</td></tr>
+</table>
+<h2>入るもの</h2>
+<table>
+<tr><td><code>~/.claude/CLAUDE.md</code></td><td>人格（名前・持ち主・役割）＋ 作法の読み込み</td></tr>
+<tr><td><code>~/.claude/rules/</code></td><td>craft.md（作法32項目）・talk-style.md・storage.md（保存と探し方）・company.md</td></tr>
+<tr><td><code>~/.claude/skills/</code></td><td>fox-setup（初期設定）・shiryo-review-loop（資料の品質ループ）</td></tr>
+<tr><td><code>~/Tools/</code></td><td>fox-bridge（Discord/Slack）ほか汎用ツール</td></tr>
+</table>
+</div>
+</main>
+<footer>中身はすべて <a href="https://github.com/kinopy0918/fox-kit">GitHub</a> で読めます。</footer>
+</body>
+</html>

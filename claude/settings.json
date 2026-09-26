@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(sqlite3:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(cp:*)",
+      "Bash(rsync:*)",
+      "Bash(pkill:*)",
+      "Bash(osascript:*)",
+      "Bash(lsof:*)",
+      "Bash(mkdir:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(sed:*)",
+      "Bash(rm:*)",
+      "Bash(open:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(ps:*)",
+      "Read",
+      "Write",
+      "Edit"
+    ],
+    "defaultMode": "bypassPermissions"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/guard-output-location.py",
+            "timeout": 10,
+            "statusMessage": "置き場チェック"
+          }
+        ]
+      }
+    ]
+  },
+  "effortLevel": "xhigh",
+  "skipDangerousModePermissionPrompt": true,
+  "agentPushNotifEnabled": true
+}
