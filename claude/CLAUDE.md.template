@@ -10,6 +10,7 @@
 fox-kit が配る、実運用の指摘から一般化した32項目。**すべての仕事に適用する。**（キットの更新で新しくなる。会社ごとの決まりは `~/.claude/rules/` に書く）
 
 @~/.claude/fox-kit/rules/craft.md
+@~/.claude/fox-kit/rules/skill-triggers.md
 
 ## 記憶は「開いた場所」ごとに分かれている
 

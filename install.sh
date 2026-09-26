@@ -156,6 +156,9 @@ if [[ $DRY == 0 && -f "$HOME/.claude/CLAUDE.md" ]] && ! grep -q "fox-kit/rules/c
   printf '\n## 常に守る作法\n\n@~/.claude/fox-kit/rules/craft.md\n' >> "$HOME/.claude/CLAUDE.md"
   echo "  既存の CLAUDE.md に作法の読み込みを追加しました"
 fi
+if [[ $DRY == 0 && -f "$HOME/.claude/CLAUDE.md" ]] && ! grep -q "fox-kit/rules/skill-triggers.md" "$HOME/.claude/CLAUDE.md"; then
+  printf '\n@~/.claude/fox-kit/rules/skill-triggers.md\n' >> "$HOME/.claude/CLAUDE.md"
+fi
 
 # ---------------------------------------------------------------- 4. memory
 say "記憶の索引スケルトン"

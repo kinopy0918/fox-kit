@@ -3,3 +3,6 @@ __pycache__/
 .DS_Store
 _m_*.html
 _probe.html
+node_modules/
+package-lock.json
+.venv/

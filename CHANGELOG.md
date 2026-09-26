@@ -11,3 +11,6 @@
 - Discord / Slack とつなぐ部品（`fox-bridge`）：手作業はDiscord 3か所・Slack 2か所
 - `fox-kit` コマンド（状態・更新・初期設定・接続・手順書）
 - 更新の仕組み：手を入れたファイルは上書きせず、育つファイルはさわらない
+- パソコンの設定：据え置き/持ち歩きに合わせた電源・スリープ、停電後の自動起動、Antigravity（Claude Code 拡張・日本語化）
+- スキルと道具（`fox-kit packs`）：SEO・マーケティング・Obsidian・文書（docx/xlsx/pptx/pdf）・世間の反応・文章の仕上げ（プラグイン）／動画づくり・セキュリティ・構成図・キャラ画像・Google ほか（配布元から取得）／デザイン3本・動画を見る（同梱）／画像生成 nanobanana・意味検索 vault-rag／ブラウザ操作（Playwright）。道具は Homebrew で node・ffmpeg・yt-dlp・poppler・whisper-cpp・uv・Chrome・Obsidian
+- スキル発動トリガー索引（20項目）：スキル名を覚えていなくても、言葉で自動的に使う

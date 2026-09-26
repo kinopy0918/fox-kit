@@ -29,6 +29,8 @@ Claude Code を「その人・その会社専用の秘書」として組み立�
 | 初期設定の聞き取り・資料の品質ループ | `~/.claude/skills/fox-setup` ・ `shiryo-review-loop` | 同上（差し戻し一覧 `checklist.md` は育つのでさわらない） |
 | 資料のチェック役 | `~/.claude/agents/shiryo-reviewer.md` | 同上 |
 | Discord / Slack とつなぐ部品 | `~/Tools/fox-bridge` | 同上 |
+| デザイン・動画を見る スキル／画像生成・意味検索 | `~/.claude/skills/*`・`~/Tools/nanobanana`・`~/Tools/vault-rag` | 同上 |
+| 第三者のスキル（SEO・動画づくり・Obsidian ほか） | プラグイン・`~/.claude/skills/*` | `fox-kit packs` で配布元から取り直す（fox-kit は再配布しない） |
 | 会社ごとの決まり・話し方・保存先 | `~/.claude/rules/*.md` | さわらない（持ち主のもの） |
 | AIの記憶 | 選んだ保存先の `08_AIの記憶/` | さわらない |
 
@@ -39,6 +41,8 @@ fox-kit            # いまの状態（版・ログイン・保存先・Discord/
 fox-kit update     # 新しい版に更新（手を入れたファイルは上書きせず、横に .new-版 を置く）
 fox-kit setup      # 初期設定の聞き取りをもう一度
 fox-kit connect    # Discord / Slack とつなぐ
+fox-kit mac        # パソコンの設定（眠る・眠らない／Antigravity）
+fox-kit packs      # スキルと道具をそろえる（key で Gemini の鍵を登録）
 fox-kit guide      # 手順書を開く
 ```
 

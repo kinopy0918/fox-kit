@@ -35,7 +35,7 @@ KIT_DIR="$HOME/Tools/portable-fox"
 STATE="$HOME/.config/fox-kit/state.env"
 LOG="$HOME/Library/Logs/fox-install.log"
 mkdir -p "${STATE:h}" "${LOG:h}"
-TOTAL=8
+TOTAL=9
 
 # ------------------------------------------------------------------ 表示の道具
 c()    { printf '\033[%sm%s\033[0m' "$1" "$2"; }
@@ -272,8 +272,21 @@ else
   TODO+=("$(t "パソコンの設定（眠る・眠らない／Antigravity）：この黒い画面で  fox-kit mac  と打つ" "fox-kit mac")")
 fi
 
+# ------------------------------------------------------------------ 6. スキルと道具
+step 6 "$(t "スキルと道具をそろえる（SEO・動画・ノート・画像・意味で探す・ブラウザ操作 ほか）" "packs（plugins / upstream skills / brew / MCP / Gemini key）")"
+if done_ packs; then
+  ok "$(t "そろっています（入れ直すときは fox-kit packs）" "done（fox-kit packs install で再実行）")"
+elif [[ -n "${FOX_SKIP_PACKS:-}" ]]; then
+  warn "飛ばしました（検証用）"
+elif has_tty && [[ -f "$HOME/Tools/fox-packs/packs.py" ]]; then
+  python3 "$HOME/Tools/fox-packs/packs.py" install < /dev/tty && mark packs \
+    || warn "$(t "途中で止まりました。あとで fox-kit packs でやり直せます" "packs 失敗（fox-kit packs install）")"
+else
+  TODO+=("$(t "スキルと道具をそろえる：この黒い画面で  fox-kit packs  と打つ（20分ほど）" "fox-kit packs install")")
+fi
+
 # ------------------------------------------------------------------ 5. ログイン
-step 6 "$(t "AIのアカウントにログイン" "Claude にログイン")"
+step 7 "$(t "AIのアカウントにログイン" "Claude にログイン")"
 logged_in() { claude auth status 2>/dev/null | grep -qi '"loggedIn": *true'; }
 if [[ -n "${FOX_SKIP_LOGIN:-}${FOX_SKIP_CLAUDE:-}" ]]; then
   warn "飛ばしました（検証用）"
@@ -289,7 +302,7 @@ else
 fi
 
 # ------------------------------------------------------------------ 6. あいさつ
-step 7 "$(t "AIにあいさつしてもらう" "動作確認")"
+step 8 "$(t "AIにあいさつしてもらう" "動作確認")"
 if done_ login; then
   if (cd ~ && claude -p "一言で自己紹介して。あなたの名前と、誰の秘書かを言って" --output-format text); then
     mark hello
@@ -301,7 +314,7 @@ else
 fi
 
 # ------------------------------------------------------------------ 7. 初期設定の聞き取り
-step 8 "$(t "AIと最初のお話（初期設定）" "初期設定の聞き取り")"
+step 9 "$(t "AIと最初のお話（初期設定）" "初期設定の聞き取り")"
 if done_ interview; then
   ok "$(t "初期設定は済んでいます（やり直すときは fox-kit setup）" "interview: done")"
 elif done_ login && [[ -z "${FOX_NO_INTERVIEW:-}" ]] && [[ -d "$HOME/.claude/skills/fox-setup" ]] && has_tty; then
