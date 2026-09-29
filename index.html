@@ -18,11 +18,12 @@
 <p class="lead for-b">あなたの仕事を手伝うAI秘書を、このMacに用意します。黒い画面に1行はり付けるだけで、あとは画面の質問に答えていけば終わります。</p>
 <p class="lead for-e">Claude Code を汎用FOXとして組み立てるインストーラ。本体・作法集（32項目）・資料品質ループ・保存先・Discord/Slack 接続まで。</p>
 
-<h2>はじめる前に（3つだけ）</h2>
+<h2>はじめる前に</h2>
 <div class="need">
   <div><b>いるもの 1</b>Mac（2020年以降のものがおすすめ）</div>
-  <div><b>いるもの 2</b>Claude の契約（Pro／Max／Team）<br><span class="for-b">会社で使うなら、会社で契約したもの</span></div>
-  <div><b>時間</b>20〜30分<br><span class="for-b">パソコンの画面を2つ並べられると楽です</span></div>
+  <div><b>いるもの 2</b>Claude の有料の契約（Pro／Max／Team）<br><span class="for-b">無料のままでは使えません。会社で使うなら、会社で契約したもの</span></div>
+  <div><b>いるもの 3</b>会社の Google アカウントと、使うなら Slack にログインできること<br><span class="for-b">確認のコードが届くスマホを手元に</span></div>
+  <div><b>時間</b>1時間ほど<br><span class="for-b">途中で待つ時間があります。Macが眠らないよう、ふたは開けたままで</span></div>
 </div>
 
 <h2>入れ方</h2>
@@ -31,24 +32,21 @@
     <span class="for-b">キーボードの <span class="btn">command</span> を押しながら <span class="btn">スペース</span> を押し、「ターミナル」と打って <span class="btn">return</span>。文字だけの画面（黒か白）が開きます。</span>
     <span class="for-e">⌘+Space → ターミナル</span></li>
   <li><b class="t">次の1行をコピーして、ターミナルに貼り付けて <span class="btn">return</span></b>
-    <div class="cmd">/bin/zsh -c "$(curl -fsSL https://kinopy0918.github.io/fox-kit/get.sh)"</div></li>
-  <li><b class="t">画面の質問に答える</b>
-    最初に「はじめてか・慣れているか」を聞かれます。<span class="for-b">「1（はじめて）」を選ぶと、この先の案内も、入れたあとのAIの話し方も、むずかしい言葉を使わなくなります。</span>
-    続けて、あなたのお名前・AIの名前・このMacの呼び方・主な用途を聞かれます。</li>
+    <div class="cmd">/bin/zsh -c "$(curl -fsSL https://kinopy0918.github.io/fox-kit/get.sh)"</div>
+    <span class="for-b">ターミナルを使うのはここだけです。</span></li>
   <li><b class="t">Appleの追加部品が必要と出たら「インストール」</b>
-    <span class="for-b">初めて使うMacでは「コマンドライン・デベロッパ・ツールをインストールしますか？」と出ることがあります。「インストール」を押して、終わるまで待ってください（10〜20分）。</span>
+    <span class="for-b">初めて使うMacでは「コマンドライン・デベロッパ・ツールをインストールしますか？」と出ます。「インストール」→「同意する」を押して、終わるまで待ってください（10〜20分）。</span>
     <span class="for-e">素のMacでは xcode-select --install が走り、完了まで待ちます（python3 用）。</span></li>
-  <li><b class="t">ブラウザでログイン</b>
-    AIの契約をしたアカウントで「ログイン」→「許可」。<b>会社のMacなら会社のアカウント</b>で。</li>
-  <li><b class="t">AIとの最初のお話（初期設定）</b>
-    AIが、仕事のこと・使っている道具・資料の保存先・任せたい仕事を1つずつ聞いてきます。答えるだけで設定が進みます。
-    <span class="for-b">資料の保存先は「Googleドライブ」をおすすめします（アプリが無ければAIが入れます）。</span></li>
-  <li><b class="t">スマホからも話せるようにする（おすすめ）</b>
-    初期設定の途中で「Discord か Slack か」を選ぶと、つなぐための画面が開きます。
-    手順は <a href="discord.html">Discordとつなぐ</a>／<a href="slack.html">Slackとつなぐ</a> に1つずつ書いてあります。</li>
+  <li><b class="t">ブラウザに「設定画面」が開く → あとは画面の案内どおり</b>
+    いまやることが画面の真ん中に1つだけ出ます。押していけば順に進みます（全10ステップ）。
+    <span class="for-b">名前を決める → AIのアカウントにログイン → パソコンの設定 → 資料の保存先（Googleドライブがおすすめ）→ Slack か Discord とつなぐ → AIと最初のお話、の順です。</span></li>
+  <li><b class="t">終わったら、Slack・Discord で話しかける</b>
+    <span class="for-b">これからの用事も、困ったことも、つないだチャンネルで AI に話しかけるだけです。</span>
+    <span class="for-e">この Mac の前では Antigravity（Claude Code 拡張入り）から指示するのが速い。</span>
+    手順の詳しい写真は <a href="discord.html">Discordとつなぐ</a>／<a href="slack.html">Slackとつなぐ</a> にもあります。</li>
 </ol>
 
-<div class="note okbox for-b"><b>途中で止まっても大丈夫です。</b>同じ1行をもう一度貼り付けると、答えた内容を覚えていて、続きから始まります。</div>
+<div class="note okbox for-b"><b>途中で止まっても大丈夫です。</b>同じ1行をもう一度貼り付けると、設定画面が続きのところから開きます。</div>
 <div class="note">このAIは、いちいち「実行してよいですか？」と聞かずに作業を進める設定になります。<b>お金が動くこと・社外に送ること・あなたしか知らない判断</b>は、必ず先に確認する決まりが入っています。</div>
 
 <div class="for-e">

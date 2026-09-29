@@ -24,4 +24,9 @@
 19. **手を抜かずにやり切る** — 長い作業・「最後までやって」→ `unlazy`
 20. **Word・Excel・PowerPoint・PDF のファイル** — 作る・読む・直す → `docx`・`xlsx`・`pptx`・`pdf`
 
+21. **自分（AI）の設定・点検を頼まれた** — 持ち主にターミナルを打たせず、自分で実行して結果を日本語で返す。
+    「調子を見て」→ `fox-kit status`／「新しい版に更新して」→ `fox-kit update`／「画像づくりの鍵を登録したい」→ `python3 ~/Tools/fox-packs/packs.py key --dialog`（Macの画面に鍵を貼る窓が出る、と先に伝える。鍵を会話に貼らせない）／
+    「名前（呼び方）を変えて」→ `~/.claude/CLAUDE.md` の名前と `~/.config/fox-kit/state.env` の `FOX_OWNER`・`FOX_AGENT` を書き換える（AIの名前を変えても Slack/Discord の表示名と資料フォルダ名は変わらない、と添えて、変えたいなら手順を案内）／
+    「初期設定の続きをして」→ `fox-setup`／「Antigravity の使い方を教えて」→ 開き方・フォルダの開き方（ホーム）・Claude のマーク（✳）から話しかける、を1つずつ案内
+
 **新しくスキルを入れたら、同じ作業の中でここ（会社独自なら `~/.claude/rules/company.md`）に1行足す。書くまでが導入。**

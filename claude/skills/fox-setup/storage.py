@@ -73,7 +73,7 @@ def detect():
                 if sh:
                     for s in sorted(sh.iterdir()):
                         if s.is_dir():
-                            found.append({"kind": "Googleドライブ（共有ドライブ）", "account": acct, "path": str(s)})
+                            found.append({"kind": f"共有ドライブ「{s.name}」", "name": s.name, "account": acct, "path": str(s)})
             elif name.startswith("OneDrive"):
                 found.append({"kind": "OneDrive", "account": name.split("-", 1)[-1], "path": str(d)})
             elif name.startswith(("Dropbox", "Box")):

@@ -256,6 +256,11 @@ def act(step: str, body: dict) -> dict:
             with contextlib.redirect_stdout(f):
                 sto.detect()
             return {"ok": True, **json.loads(f.getvalue())}
+        if body.get("open_base"):
+            base = st["data"].get("storage", {}).get("base")
+            if base and Path(base).is_dir():
+                subprocess.run(["open", base])
+            return {"ok": True}
         if body.get("install_drive"):
             run_job("drive", ["/usr/bin/python3", str(KIT / "claude/skills/fox-setup/storage.py"), "install-gdrive"],
                     env=env_for(st))
@@ -399,6 +404,8 @@ def talk(body: dict, st: dict) -> dict:
 def state() -> dict:
     st = load()
     done = set(st["done"])
+    if "gemini" not in done:          # 道具が入り終わっても、鍵を「登録」か「あとで」に決めるまでは次へ進めない
+        done.discard("packs")
     cur = next((s for s, _, _ in STEPS if s not in done), "done")
     return {
         "answers": st["answers"], "data": st["data"], "current": cur,

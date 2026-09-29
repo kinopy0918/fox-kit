@@ -26,17 +26,21 @@
 
 <h2>手でやる2か所</h2>
 <ol class="steps">
+  <li><b class="t">先にブラウザで Slack にログインしておく</b>
+    <span class="for-b">ログインしていないと、次の画面で選べるワークスペースが1つも出ません。<a href="https://app.slack.com/" target="_blank">Slack を開いて</a>、会社のワークスペースが見えればOKです。</span></li>
   <li><b class="t">AIの分身（アプリ）を作る</b>
-    設定係が、<b>設定が入った状態の作成画面</b>を開きます。
+    設定画面の「アプリを作る画面を開く」を押すと、<b>設定が入った状態の作成画面</b>が開きます。
     <ol>
       <li>AIを入れるワークスペースを選ぶ → <span class="btn">Next<i>（次へ）</i></span></li>
       <li>もう一度 <span class="btn">Next</span> → <span class="btn">Create<i>（作成）</i></span></li>
-      <li><span class="btn">Install to Workspace<i>（ワークスペースに入れる）</i></span> → <span class="btn">許可する</span></li>
+      <li><span class="btn">Install to Workspace<i>（ワークスペースに入れる）</i></span> → <span class="btn">許可する</span>（押しても進まないときは、少し待ってもう一度）</li>
     </ol>
     <span class="for-e">manifest: bot scopes = channels:history/read/manage/join, chat:write, files:read/write, users:read, reactions:write。Socket Mode 不使用（ポーリング方式）なので app-level token（xapp）は不要。</span></li>
   <li><b class="t">鍵をコピーして貼る</b>
-    左の一覧の <span class="btn">OAuth &amp; Permissions<i>（許可の設定）</i></span> → <span class="btn">Bot User OAuth Token</span>（<code>xoxb-</code> で始まる）の <span class="btn">Copy</span> → 設定係の画面に貼り付けて <span class="btn">return</span>。
-    <span class="for-b">「User」ではなく「Bot」の方です。貼り付けても画面には何も出ません。</span></li>
+    入れ終わると英語の設定画面（Basic Information）になります。左の一覧の <span class="btn">OAuth &amp; Permissions<i>（許可の設定）</i></span> を押し、<b>少し下へスクロール</b>した「OAuth Tokens」の <span class="btn">Bot User OAuth Token</span>（<code>xoxb-</code> で始まる）の <span class="btn">Copy</span> → 設定画面の欄に貼り付けて <span class="btn">確かめる</span>。
+    <span class="for-b">「User」ではなく「Bot」の方です。</span></li>
+  <li><b class="t">AIのチャンネルに参加して「はじめまして」</b>
+    チャンネルを開いて、下に <span class="btn">チャンネルに参加する</span> と出ていたら押します（参加しないと送れません）。「はじめまして」と送って、AIが返事をしたら完了です。</li>
 </ol>
 
 <h2>自動で進むこと</h2>

@@ -186,7 +186,7 @@ class Slack:
         return out
 
     def send(self, channel: str, text: str, files: list[Path] = (), placeholder: str | None = None):
-        chunks = split(text, self.LIMIT) or [""]
+        chunks = split(to_mrkdwn(text), self.LIMIT) or [""]
         for i, ch in enumerate(chunks):
             if i == 0 and placeholder:
                 self.call("chat.update", {"channel": channel, "ts": placeholder, "text": ch or "（完了）"})
@@ -208,6 +208,21 @@ class Slack:
 
     def download(self, url: str, dest: Path):
         return c.download(url, dest, headers=self.h)
+
+
+def to_mrkdwn(text: str) -> str:
+    """AIの返事（Markdown）を Slack の書き方に直す。そのままだと **太字** や見出しの # が記号のまま出る。"""
+    out, code = [], False
+    for line in (text or "").splitlines():
+        if line.lstrip().startswith("```"):
+            code = not code; out.append(line); continue
+        if not code:
+            line = re.sub(r"^#{1,6}\s+(.+)$", r"*\1*", line)                 # 見出し → 太字
+            line = re.sub(r"\*\*(.+?)\*\*", r"*\1*", line)                   # **太字** → *太字*
+            line = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r"<\2|\1>", line)  # [文字](URL) → <URL|文字>
+            line = re.sub(r"^(\s*)[-*]\s+", r"\1• ", line)                    # 箇条書き
+        out.append(line)
+    return "\n".join(out)
 
 
 def split(text: str, n: int) -> list[str]:

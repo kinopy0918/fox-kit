@@ -139,7 +139,7 @@ c "1" "fox-kit（AI秘書のセットアップ）"; echo
 
 
 # ------------------------------------------------------------------ ブラウザの設定画面で進める（既定）
-if [[ -z "${FOX_TERMINAL:-}" && -z "${FOX_OWNER:-}" && -z "${SSH_CONNECTION:-}" ]]; then
+if [[ -z "${FOX_TERMINAL:-}" && -z "${FOX_OWNER:-}" && -z "${FOX_UPDATE:-}" && -z "${SSH_CONNECTION:-}" ]]; then
   B=1
   echo "  このあとは、ブラウザに出る設定画面で進めます。まず最低限の準備をします（数分）。"
   ensure_clt

@@ -255,6 +255,14 @@ def daily_index():
 
 
 # ------------------------------------------------------------------ Gemini のキー
+def ask_key() -> str:
+    """ターミナルが無いとき（Slack から AI が呼んだとき）は、Mac の画面に鍵を貼る小さな窓を出す。鍵は会話に書かせない。"""
+    script = ('display dialog "Google（Gemini）の鍵を貼り付けて「登録」を押してください。\\n（あとでやるなら「キャンセル」）" '
+              'default answer "" with hidden answer with title "画像づくりの鍵" buttons {"キャンセル", "登録"} default button "登録"')
+    r = subprocess.run(["osascript", "-e", script, "-e", "text returned of result"], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else ""
+
+
 def key():
     say(t("\n  画像づくりと「意味で探す」には、Google の AI（Gemini）の鍵が1つ要ります（無料枠あり）。",
           "\n  Gemini API キー（画像生成・埋め込み）"))
@@ -268,7 +276,8 @@ def key():
                            t("「APIキーを作成」→ できた長い文字列の横のコピーを押す", "Create API key → コピー")], 1):
         say(f"    {i}. {s}")
     for _ in range(3):
-        v = getpass.getpass(t("  コピーした鍵を貼り付けて return（画面には出ません。あとでやるなら空のまま return）: ", "  API key: ")).strip()
+        v = ask_key() if ("--dialog" in sys.argv or not sys.stdin.isatty()) else \
+            getpass.getpass(t("  コピーした鍵を貼り付けて return（画面には出ません。あとでやるなら空のまま return）: ", "  API key: ")).strip()
         if not v:
             warn(t("あとで fox-kit packs key で登録できます", "skip"))
             return False

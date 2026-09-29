@@ -27,7 +27,7 @@ h1{font-size:clamp(22px,4vw,28px);line-height:1.4;margin:4px 0 8px}
 .btn.sub{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
 .btn:disabled{opacity:.5;cursor:default}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
-.choice{display:block;border:2px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0;cursor:pointer;background:var(--card)}
+.choice{display:block;color:var(--ink);font:inherit;border:2px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0;cursor:pointer;background:var(--card)}
 .choice:has(input:checked){border-color:var(--accent);background:var(--soft)}
 .choice input{margin-right:8px;accent-color:var(--accent)}
 .choice b{font-size:16px}.choice small{display:block;color:var(--ink2);margin-left:26px;font-size:14px}
@@ -54,3 +54,7 @@ pre.log{background:var(--code);color:#cfd6e3;font:12px/1.6 "Roboto Mono",monospa
 .msg.me{background:var(--accent);color:#fff;align-self:flex-end;border-top-right-radius:4px}
 .done-list li{margin:6px 0}
 code{font:13px "Roboto Mono",monospace;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 5px;word-break:break-all}
+.note{background:var(--soft);border-left:4px solid var(--accent);border-radius:8px;padding:10px 14px;margin:14px 0;font-size:15px}
+.note ul{margin:6px 0 0;padding-left:1.2em}.note li{margin:4px 0}
+details.sub-card summary{cursor:pointer}
+.choice small{color:var(--ink2)}
