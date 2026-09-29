@@ -305,7 +305,9 @@ fi
 
 # ------------------------------------------------------------------ 6. あいさつ
 step 8 "$(t "AIにあいさつしてもらう" "動作確認")"
-if done_ login; then
+if done_ hello && [[ -n "${FOX_UPDATE:-}" ]]; then
+  ok "$(t "あいさつは済んでいます" "hello: done")"
+elif done_ login; then
   if (cd ~ && claude -p "一言で自己紹介して。あなたの名前と、誰の秘書かを言って" --output-format text); then
     mark hello
   else

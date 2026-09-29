@@ -16,6 +16,8 @@ with open(plist, "wb") as f:
                    "StartCalendarInterval": {"Hour": 7, "Minute": 20},
                    "StandardOutPath": str(HOME / "Library/Logs/fox-guard.log"),
                    "StandardErrorPath": str(HOME / "Library/Logs/fox-guard.log")}, f)
+if os.getenv("FOX_SKIP_LAUNCHD"):
+    print("（検証用：常駐の登録は飛ばしました）"); sys.exit(0)
 uid = os.getuid()
 subprocess.run(["launchctl", "bootout", f"gui/{uid}/{LABEL}"], capture_output=True)
 subprocess.run(["launchctl", "bootstrap", f"gui/{uid}", str(plist)], capture_output=True)
