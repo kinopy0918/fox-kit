@@ -233,6 +233,8 @@ if [[ -n "$__kept" ]]; then
   warn "$(t "あなたが手を入れていたファイルは残しました（新しい版は横に「.new-版」で置いてあります）" "modified files kept (see *.new-<ver>)")"
   print -r -- "$__kept" | sed 's/^/    /'
 fi
+# 毎朝の点検（スキルの見張り・健康診断）を登録
+[[ -f "$HOME/Tools/fox-guard/install.py" ]] && quiet /usr/bin/python3 "$HOME/Tools/fox-guard/install.py" ${FOX_UPDATE:+--no-reset}
 # fox-kit コマンドを使えるようにする
 mkdir -p "$HOME/.local/bin"
 ln -sf "$HOME/Tools/fox-kit-cli/fox-kit" "$HOME/.local/bin/fox-kit"

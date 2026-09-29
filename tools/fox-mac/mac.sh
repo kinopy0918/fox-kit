@@ -94,6 +94,12 @@ if [[ "$FOX_MAC_USE" == office ]]; then
     ok "$(t "電源につないでいる間は眠らないようにしました（画面だけ10分で消えます）" "pmset -c sleep 0 disksleep 0 displaysleep 10")"
   fi
   sudo pmset -a autorestart 1 >/dev/null 2>&1 && ok "$(t "停電のあと電気が戻ったら、自動で起動するようにしました" "pmset autorestart 1")"
+  sudo pmset -a womp 1 >/dev/null 2>&1 && ok "$(t "ネットワーク越しに起こせるようにしました" "pmset womp 1")"
+  if fdesetup status 2>/dev/null | grep -q "On"; then
+    warn "$(t "このMacはディスクが暗号化（FileVault）されています。停電のあと自動では立ち上がりきらず、パスワードの入力で止まります。暗号化を解く「復旧キー」が手元に控えてあるか、必ず確かめてください（無くすとMacが開けなくなります）" "FileVault On：再起動後はログイン画面で止まる。復旧キーの控えを確認")"
+  else
+    warn "$(t "停電のあと自動でAIが動き出すには「自動ログイン」も必要です：システム設定 → ユーザとグループ →「自動ログイン」でこのユーザーを選んでください" "自動ログイン：システム設定 > ユーザとグループ")"
+  fi
   if is_laptop; then
     choose FOX_LID "$(t "ふたを閉じたまま置いておきますか？" "ふた閉じで稼働")" 2 \
       "1:$(t "はい（ふたを閉じても眠らない。電源につないでおく）" "disablesleep 1")" "2:$(t "いいえ（ふたは開けておく）" "開けておく")"

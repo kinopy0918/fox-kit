@@ -100,9 +100,13 @@ Discord か Slack を選んだら、「スマホからでもAIと話せるよう
 
 ## 6. 決まりごと（→ 規則）
 
+`~/.claude/skills/fox-setup/company-template.md` を土台に、会社の決まりを1枚作る。
 1. 「お金が動くこと・社外に送ること・あなたしか知らない判断は、必ず先に確認します」と伝え、ほかに**必ず確認してほしいこと**があるか聞く。
 2. 会社で「これはしないで」という決まりがあるか聞く（例：お客様の名前を外に出さない）。
-→ `~/.claude/rules/company.md` に箇条書きで書き、CLAUDE.md に `@~/.claude/rules/company.md` が無ければ足す。
+3. AIの設定や困りごとの窓口（人の名前）を聞く。
+→ テンプレートの `{{COMPANY}}`（1の会社名）・`{{STORAGE}}`（3の保存先）・`{{EXTRA_CONFIRM}}`・`{{DONTS}}`・`{{CONTACT}}` を埋めて
+`~/.claude/rules/company.md` に書く（既にあれば、足りない所だけ足す）。CLAUDE.md に `@~/.claude/rules/company.md` が無ければ足す。
+答えが無い欄は「（まだ決まっていません）」と書いて残す。
 
 ## 7. 試しにやってみる
 
