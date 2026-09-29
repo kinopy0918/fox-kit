@@ -57,7 +57,13 @@ save() {  # save 変数名… — 答えと進み具合を覚える
   done; chmod 600 "$STATE"
 }
 mark()  { typeset -g "DONE_$1=1"; save "DONE_$1"; }
-done_() { local v="DONE_$1"; [[ -n "${(P)v:-}" ]]; }
+done_() {  # ターミナル版の記録か、ブラウザの設定画面の記録（wizard.json）のどちらかで済んでいれば済み
+  local v="DONE_$1"; [[ -n "${(P)v:-}" ]] && return 0
+  local w="$HOME/.config/fox-kit/wizard.json" id="$1"
+  [[ -f "$w" ]] || return 1
+  case "$id" in interview) id=talk ;; hello) id=login ;; esac
+  /usr/bin/python3 -c 'import json,sys;sys.exit(0 if sys.argv[2] in json.load(open(sys.argv[1])).get("done",[]) else 1)' "$w" "$id" 2>/dev/null
+}
 [[ -n "${FOX_RESET:-}" ]] && rm -f "$STATE"
 RESUMED=""
 if [[ -s "$STATE" ]]; then
@@ -271,7 +277,7 @@ step 7 "$(t "AIのアカウントにログイン" "Claude にログイン")"
 logged_in() { claude auth status 2>/dev/null | grep -qi '"loggedIn": *true'; }
 if [[ -n "${FOX_SKIP_LOGIN:-}${FOX_SKIP_CLAUDE:-}" ]]; then
   warn "飛ばしました（検証用）"
-elif logged_in; then
+elif logged_in || { [[ -n "${FOX_UPDATE:-}" ]] && done_ login; }; then   # 更新時は前回のログインを信じる（SSH越しだと状態が見えないため）
   ok "$(t "ログイン済みです" "ログイン済み")"; mark login
 else
   t "  インターネットの画面が開きます。AIの契約をしたアカウントで「ログイン」→「許可」を押してください。
