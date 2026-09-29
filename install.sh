@@ -141,6 +141,16 @@ if os.path.exists(dest):
         if x not in seen:
             seen.add(x); merged.append(x)
     result.setdefault("permissions", {})["allow"] = merged
+    # hooks は「足し合わせ」。持ち主が足した hook（目次の自動更新など）を消さない
+    hooks = {}
+    for src_hooks in ((cur.get("hooks") or {}), (new.get("hooks") or {})):
+        for ev, entries in src_hooks.items():
+            lst = hooks.setdefault(ev, [])
+            for e in entries:
+                if json.dumps(e, sort_keys=True) not in {json.dumps(x, sort_keys=True) for x in lst}:
+                    lst.append(e)
+    if hooks:
+        result["hooks"] = hooks
 os.makedirs(os.path.dirname(dest), exist_ok=True)
 json.dump(result, open(dest, "w"), indent=2, ensure_ascii=False)
 open(dest, "a").write("\n")

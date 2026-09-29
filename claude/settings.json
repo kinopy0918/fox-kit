@@ -40,6 +40,23 @@
             "statusMessage": "置き場チェック"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/block-dangerous-ops.py",
+            "timeout": 10,
+            "statusMessage": "安全ガード"
+          },
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/block-secret-commit.py",
+            "timeout": 15,
+            "statusMessage": "秘密の持ち出しチェック"
+          }
+        ]
       }
     ]
   },
