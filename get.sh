@@ -17,6 +17,7 @@
 #   FOX_ANTIGRAVITY=yes|no         Antigravity（編集ソフト）を入れるか
 #   FOX_RESET=1                    覚えている答えと進み具合を消して、最初からやり直す
 #   FOX_VERSION=0.1.0              この版を入れる（既定は最新の公開版）
+#   FOX_TERMINAL=1                 ブラウザの設定画面を使わず、この画面（ターミナル）だけで進める
 #   FOX_UPDATE=1                   更新として動く（fox-kit update から。手を入れたファイルは上書きしない）
 # 検証用: FOX_KIT_URL=<URL か フォルダ> / FOX_SKIP_CLAUDE=1 / FOX_SKIP_LOGIN=1 / FOX_NO_INTERVIEW=1
 set -euo pipefail
@@ -96,8 +97,62 @@ ask() {  # ask 変数名 "質問" "既定値" — 答えを確かめ、だめな
   die "「$__q」を受け取れませんでした"
 }
 
+# ------------------------------------------------------------------ 共通の手順（キット取得・開発ツール）
+fetch_kit() {
+TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+if [[ -d "$KIT_URL" ]]; then
+  cp -R "$KIT_URL/." "$TMP/kit"
+else
+  mkdir -p "$TMP/kit"
+  curl -fsSL "$KIT_URL" | tar -xz -C "$TMP/kit" --strip-components 1 \
+    || die "$(t "部品を取ってこられませんでした。インターネットにつながっているか確かめてください" "キットを取得できませんでした: $KIT_URL")"
+fi
+[[ -f "$TMP/kit/install.sh" ]] || die "$(t "部品の中身がおかしいようです" "キットの中身が不正です（install.sh がない）")"
+mkdir -p "$HOME/Tools"
+[[ -d "$KIT_DIR" ]] && mv "$KIT_DIR" "$KIT_DIR.bak-$(date +%Y%m%d-%H%M%S)"
+rm -rf "$TMP/kit/.git"; mv "$TMP/kit" "$KIT_DIR"; chmod +x "$KIT_DIR/install.sh"
+ok "$(t "取ってきました" "$KIT_DIR")"
+}
+ensure_clt() {
+# 組み立てには Apple の開発ツール（中の python3）が要る。素のMacには無いので先に入れる
+if ! /usr/bin/xcode-select -p >/dev/null 2>&1 || ! /usr/bin/python3 -c 1 >/dev/null 2>&1; then
+  t "  Appleの追加部品が必要です。画面に「インストールしますか？」と出たら「インストール」を押してください（10〜20分ほど）。" \
+    "  Command Line Tools が無いので xcode-select --install を起動します（python3 用）。"
+  /usr/bin/xcode-select --install >/dev/null 2>&1 || true
+  if has_tty; then
+    __w=0
+    until /usr/bin/xcode-select -p >/dev/null 2>&1 && /usr/bin/python3 -c 1 >/dev/null 2>&1; do
+      (( __w += 1 )); (( __w > 120 )) && die "$(t "追加部品のインストールが終わりませんでした" "CLT の導入待ちがタイムアウト")"
+      (( __w % 6 == 1 )) && echo "  $(t "インストールが終わるのを待っています…" "CLT 待機中…")"
+      sleep 10
+    done
+    ok "$(t "追加部品が入りました" "CLT 導入済み")"
+  else
+    die "$(t "追加部品のインストールが終わってから、同じ1行をもう一度貼り付けてください" "CLT 導入後に再実行してください")"
+  fi
+fi
+
+}
+
 c "1" "fox-kit（AI秘書のセットアップ）"; echo
 [[ "$(uname -s)" == "Darwin" ]] || die "いまはMac専用です"
+
+
+# ------------------------------------------------------------------ ブラウザの設定画面で進める（既定）
+if [[ -z "${FOX_TERMINAL:-}" && -z "${FOX_OWNER:-}" && -z "${SSH_CONNECTION:-}" ]]; then
+  B=1
+  echo "  このあとは、ブラウザに出る設定画面で進めます。まず最低限の準備をします（数分）。"
+  ensure_clt
+  fetch_kit
+  pkill -f "$KIT_DIR/wizard/server.py" 2>/dev/null || true
+  nohup /usr/bin/python3 "$KIT_DIR/wizard/server.py" > "$HOME/Library/Logs/fox-wizard.log" 2>&1 &
+  for __i in {1..30}; do [[ -s "$HOME/.config/fox-kit/wizard.url" ]] && break; sleep 0.5; done
+  echo
+  c "1;32" "  ブラウザで設定画面が開きました。ここから先は画面の案内どおりに進めてください。"; echo
+  echo "  （開かないときは、このURLをブラウザに貼ってください：$(cat "$HOME/.config/fox-kit/wizard.url" 2>/dev/null)）"
+  echo "  この黒い画面は閉じても大丈夫です。"
+  exit 0
+fi
 
 # ------------------------------------------------------------------ 0. 慣れているか
 if [[ -z "${FOX_LEVEL:-}" ]]; then
@@ -153,91 +208,15 @@ mark claude
 
 # ------------------------------------------------------------------ 3. キット
 step 3 "$(t "AI秘書の部品を取ってくる" "キットを取得")"
-TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
-if [[ -d "$KIT_URL" ]]; then
-  cp -R "$KIT_URL/." "$TMP/kit"
-else
-  mkdir -p "$TMP/kit"
-  curl -fsSL "$KIT_URL" | tar -xz -C "$TMP/kit" --strip-components 1 \
-    || die "$(t "部品を取ってこられませんでした。インターネットにつながっているか確かめてください" "キットを取得できませんでした: $KIT_URL")"
-fi
-[[ -f "$TMP/kit/install.sh" ]] || die "$(t "部品の中身がおかしいようです" "キットの中身が不正です（install.sh がない）")"
-mkdir -p "$HOME/Tools"
-[[ -d "$KIT_DIR" ]] && mv "$KIT_DIR" "$KIT_DIR.bak-$(date +%Y%m%d-%H%M%S)"
-rm -rf "$TMP/kit/.git"; mv "$TMP/kit" "$KIT_DIR"; chmod +x "$KIT_DIR/install.sh"
-ok "$(t "取ってきました" "$KIT_DIR")"
+fetch_kit
 mark kit
 
-# 組み立てには Apple の開発ツール（中の python3）が要る。素のMacには無いので先に入れる
-if ! /usr/bin/xcode-select -p >/dev/null 2>&1 || ! /usr/bin/python3 -c 1 >/dev/null 2>&1; then
-  t "  Appleの追加部品が必要です。画面に「インストールしますか？」と出たら「インストール」を押してください（10〜20分ほど）。" \
-    "  Command Line Tools が無いので xcode-select --install を起動します（python3 用）。"
-  /usr/bin/xcode-select --install >/dev/null 2>&1 || true
-  if has_tty; then
-    __w=0
-    until /usr/bin/xcode-select -p >/dev/null 2>&1 && /usr/bin/python3 -c 1 >/dev/null 2>&1; do
-      (( __w += 1 )); (( __w > 120 )) && die "$(t "追加部品のインストールが終わりませんでした" "CLT の導入待ちがタイムアウト")"
-      (( __w % 6 == 1 )) && echo "  $(t "インストールが終わるのを待っています…" "CLT 待機中…")"
-      sleep 10
-    done
-    ok "$(t "追加部品が入りました" "CLT 導入済み")"
-  else
-    die "$(t "追加部品のインストールが終わってから、同じ1行をもう一度貼り付けてください" "CLT 導入後に再実行してください")"
-  fi
-fi
+ensure_clt
 
 # ------------------------------------------------------------------ 4. 組み立て
 step 4 "$(t "あなた専用に組み立てる" "組み立て（人格・作法・スキル・記憶・設定）")"
-quiet "$KIT_DIR/install.sh" --owner "$FOX_OWNER" --agent "$FOX_AGENT" \
-  --machine-label "$FOX_MACHINE" --role "$FOX_ROLE" ${FOX_VAULT:+--vault-path "$FOX_VAULT"} \
-  || die "$(t "組み立ての途中で止まりました" "install.sh が失敗しました（ログ: $LOG）")"
-
-mkdir -p "$HOME/.claude/rules"
-if [[ -n "$B" ]]; then
-cat > "$HOME/.claude/rules/talk-style.md" <<'MD'
-# 話し方（この方はAIやパソコンの設定に慣れていません）
-
-- **専門用語を使わない。** ターミナル・コマンド・API・トークン・リポジトリ・JSON・ディレクトリ などは、ふだんの言葉に言い換える
-  （例: ターミナル→「文字を打ち込む黒い画面」、フォルダの場所→「どこに保存したか」）。どうしても要る言葉は、初回に一言で説明する。
-- お願いする操作は「どの画面で・どこを押すか」を1つずつ番号で書く。一度に頼むのは1つまで。
-- 作業の中身（どのファイルをどう直したか）は書かず、「何ができるようになったか」だけを伝える。
-- 困ったときの逃げ道を必ず添える（「わからなければ、このまま『わからない』と送ってください」）。
-- 何段かに分かれる作業のときは、返事の最後に次の2行を付ける：
-  **次にやること：** （あなたがすること、または私が次にすること）
-  **いまの進み具合：** （全体のうち、どこまで終わったか。例：「5つのうち3つ目まで」）
-MD
-else
-cat > "$HOME/.claude/rules/talk-style.md" <<'MD'
-# 話し方（この方はAIやパソコンの設定に慣れています）
-
-- 専門用語はそのまま使ってよい。コマンド・パス・設定名は正確に書く。
-- 前置きを省き、結論→根拠→次の一手の順で短く。
-- 何段かに分かれる作業のときは、最後に「次のタスク」と「全体の進み具合」を1行ずつ。
-MD
-fi
-grep -qs "rules/talk-style.md" "$HOME/.claude/CLAUDE.md" || printf '\n@~/.claude/rules/talk-style.md\n' >> "$HOME/.claude/CLAUDE.md"
-
-if [[ -n "${FOX_PROFILE:-}" ]]; then
-  P="$TMP/profile"; mkdir -p "$P"
-  if [[ -d "$FOX_PROFILE" ]]; then cp -R "$FOX_PROFILE/." "$P"
-  else curl -fsSL "$FOX_PROFILE" | tar -xz -C "$P" --strip-components 1 || die "$(t "会社の決まりごとを取ってこられませんでした" "FOX_PROFILE を取得できません")"; fi
-  for f in "$P"/rules/*.md(N); do
-    cp "$f" "$HOME/.claude/rules/"
-    name="$(basename "$f")"
-    grep -qs "rules/$name" "$HOME/.claude/CLAUDE.md" || printf '\n@~/.claude/rules/%s\n' "$name" >> "$HOME/.claude/CLAUDE.md"
-  done
-fi
-ok "$(t "組み立てました（仕事の作法・資料のチェック役・話し方の設定も入りました）" "install.sh 完了 / talk-style: $FOX_LEVEL${FOX_PROFILE:+ / profile 適用}")"
-__kept="$(grep -h '★残した' "$LOG" 2>/dev/null | tail -20 || true)"
-if [[ -n "$__kept" ]]; then
-  warn "$(t "あなたが手を入れていたファイルは残しました（新しい版は横に「.new-版」で置いてあります）" "modified files kept (see *.new-<ver>)")"
-  print -r -- "$__kept" | sed 's/^/    /'
-fi
-# 毎朝の点検（スキルの見張り・健康診断）を登録
-[[ -f "$HOME/Tools/fox-guard/install.py" ]] && quiet /usr/bin/python3 "$HOME/Tools/fox-guard/install.py" ${FOX_UPDATE:+--no-reset}
-# fox-kit コマンドを使えるようにする
-mkdir -p "$HOME/.local/bin"
-ln -sf "$HOME/Tools/fox-kit-cli/fox-kit" "$HOME/.local/bin/fox-kit"
+KIT_DIR="$KIT_DIR" LOG="$LOG" FOX_OWNER="$FOX_OWNER" FOX_AGENT="$FOX_AGENT" FOX_MACHINE="$FOX_MACHINE" FOX_ROLE="$FOX_ROLE" \
+  FOX_LEVEL="$FOX_LEVEL" /bin/zsh "$KIT_DIR/setup/build.sh" || die "$(t "組み立ての途中で止まりました" "build.sh 失敗（ログ: $LOG）")"
 mark build
 
 # 遠隔（任意）

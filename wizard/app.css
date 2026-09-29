@@ -1,0 +1,56 @@
+:root{--bg:#f7f6f2;--ink:#1d2433;--ink2:#5b6475;--line:#e3e0d8;--card:#fff;--accent:#c2410c;--soft:#fdf1e8;--ok:#15803d;--okbg:#eaf6ee;--warn:#b45309;--code:#141a26}
+@media (prefers-color-scheme:dark){:root{--bg:#10141c;--ink:#e8ecf3;--ink2:#9aa3b5;--line:#252c3a;--card:#171d28;--accent:#fb923c;--soft:#2a1d14;--ok:#4ade80;--okbg:#10251a;--warn:#fbbf24;--code:#0a0e15}}
+*{box-sizing:border-box}
+html,body{overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 "Noto Sans JP",system-ui,sans-serif}
+.bar{position:sticky;top:0;z-index:9;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1080px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.brand{font-size:17px;margin-right:auto}.brand span{font-weight:500;color:var(--ink2);font-size:14px;margin-left:6px}
+.prog{min-width:220px;flex:1;max-width:380px}
+.prog-t{font-size:13px;color:var(--ink2)}
+.prog-b{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.prog-b i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 16px 80px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px}
+@media (max-width:760px){.wrap{grid-template-columns:minmax(0,1fr)}.steps{display:none}}
+.steps{display:flex;flex-direction:column;gap:4px;position:sticky;top:76px;align-self:start}
+.st{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;font-size:14px;color:var(--ink2)}
+.st i{flex:none;width:24px;height:24px;letter-spacing:-.04em;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font:700 11px "Roboto Mono";font-style:normal}
+.st.done{color:var(--ink)}.st.done i{background:var(--ok);border-color:var(--ok);color:#fff}
+.st.now{background:var(--soft);color:var(--ink);font-weight:700}.st.now i{border-color:var(--accent);color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;min-width:0}
+.kicker{font-size:13px;color:var(--accent);font-weight:700;letter-spacing:.04em}
+h1{font-size:clamp(22px,4vw,28px);line-height:1.4;margin:4px 0 8px}
+.lead{color:var(--ink2);margin:0 0 18px}
+.who{display:inline-block;font-size:12px;border-radius:99px;padding:2px 10px;margin-left:8px;vertical-align:middle;font-weight:500}
+.who.you{background:var(--soft);color:var(--accent)}.who.auto{background:var(--okbg);color:var(--ok)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:10px;padding:12px 20px;font:700 16px "Noto Sans JP";cursor:pointer;background:var(--accent);color:#fff;text-decoration:none}
+.btn.sub{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:500}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+.choice{display:block;border:2px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0;cursor:pointer;background:var(--card)}
+.choice:has(input:checked){border-color:var(--accent);background:var(--soft)}
+.choice input{margin-right:8px;accent-color:var(--accent)}
+.choice b{font-size:16px}.choice small{display:block;color:var(--ink2);margin-left:26px;font-size:14px}
+label.f{display:block;margin:12px 0 4px;font-weight:500;font-size:15px}
+input.t,textarea.t{width:100%;font:16px "Noto Sans JP";padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.hint{font-size:13px;color:var(--ink2)}
+.err{color:#dc2626;font-weight:500;margin:8px 0}
+.okmsg{color:var(--ok);font-weight:700;margin:8px 0}
+ol.do{padding-left:0;list-style:none;counter-reset:d;margin:12px 0}
+ol.do>li{counter-increment:d;position:relative;padding:8px 0 8px 38px;border-bottom:1px dashed var(--line)}
+ol.do>li::before{content:counter(d);position:absolute;left:0;top:9px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font:700 13px/26px "Roboto Mono";text-align:center}
+.k{display:inline;border:1px solid var(--line);background:var(--soft);border-radius:6px;padding:0 6px;font-size:14px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.k i{font-style:normal;color:var(--ink2);font-size:12px;margin-left:4px}
+figure.shot{margin:14px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg)}
+figure.shot img{display:block;width:100%;height:auto}
+figure.shot figcaption{font-size:13px;color:var(--ink2);padding:6px 10px}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s 1s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes s{to{transform:rotate(360deg)}}
+pre.log{background:var(--code);color:#cfd6e3;font:12px/1.6 "Roboto Mono",monospace;padding:12px;border-radius:8px;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.sub-card{border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:52vh;overflow:auto;padding:4px}
+.msg{max-width:88%;padding:10px 14px;border-radius:14px;white-space:pre-wrap;word-break:break-word}
+.msg.ai{background:var(--soft);align-self:flex-start;border-top-left-radius:4px}
+.msg.me{background:var(--accent);color:#fff;align-self:flex-end;border-top-right-radius:4px}
+.done-list li{margin:6px 0}
+code{font:13px "Roboto Mono",monospace;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 5px;word-break:break-all}

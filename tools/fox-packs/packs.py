@@ -104,7 +104,7 @@ def tools():
     say(t("  道具を入れます（はじめてのときは10〜20分かかります）", "  Homebrew と CLI"))
     if not brew_bin():
         say(t("  Macのパスワードを聞かれたら入れてください。", "  Homebrew 導入（sudo）"))
-        subprocess.run(["sudo", "-v"])
+        subprocess.run(["sudo", "-A", "-v"] if os.getenv("SUDO_ASKPASS") else ["sudo", "-v"])
         sh('NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"')
         if not brew_bin():
             warn(t("道具の土台（Homebrew）を入れられませんでした。あとで fox-kit packs でやり直せます", "Homebrew 導入失敗"))
@@ -305,7 +305,7 @@ def install():
     st["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
     RECORD.parent.mkdir(parents=True, exist_ok=True)
     RECORD.write_text(json.dumps(st, ensure_ascii=False, indent=2))
-    if key():
+    if not os.getenv("FOX_NO_KEY") and key():
         first_index()
     ok(t(f"スキルと道具をそろえました（{int(time.time() - t0) // 60}分）", f"done in {int(time.time() - t0)}s"))
 

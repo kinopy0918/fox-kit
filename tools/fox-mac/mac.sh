@@ -22,6 +22,8 @@ choose() {  # choose 変数名 "質問" 既定 "1:ラベル" "2:ラベル"…
   typeset -g "$__v"="${__a:-$__d}"
 }
 save() { mkdir -p "${STATE:h}"; { grep -v "^$1=" "$STATE" 2>/dev/null; print -r -- "$1=${(P)1}"; } > "$STATE.tmp" && mv "$STATE.tmp" "$STATE"; }
+# 設定画面から動かすときは、sudo のパスワードを Mac のダイアログで聞く
+[[ -n "${SUDO_ASKPASS:-}" ]] && sudo() { command sudo -A "$@"; }
 is_laptop() { pmset -g batt 2>/dev/null | grep -q InternalBattery; }
 
 status() {
