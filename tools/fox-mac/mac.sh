@@ -2,7 +2,7 @@
 # パソコン側の設定（fox-kit のインストーラから呼ばれる。あとから fox-kit mac でもやり直せる）
 #   mac.sh            … 質問に答えながら設定する
 #   mac.sh status     … いまの設定を見る
-# 先に答えを渡すと聞かない：FOX_MAC_USE=office|mobile  FOX_LID=yes|no  FOX_ANTIGRAVITY=yes|no
+# 先に答えを渡すと聞かない：FOX_MAC_USE=office|mobile  FOX_LID=yes|no  FOX_CHROME=yes|no  FOX_ANTIGRAVITY=yes|no
 set -uo pipefail
 HERE="${0:A:h}"
 STATE="$HOME/.config/fox-kit/state.env"
@@ -32,7 +32,43 @@ status() {
   echo "  電源接続中のスリープ: $(pmset -g custom 2>/dev/null | awk '/AC Power/{f=1} f&&/ sleep /{print $2; exit}') 分（0＝眠らない）"
   echo "  ふた閉じで眠らない: $(pmset -g 2>/dev/null | grep -q 'SleepDisabled[[:space:]]*1' && echo はい || echo いいえ)"
   echo "  CapsLockで眠らない仕組み: $([[ -f /Library/LaunchDaemons/com.local.capslock-nosleep.plist ]] && echo 入っています || echo なし)"
+  echo "  Chrome: $([[ -d "/Applications/Google Chrome.app" ]] && echo 入っています || echo なし)（いつも使うブラウザ: $(default_browser | sed 's#.*/##; s#\.app$##')）"
   echo "  Antigravity: $([[ -d "/Applications/Antigravity IDE.app" ]] && echo 入っています || echo なし)"
+}
+
+# ------------------------------------------------------------------ Chrome
+# いま http を開くアプリ（例 /Applications/Google Chrome.app）
+default_browser() {
+  osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSWorkspace.sharedWorkspace.URLForApplicationToOpenURL($.NSURL.URLWithString("https://example.com")).path.js' 2>/dev/null
+}
+chrome() {
+  local app="/Applications/Google Chrome.app"
+  if [[ ! -d "$app" ]]; then
+    echo "  $(t "Chrome を取ってきます（1〜2分）…" "Google Chrome をダウンロード")"
+    local dmg="/tmp/googlechrome.dmg" vol
+    if ! curl -fsSL -o "$dmg" "https://dl.google.com/chrome/mac/universal/stable/GGRO/googlechrome.dmg"; then
+      open "https://www.google.com/chrome/"
+      warn "$(t "自動で取れなかったので、公式の画面を開きました。「Chrome をダウンロード」を押して入れてください" "ダウンロード失敗。公式ページを開いたので手動で導入")"
+      return
+    fi
+    vol="$(hdiutil attach -nobrowse -noverify "$dmg" | grep -oE '/Volumes/.+$' | head -1)"
+    cp -R "$vol/Google Chrome.app" /Applications/ 2>/dev/null || osascript -e "do shell script \"cp -R \" & quoted form of \"$vol/Google Chrome.app\" & \" /Applications/\" with administrator privileges" >/dev/null
+    hdiutil detach "$vol" -quiet; rm -f "$dmg"
+    [[ -d "$app" ]] || { warn "Chrome を入れられませんでした"; return; }
+    ok "$(t "Chrome を入れました" "Google Chrome installed")"
+  else
+    ok "$(t "Chrome はもう入っています" "Google Chrome: installed")"
+  fi
+  [[ "$(default_browser)" == *"Google Chrome.app" ]] && { ok "$(t "いつも使うブラウザはもう Chrome です" "既定ブラウザ: Chrome")"; return; }
+  # 切り替えは Mac が必ず確認の画面を出す（勝手には変えられない仕組み）
+  warn "$(t "画面に「いつも使うブラウザを変えますか？」と出たら、「“Google Chrome”を使用」を押してください" "確認ダイアログで「Chrome を使用」を選択")"
+  osascript -l JavaScript -e 'ObjC.import("CoreServices"); $.LSSetDefaultHandlerForURLScheme($("http"), $("com.google.chrome")); $.LSSetDefaultHandlerForURLScheme($("https"), $("com.google.chrome"))' >/dev/null 2>&1
+  local i
+  for i in {1..60}; do
+    [[ "$(default_browser)" == *"Google Chrome.app" ]] && { ok "$(t "いつも使うブラウザを Chrome にしました" "既定ブラウザ: Chrome")"; return; }
+    sleep 1
+  done
+  warn "$(t "切り替わっていません。あとで システム設定 → デスクトップとDock →「デフォルトのWebブラウザ」で Google Chrome を選んでください" "未切替：システム設定 > デスクトップとDock > デフォルトのWebブラウザ")"
 }
 
 # ------------------------------------------------------------------ Antigravity
@@ -117,6 +153,10 @@ else
     sudo "$HOME/Tools/capslock-nosleep/install.sh" >/dev/null && ok "$(t "入れました。CapsLock を押してランプを点けると、ふたを閉じても作業が止まりません" "capslock-nosleep installed")"
   fi
 fi
+
+choose FOX_CHROME "$(t "Chrome を入れて、いつも使うブラウザにしますか？（AIがブラウザを操作する機能は Chrome で動きます）" "Google Chrome を入れて既定ブラウザにする")" 1 \
+  "1:$(t "する（おすすめ）" "する")" "2:$(t "しない" "しない")"
+[[ "$FOX_CHROME" == 1 || "$FOX_CHROME" == yes ]] && chrome
 
 choose FOX_ANTIGRAVITY "$(t "Antigravity（AIと画面で一緒に作業する編集ソフト。中で Claude Code も使えます）を入れますか？" "Antigravity IDE を入れる")" 1 \
   "1:$(t "入れる（おすすめ）" "入れる")" "2:$(t "入れない" "入れない")"

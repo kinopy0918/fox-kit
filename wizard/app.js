@@ -88,12 +88,13 @@
     }),
     build: () => autoStep("build", t("あなた専用に組み立てています", "組み立て（install.sh）"), t("仕事の作法・資料のチェック役・話し方の設定などを入れています（1分ほど）。", "人格・作法・スキル・settings・hooks・点検")),
     mac: () => ({
-      title: t("パソコンの設定", "Mac 設定（電源・Antigravity）"),
-      lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Antigravity IDE"),
-      html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。", "実行中")) : `
+      title: t("パソコンの設定", "Mac 設定（電源・Chrome・Antigravity）"),
+      lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Chrome（既定ブラウザ）/ Antigravity IDE"),
+      html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。", "実行中（既定ブラウザの確認ダイアログあり）")) : `
              <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動（おすすめ）</small></label>
              <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて、使うときだけ動けばよい</b><small>作業中だけ眠らない仕組みを入れます（CapsLockのランプが点いている間）</small></label>
              <label class="choice"><input type="checkbox" id="lid"><b>ふたを閉じたまま置いておく</b><small>ノートのMacを閉じたまま使う場合だけ。電源につなぎ、熱がこもらない場所に置いてください</small></label>
+             <label class="choice"><input type="checkbox" id="chrome" checked><b>Chrome を入れて、いつも使うブラウザにする</b><small>AIがブラウザを操作する機能は Chrome で動きます。途中で「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください</small></label>
              <label class="choice"><input type="checkbox" id="ag" checked><b>Antigravity（AIと画面で一緒に作業する編集ソフト）も入れる</b><small>中で Claude Code も使えます。画面は日本語にします</small></label>
              ${shot("mac-password", "この画面が出たら、Macのパスワードを入れて「OK」")}
              ${failNote("mac")}
@@ -101,7 +102,7 @@
       bind: (el) => {
         const go = $("#go", el); if (!go) return;
         go.onclick = async () => {
-          await act("mac", { use: $("input[name=use]:checked").value, lid: $("#lid").checked, antigravity: $("#ag").checked });
+          await act("mac", { use: $("input[name=use]:checked").value, lid: $("#lid").checked, chrome: $("#chrome").checked, antigravity: $("#ag").checked });
           refresh(true);
         };
         $("#skip", el).onclick = async () => { await act("skip", { target: "mac" }); refresh(true); };

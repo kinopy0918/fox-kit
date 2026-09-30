@@ -5,7 +5,7 @@
 #   fox-kit update    … 新しい版に更新（手を入れたファイルは上書きしない）
 #   fox-kit setup     … 初期設定の聞き取りをもう一度
 #   fox-kit connect   … Discord / Slack とつなぐ
-#   fox-kit mac       … パソコンの設定（眠る・眠らない／Antigravity）
+#   fox-kit mac       … パソコンの設定（眠る・眠らない／Chrome／Antigravity）
 #   fox-kit packs     … スキルと道具をそろえる（install / status / key＝Geminiの鍵）
 #   fox-kit guide     … 手順書を開く
 set -uo pipefail
@@ -34,7 +34,7 @@ case "$cmd" in
     else
       echo "  やり取り: この画面だけ（Discord/Slack は fox-kit connect）"
     fi
-    "$HOME/Tools/fox-mac/mac.sh" status 2>/dev/null | sed -n '2,6p'
+    "$HOME/Tools/fox-mac/mac.sh" status 2>/dev/null | sed -n '2,7p'
     python3 "$HOME/Tools/fox-packs/packs.py" status 2>/dev/null
     new="$(latest)"
     if [[ -n "$new" && -n "$ver" && "$new" != "$ver" ]]; then echo "  ★新しい版 $new があります → fox-kit update"; fi

@@ -225,7 +225,8 @@ def act(step: str, body: dict) -> dict:
     if step == "mac":
         use = "mobile" if body.get("use") == "mobile" else "office"
         e = {**env_for(st), "FOX_MAC_USE": use, "FOX_LID": "1" if body.get("lid") else "2",
-             "FOX_CAPS": "1" if body.get("caps", True) else "2", "FOX_ANTIGRAVITY": "1" if body.get("antigravity", True) else "2"}
+             "FOX_CAPS": "1" if body.get("caps", True) else "2", "FOX_CHROME": "1" if body.get("chrome", True) else "2",
+             "FOX_ANTIGRAVITY": "1" if body.get("antigravity", True) else "2"}
         run_job("mac", ["/bin/zsh", str(KIT / "tools/fox-mac/mac.sh")], env=e, on_ok=lambda: mark("mac", use=use))
         return {"ok": True, "started": True}
 
