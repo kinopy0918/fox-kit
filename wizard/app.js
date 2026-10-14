@@ -30,6 +30,49 @@
              <button class="choice" data-lv="expert" style="width:100%;text-align:left"><b>AIやパソコンの設定に慣れている</b><small>短く、専門用語のまま案内します</small></button>`,
       bind: (el) => el.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = async () => { await act("level", { level: b.dataset.lv }); refresh(true); })),
     }),
+    update: () => {
+      const d = S.data.update || {};
+      const items = d.items || [];
+      let html;
+      if (!d.state || d.state === "checking") {
+        html = `<p><span class="spin"></span>${t("このMacに入れていない更新があるか調べています（1分ほど）…", "softwareupdate -l を実行中")}</p>`;
+      } else if (d.state === "error") {
+        html = `<div class="err">${t("更新を調べられませんでした。", "softwareupdate -l 失敗：")}${esc(d.error || "")}</div>
+                <div class="row"><button class="btn" id="open">更新の画面を開いて自分で確かめる</button><button class="btn sub" id="later">このまま進む</button></div>`;
+      } else {
+        const tooOld = d.too_old ? `<div class="err"><b>${t(`このMacの版（macOS ${esc(d.version)}）は古く、AIの本体が動きません。`, `macOS ${esc(d.version)} は Claude Code の対応外（13 以上が必要）。`)}</b>${t("下の「更新の画面を開く」から新しい版にしてから進めてください。", "")}</div>` : "";
+        if (!items.length && !d.too_old) {
+          html = `<p class="okmsg">✓ ${t(`このMacは最新です（macOS ${esc(d.version)}）`, `更新なし（macOS ${esc(d.version)}）`)}</p>
+                  <div class="row"><button class="btn" id="next">次へ</button></div>`;
+        } else {
+          const restart = items.some((i) => i.restart);
+          html = `${tooOld}<p>${t("入れていない更新があります。<b>先に入れておくのがおすすめです。</b>", "未適用の更新：")}</p>
+                  <ul>${items.map((i) => `<li>${esc(i.title)}${i.title.includes(i.version) ? "" : " " + esc(i.version)}${i.restart ? t("（再起動あり）", "（restart）") : ""}</li>`).join("")}</ul>
+                  <ol class="do">
+                    <li>${t(`下の ${k("更新の画面を開く")} を押す`, "ソフトウェアアップデートを開く")}</li>
+                    <li>${t(`開いた画面で ${k("今すぐアップデート")} か ${k("今すぐ再起動")} を押す（Macのパスワードを聞かれます。30分〜1時間かかることがあります）`, "今すぐアップデート")}</li>
+                    ${restart ? `<li>${t("再起動が終わったら、ターミナルを開いて<b>はじめと同じ1行</b>を貼り付けてください。この画面が続きから開きます", "再起動後に同じ1行で再開（状態は保持）")}</li>` : ""}
+                  </ol>
+                  <div class="note">${t("ここまでに入れた内容は覚えています。更新で再起動しても、やり直しにはなりません。", "wizard.json に保存済み")}</div>
+                  <div class="row"><button class="btn" id="open">更新の画面を開く</button>
+                  ${d.too_old ? "" : `<button class="btn sub" id="later">${t("あとでやる（このまま進む）", "スキップ")}</button>`}
+                  <button class="btn sub" id="again">${t("更新したので確かめ直す", "再チェック")}</button></div>`;
+        }
+      }
+      return {
+        title: t("パソコンを最新にしましょう", "macOS の更新"),
+        lead: t("AIを入れる前に、このMacの更新を確かめます。古いままだと、AIや道具がうまく動かないことがあります。", "softwareupdate -l で未適用の更新を確認（Claude Code は macOS 13 以上）"),
+        html,
+        bind: (el) => {
+          if (!d.state) act("update", {});
+          const on = (id, f) => { const b = $("#" + id, el); if (b) b.onclick = f; };
+          on("open", () => act("update", { open: true }));
+          on("next", async () => { await act("update", { next: true }); refresh(true); });
+          on("later", async () => { await act("update", { next: true, later: true }); refresh(true); });
+          on("again", async () => { await act("update", { again: true }); refresh(true); });
+        },
+      };
+    },
     names: () => {
       const a = S.answers;
       return {
@@ -94,7 +137,7 @@
              <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動（おすすめ）</small></label>
              <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて、使うときだけ動けばよい</b><small>作業中だけ眠らない仕組みを入れます（CapsLockのランプが点いている間）</small></label>
              <label class="choice"><input type="checkbox" id="lid"><b>ふたを閉じたまま置いておく</b><small>ノートのMacを閉じたまま使う場合だけ。電源につなぎ、熱がこもらない場所に置いてください</small></label>
-             <label class="choice"><input type="checkbox" id="chrome" checked><b>Chrome を入れて、いつも使うブラウザにする</b><small>AIがブラウザを操作する機能は Chrome で動きます。途中で「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください</small></label>
+             <label class="choice"><input type="checkbox" id="chrome" checked><b>Chrome を入れて、いつも使うブラウザにする</b><small>AIがブラウザを操作する公式の機能（Claude in Chrome）は Chrome で動きます。途中で「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。最後に Chrome に「Claude」の拡張の画面が開くので、「Chrome に追加」を押し、AIと同じアカウントでログインしてください</small></label>
              <label class="choice"><input type="checkbox" id="ag" checked><b>Antigravity（AIと画面で一緒に作業する編集ソフト）も入れる</b><small>中で Claude Code も使えます。画面は日本語にします</small></label>
              ${shot("mac-password", "この画面が出たら、Macのパスワードを入れて「OK」")}
              ${failNote("mac")}

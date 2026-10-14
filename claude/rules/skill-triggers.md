@@ -29,4 +29,7 @@
     「名前（呼び方）を変えて」→ `~/.claude/CLAUDE.md` の名前と `~/.config/fox-kit/state.env` の `FOX_OWNER`・`FOX_AGENT` を書き換える（AIの名前を変えても Slack/Discord の表示名と資料フォルダ名は変わらない、と添えて、変えたいなら手順を案内）／
     「初期設定の続きをして」→ `fox-setup`／「Antigravity の使い方を教えて」→ 開き方・フォルダの開き方（ホーム）・Claude のマーク（✳）から話しかける、を1つずつ案内
 
+- **ブラウザで調べる・ログインした画面で入力する・ページを見て確かめる**依頼 → Claude in Chrome（Chrome の公式拡張）を使う。つながっていなければ、持ち主に「この画面で `/chrome` と打ち、『Enabled by default』を選んでください」と1回だけ案内する（拡張が無ければ Chrome ウェブストアの「Claude」を「Chrome に追加」→ 同じアカウントでログイン）。ログインが要る画面・支払い・送信は、押す前に必ず持ち主に確認する
+- 「パソコンを最新にして」「更新を確かめて」→ Mac は `softwareupdate -l` で一覧を見せ、`open "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"` で更新の画面を開く／Windows は `start ms-settings:windowsupdate-action`。再起動が要る更新は、押す前に持ち主に確認する（作業中のものが消えるため）
+
 **新しくスキルを入れたら、同じ作業の中でここ（会社独自なら `~/.claude/rules/company.md`）に1行足す。書くまでが導入。**

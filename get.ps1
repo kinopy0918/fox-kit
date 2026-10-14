@@ -9,7 +9,7 @@
 #            → スキル → パソコンの設定 → 初期設定の聞き取り まで進む。
 # 途中で止まっても、同じ1行をもう一度貼れば続きから（答えと進み具合は ~/.config/fox-kit/state-win.json）。
 #
-# Mac 版との違い: ブラウザの設定画面・Discord/Slack の常駐連携・Homebrew の道具・画像づくりの鍵は、まだ入らない。
+# Mac 版との違い: ブラウザで進める設定画面・Discord/Slack の常駐連携・Homebrew の道具・画像づくりの鍵は、まだ入らない。
 #
 # 聞かずに進めたいときは先に環境変数で渡す: FOX_LEVEL FOX_OWNER FOX_AGENT FOX_MACHINE FOX_ROLE
 #   FOX_VERSION=0.3.0（この版を入れる） FOX_RESET=1（最初から） FOX_KIT_URL=<zipのURLかフォルダ>（検証用）
@@ -157,6 +157,21 @@ Ask-Name 'FOX_MACHINE' (T 'このパソコンの呼び方（例: 事務所のパ
 Ask-Name 'FOX_ROLE'    (T 'このパソコンで主にすること（例: 経理の仕事）' '端末の役割') '作業機'
 Ok "$($S.FOX_OWNER) の「$($S.FOX_AGENT)」として組み立てます"
 
+# ------------------------------------------------------------------ 最新にする（部品を入れる前）
+$build = [Environment]::OSVersion.Version.Build
+if ($build -lt 17763) { Die (T "このパソコンの Windows は古く（ビルド $build）、AIの本体が動きません。設定 →「Windows Update」で新しい版にしてから、同じ1行をもう一度貼ってください" "Windows 10 1809（17763）以上が必要: build $build") }
+if (-not (IsDone 'update')) {
+  Write-Host ''
+  Write-Host ('  ' + (T '先にパソコンを最新にしておくのがおすすめです（古いままだと、AIや道具がうまく動かないことがあります）。' 'Windows Update を先に当てるのを推奨'))
+  if (Ask-YesNo (T '「Windows Update」の画面を開いて、更新を確かめますか？' 'Windows Update を開く？') $true) {
+    Start-Process 'ms-settings:windowsupdate-action'
+    Write-Host ('  ' + (T "開いた画面で「更新プログラムのチェック」→ 出てきたものを「ダウンロードしてインストール」。`n  「今すぐ再起動」が必要と出たら、再起動のあと PowerShell を開いて同じ1行を貼れば、ここから続きます（答えは覚えています）。" 'チェック→インストール。再起動後は同じ1行で再開'))
+    [void](Read-Host (T '  更新が終わったら（または、いまは更新しないなら）Enter を押してください' '  Enter で続行'))
+    if (Get-Command winget -ErrorAction SilentlyContinue) { & winget source update *>> $Log }   # 部品を入れる道具（winget）の一覧も最新に
+  }
+  Mark 'update'
+}
+
 # ------------------------------------------------------------------ 2. 準備（Git と Python）
 Step 2 (T 'AIが使う部品を入れる（Git・Python）' 'Git for Windows / Python')
 Refresh-Path
@@ -293,11 +308,43 @@ if (IsDone 'login') {
 } else { Warn (T 'ログインが済んだら、ここであいさつします' 'ログイン後に実行') }
 
 # ------------------------------------------------------------------ 8. スキルとパソコンの設定
-Step 8 (T 'スキルとパソコンの設定' 'packs（plugins / upstream skills）・電源・Antigravity')
+Step 8 (T 'スキルとパソコンの設定' 'packs（plugins / upstream skills）・Chrome・電源・Antigravity')
 if (IsDone 'packs') { Ok (T 'スキルはそろっています' 'packs: done') }
 elseif ((IsDone 'login') -and (Ask-YesNo (T 'SEO・ノート・文書づくりなどのスキルをまとめて入れますか？（5〜10分）' 'packs（plugins＋upstream skills）を入れる？'))) {
   & $py "$KitDir\tools\fox-packs\packs.py" install-win
   if ($LASTEXITCODE -eq 0) { Mark 'packs' } else { Warn (T 'スキルの一部が入りませんでした（あとでやり直せます）' 'packs 一部失敗') }
+}
+
+# Chrome（AIがブラウザを操作する公式の機能「Claude in Chrome」は Chrome で動く）
+function Find-Chrome { foreach ($p in @("$env:ProgramFiles\Google\Chrome\Application\chrome.exe", "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe", "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe")) { if ($p -and (Test-Path $p)) { return $p } }; return $null }
+if (-not (IsDone 'chrome')) {
+  if (Ask-YesNo (T 'Chrome（ブラウザ）を入れて、AIがブラウザを操作できるようにしますか？（調べ物や入力の代行に使います）' 'Google Chrome＋Claude in Chrome 拡張') $true) {
+    if (-not (Find-Chrome)) {
+      Write-Host ('  ' + (T 'Chrome を入れています…（1〜2分）' 'Google Chrome を導入'))
+      if (Has-Winget) { Winget-Install 'Google.Chrome' | Out-Null }
+      if (-not (Find-Chrome)) {
+        $exe = Join-Path $env:TEMP 'chrome_installer.exe'
+        try { Download 'https://dl.google.com/chrome/install/latest/chrome_installer.exe' $exe; Start-Process -FilePath $exe -ArgumentList '/silent', '/install' -Wait } catch {}
+      }
+    }
+    $chromeExe = Find-Chrome
+    if ($chromeExe) {
+      Ok (T 'Chrome が入りました' "Chrome: $chromeExe")
+      $ext = Get-ChildItem "$env:LOCALAPPDATA\Google\Chrome\User Data\*\Extensions\fcoeoabgfenejglbffodgkkbkcdhcgfn" -Directory -ErrorAction SilentlyContinue
+      if ($ext) { Ok (T 'AIが Chrome を操作するための拡張（Claude）はもう入っています' 'Claude in Chrome: installed') }
+      else {
+        Start-Process -FilePath $chromeExe -ArgumentList 'https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn'
+        Write-Host ('  ' + (T "Chrome に「Claude」の拡張の画面を開きました。`n    1)「Chrome に追加」→「拡張機能を追加」を押す`n    2) 出てきた画面で、AI と同じアカウントでログインする" 'ウェブストアで Claude in Chrome を追加→同じ組織でログイン'))
+        [void](Read-Host (T '  終わったら Enter（いまやらないなら、そのまま Enter）' '  Enter で続行'))
+      }
+      if (Ask-YesNo (T 'Chrome を「いつも使うブラウザ」にしますか？（Windows の決まりで、設定の画面であなたに押してもらいます）' '既定ブラウザを Chrome に（ms-settings:defaultapps）') $true) {
+        Start-Process 'ms-settings:defaultapps'
+        Write-Host ('  ' + (T '開いた画面で「Google Chrome」を探して押し、いちばん上の「既定値に設定」を押してください。' '既定のアプリ → Google Chrome →「既定値に設定」'))
+        [void](Read-Host (T '  終わったら Enter' '  Enter で続行'))
+      }
+    } else { Warn (T 'Chrome を自動で入れられませんでした。あとで https://www.google.com/chrome/ から入れられます' 'Chrome 導入失敗') }
+  }
+  Mark 'chrome'
 }
 
 if (-not (IsDone 'power')) {

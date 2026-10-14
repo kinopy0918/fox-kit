@@ -41,6 +41,7 @@ sys.path.insert(0, str(KIT / "claude/skills/fox-setup"))
 
 STEPS = [  # (id, 題名, 誰がやるか)
     ("level", "はじめに", "you"),
+    ("update", "パソコンを最新にする", "you"),
     ("names", "あなたとAIの名前", "you"),
     ("claude", "AIの本体を入れる", "auto"),
     ("login", "AIのアカウントにログイン", "you"),
@@ -96,6 +97,34 @@ def mark(step: str, **data):
             st["done"].append(step)
         st["data"].setdefault(step, {}).update(data)
         save(st)
+
+
+def set_data(step: str, **data):
+    """段の途中経過だけ書く（済みにはしない）。画面は data が変わると描き直す。"""
+    with LOCK:
+        st = load()
+        st["data"].setdefault(step, {}).update(data)
+        save(st)
+
+
+MIN_MACOS = (13, 0)   # Claude Code が動く最低の macOS
+
+
+def check_updates():
+    """macOS の版と、入れていない更新を調べる（softwareupdate -l は1分ほどかかる）。"""
+    ver = subprocess.run(["sw_vers", "-productVersion"], capture_output=True, text=True).stdout.strip()
+    nums = tuple(int(x) for x in re.findall(r"\d+", ver)[:2]) or (0, 0)
+    set_data("update", state="checking", version=ver, too_old=nums < MIN_MACOS)
+    try:
+        out = subprocess.run(["softwareupdate", "-l"], capture_output=True, text=True, timeout=300)
+        txt = out.stdout + out.stderr
+        items = []
+        for m in re.finditer(r"Title:\s*([^,\n]+),\s*Version:\s*([^,\n]+)(.*)", txt):
+            items.append({"title": m.group(1).strip(), "version": m.group(2).strip(),
+                          "restart": "restart" in m.group(3).lower()})
+        set_data("update", state="done", items=items)
+    except Exception as e:
+        set_data("update", state="error", error=str(e)[:200])
 
 
 def env_for(st: dict) -> dict:
@@ -177,6 +206,17 @@ def act(step: str, body: dict) -> dict:
                 return {"ok": False, "error": "30文字以内で、記号（\" $ ` \\ |）は使わないでください"}
             a[k] = v or {"machine": "このMac", "role": "作業機"}.get(k, "")
         save(st); mark("names")
+        return {"ok": True}
+
+    if step == "update":
+        if body.get("open"):
+            subprocess.run(["open", "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"])
+            return {"ok": True}
+        if body.get("next"):
+            mark("update", **({"skipped": True} if body.get("later") else {}))
+            return {"ok": True}
+        if st["data"].get("update", {}).get("state") not in ("checking", "done") or body.get("again"):
+            threading.Thread(target=check_updates, daemon=True).start()
         return {"ok": True}
 
     if step == "claude":

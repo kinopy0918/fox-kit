@@ -26,6 +26,7 @@
   <div><b>いるもの 1</b><span class="for-mac">Mac（2020年以降のものがおすすめ）</span><span class="for-win">Windows 10／11 のパソコン（ふだん使っているアカウントで。管理者のパスワードを聞かれることがあります）</span></div>
   <div><b>いるもの 2</b>Claude の有料の契約（Pro／Max／Team）<br><span class="for-b">無料のままでは使えません。会社で使うなら、会社で契約したもの</span></div>
   <div><b>いるもの 3</b>会社の Google アカウントと、使うなら Slack にログインできること<br><span class="for-b">確認のコードが届くスマホを手元に</span></div>
+  <div><b>先にやっておくこと</b>パソコンを最新にする<br><span class="for-b"><span class="for-mac">左上のリンゴのマーク →「システム設定」→「一般」→「ソフトウェアアップデート」。更新があれば「今すぐアップデート」</span><span class="for-win">スタート →「設定」→「Windows Update」→「更新プログラムのチェック」。出てきたものを入れる</span>（再起動を含めて30分〜1時間かかることがあるので、前日までに）。始めてからでも、最初に確かめる段があります</span><span class="for-e"><span class="for-mac">macOS 13 以上が必須。設定画面の2段目で softwareupdate -l を確認</span><span class="for-win">Windows 10 1809（build 17763）以上が必須。最初に Windows Update を開く段あり</span></span></div>
   <div><b>時間</b>1時間ほど<br><span class="for-b">途中で待つ時間があります。パソコンが眠らないよう、ふたは開けたままで</span></div>
 </div>
 
@@ -41,8 +42,8 @@
     <span class="for-b">初めて使うMacでは「コマンドライン・デベロッパ・ツールをインストールしますか？」と出ます。「インストール」→「同意する」を押して、終わるまで待ってください（10〜20分）。</span>
     <span class="for-e">素のMacでは xcode-select --install が走り、完了まで待ちます（python3 用）。</span></li>
   <li><b class="t">ブラウザに「設定画面」が開く → あとは画面の案内どおり</b>
-    いまやることが画面の真ん中に1つだけ出ます。押していけば順に進みます（全10ステップ）。
-    <span class="for-b">名前を決める → AIのアカウントにログイン → パソコンの設定 → 資料の保存先（Googleドライブがおすすめ）→ Slack か Discord とつなぐ → AIと最初のお話、の順です。</span></li>
+    いまやることが画面の真ん中に1つだけ出ます。押していけば順に進みます（全11ステップ）。
+    <span class="for-b">パソコンを最新にする → 名前を決める → AIのアカウントにログイン → パソコンの設定（Chrome と、AIがブラウザを使うための拡張も）→ 資料の保存先（Googleドライブがおすすめ）→ Slack か Discord とつなぐ → AIと最初のお話、の順です。</span></li>
   <li><b class="t">終わったら、Slack・Discord で話しかける</b>
     <span class="for-b">これからの用事も、困ったことも、つないだチャンネルで AI に話しかけるだけです。</span>
     <span class="for-e">この Mac の前では Antigravity（Claude Code 拡張入り）から指示するのが速い。</span>
@@ -58,11 +59,14 @@
     <span class="for-b">貼り付けは、PowerShell の画面の上で<b>右クリック</b>でもできます。</span>
     <span class="for-e">irm | iex にしていないのは日本語の文字化け対策（バイトで取って UTF-8 で読む）。</span></li>
   <li><b class="t">質問に答える → 「変更を許可しますか？」には「はい」</b>
-    <span class="for-b">名前などを聞かれたら、打ち込んで <span class="btn">Enter</span>。途中で AIが使う部品（Git・Python）と AI の本体が自動で入ります。そのたびに「このアプリがデバイスに変更を加えることを許可しますか？」と出たら「はい」を押してください。</span>
+    <span class="for-b">はじめに「Windows Update」の画面を開くか聞かれます（更新がまだなら、ここで入れておくのがおすすめです）。名前などを聞かれたら、打ち込んで <span class="btn">Enter</span>。途中で AIが使う部品（Git・Python）と AI の本体が自動で入ります。そのたびに「このアプリがデバイスに変更を加えることを許可しますか？」と出たら「はい」を押してください。</span>
     <span class="for-e">winget で Git for Windows・Python 3.12、claude.ai/install.ps1 で本体。winget が無ければ公式インストーラに切り替え。</span></li>
   <li><b class="t">AIのアカウントにログイン</b>
     <span class="for-b">ブラウザが開きます。AIの契約をしたアカウントで「ログイン」→「許可」。コードが表示されたら、それを PowerShell の画面に貼り付けて <span class="btn">Enter</span>。</span>
     <span class="for-e">claude auth login</span></li>
+  <li><b class="t">Chrome と、AIがブラウザを使うための拡張</b>
+    <span class="for-b">Chrome が入り、「Claude」の拡張の画面が開きます。「Chrome に追加」→「拡張機能を追加」を押し、AIと同じアカウントでログイン。「いつも使うブラウザ」にするかも聞かれます（設定の画面で「Google Chrome」→「既定値に設定」）。</span>
+    <span class="for-e">winget Google.Chrome → Claude in Chrome（ウェブストア）→ ms-settings:defaultapps。使うときは /chrome →「Enabled by default」。</span></li>
   <li><b class="t">AIと最初のお話（初期設定）</b>
     AIが、あなたの仕事や資料の保存先（Googleドライブがおすすめ）について1問ずつ質問します。答えるだけで設定が進みます。
     <span class="for-b">AIが「初期設定が終わりました」と言ったら、<span class="btn">Ctrl</span> を押しながら <span class="btn">C</span> を2回押して終わります。</span></li>

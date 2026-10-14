@@ -36,6 +36,18 @@ status() {
   echo "  Antigravity: $([[ -d "/Applications/Antigravity IDE.app" ]] && echo 入っています || echo なし)"
 }
 
+# ------------------------------------------------------------------ Claude in Chrome（AIが Chrome を操作する公式の拡張）
+CLAUDE_EXT_URL="https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn"
+claude_chrome() {
+  [[ -d "/Applications/Google Chrome.app" ]] || return 0
+  [[ "${FOX_CLAUDE_CHROME:-1}" == (2|no) ]] && return 0
+  if ls "$HOME/Library/Application Support/Google/Chrome/"*/Extensions/fcoeoabgfenejglbffodgkkbkcdhcgfn >/dev/null 2>&1; then
+    ok "$(t "AIが Chrome を操作するための拡張（Claude）はもう入っています" "Claude in Chrome: installed")"; return 0
+  fi
+  open -a "Google Chrome" "$CLAUDE_EXT_URL"
+  warn "$(t "Chrome に「Claude」の拡張の画面を開きました。「Chrome に追加」→「拡張機能を追加」を押し、出てきた画面で AI と同じアカウントでログインしてください（AIがブラウザで調べ物や入力をできるようになります）" "Claude in Chrome をウェブストアで開いた：Chrome に追加→同じ組織でログイン。CLI 側は /chrome → Enabled by default")"
+}
+
 # ------------------------------------------------------------------ Chrome
 # いま http を開くアプリ（例 /Applications/Google Chrome.app）
 default_browser() {
@@ -165,9 +177,9 @@ else
   fi
 fi
 
-choose FOX_CHROME "$(t "Chrome を入れて、いつも使うブラウザにしますか？（AIがブラウザを操作する機能は Chrome で動きます）" "Google Chrome を入れて既定ブラウザにする")" 1 \
+choose FOX_CHROME "$(t "Chrome を入れて、いつも使うブラウザにしますか？（AIがブラウザを操作する公式の機能「Claude in Chrome」は Chrome で動きます。拡張も一緒に案内します）" "Google Chrome＋Claude in Chrome 拡張（既定ブラウザ化）")" 1 \
   "1:$(t "する（おすすめ）" "する")" "2:$(t "しない" "しない")"
-[[ "$FOX_CHROME" == 1 || "$FOX_CHROME" == yes ]] && chrome
+[[ "$FOX_CHROME" == 1 || "$FOX_CHROME" == yes ]] && { chrome; claude_chrome; }
 
 choose FOX_ANTIGRAVITY "$(t "Antigravity（AIと画面で一緒に作業する編集ソフト。中で Claude Code も使えます）を入れますか？" "Antigravity IDE を入れる")" 1 \
   "1:$(t "入れる（おすすめ）" "入れる")" "2:$(t "入れない" "入れない")"
