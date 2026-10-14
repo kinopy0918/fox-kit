@@ -1,7 +1,18 @@
 # 変更履歴
 
-## 未リリース
+## 0.3.0（Windows 対応・2026-10-15）
 
+- **Windows に対応（基本セット）**。手順書の最初で「Mac の方／Windows の方」を選べる（開いた端末から自動で選ばれ、押せば切り替わる）。Windows は PowerShell に1行（`get.ps1`）を貼るだけで、Git for Windows・Python・Claude Code 本体→キット→組み立て→ログイン→あいさつ→スキル→電源・Antigravity→初期設定の聞き取りまで進む。途中で止まっても同じ1行で続きから
+- Windows では Discord/Slack の常駐連携・ブラウザの設定画面・画像づくりの鍵（キーチェーン）は入らない（手順書と初期設定の聞き取りでもそう案内する）
+- 安全ガードを PowerShell にも効かせる（再帰削除・ディスクの初期化・管理者での実行・irm|iex 型）
+- 保存先：Windows の Google ドライブ（G: など）・OneDrive（会社／個人）・Dropbox を見つける。Google ドライブのアプリも Windows 用の入れ方で入る
+- 置き場ガード：Windows の OneDrive／AppData を正しく扱う
+- 終わりの合図の音：Windows でも鳴る（Windows の通知音）
+- 直した不具合：ユーザー名に「.」などが入っていると、記憶のフォルダ名が Claude Code 本体とずれて記憶が読まれない
+
+- 終わりの合図：Antigravity（と VS Code）で Claude Code の作業が終わると「ポーン」（Glass）、許可を待っているときは「ピン」（Ping）が鳴る。音は左の会話一覧の色と連動＝オレンジ（終わって未読）になったときだけ鳴らし、見ている会話・裏でまだ作業が残っている会話・ターミナルや常駐の `claude -p` では鳴らさない。画面ロック中は色を待たずに鳴らす。音を変える `FOX_CHIME_DONE`／`FOX_CHIME_PERM`、止める `FOX_CHIME=off`。記録は `~/.cache/fox-chime/log`
+- 同じフックで、返事の中の資料の場所が押せないコード表記になっていたら、押せるリンクに書き直させる（Antigravity のチャットはコード表記を開けないため）
+- パソコンの設定：Antigravity の Claude Code を左に会話一覧が出る形（`claudeCode.preferredLocation: panel`）で開く。持ち主が決めた値は上書きしない
 - パソコンの設定：Chrome を入れて、いつも使うブラウザにする（既定でオン）。公式のインストーラから直接入れるので Homebrew を待たない。切り替えは Mac の確認画面で「“Google Chrome”を使用」を押す（押さなければ、あとでの変え方を案内）。`fox-kit mac status` にいま使っているブラウザを表示
 
 ## 0.2.1（実機テストの反映）

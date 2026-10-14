@@ -112,7 +112,18 @@ antigravity() {
     local argv="$HOME/.antigravity-ide/argv.json"; mkdir -p "${argv:h}"
     if [[ ! -f "$argv" ]]; then print -r -- '{ "locale": "ja" }' > "$argv"
     elif ! grep -q '"locale"' "$argv"; then /usr/bin/sed -i '' '1,/{/s/{/{\n\t"locale": "ja",/' "$argv"; fi
-    ok "$(t "Antigravity の中で Claude Code を使えるようにし、画面を日本語にしました" "extensions: claude-code, language-pack-ja / locale=ja")"
+    # Claude Code を左の一覧つきの画面で開く（終わった会話はオレンジ・許可待ちは青で光る＝音のフック chime.py と連動）
+    local us="$HOME/Library/Application Support/Antigravity IDE/User/settings.json"; mkdir -p "${us:h}"
+    /usr/bin/python3 - "$us" <<'PY2' || true
+import json, os, sys
+p = sys.argv[1]
+try: d = json.load(open(p)) if os.path.exists(p) else {}
+except Exception: sys.exit(0)          # 手書きのコメント入りJSONは触らない
+for k, v in {"claudeCode.preferredLocation": "panel", "claudeCode.hideOnboarding": True}.items():
+    d.setdefault(k, v)                  # 持ち主が決めた値は上書きしない
+json.dump(d, open(p, "w"), indent=4, ensure_ascii=False)
+PY2
+    ok "$(t "Antigravity の中で Claude Code を使えるようにし、画面を日本語にしました（終わると音が鳴り、左の一覧が色で光ります）" "extensions: claude-code, language-pack-ja / locale=ja / claudeCode.preferredLocation=panel")"
   fi
 }
 

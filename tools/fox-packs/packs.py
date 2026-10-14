@@ -32,7 +32,7 @@ HOME = Path.home()
 SKILLS = HOME / ".claude" / "skills"
 TOOLS = HOME / "Tools"
 RECORD = HOME / ".config" / "fox-kit" / "packs.json"
-LOG = HOME / "Library" / "Logs" / "fox-install.log"
+LOG = (HOME / ".config" / "fox-kit" / "fox-install.log") if os.name == "nt" else (HOME / "Library" / "Logs" / "fox-install.log")
 B = True
 try:
     B = "FOX_LEVEL=expert" not in (HOME / ".config/fox-kit/state.env").read_text()
@@ -319,6 +319,19 @@ def install():
     ok(t(f"スキルと道具をそろえました（{int(time.time() - t0) // 60}分）", f"done in {int(time.time() - t0)}s"))
 
 
+def install_win():
+    """Windows：Homebrew・常駐・鍵（Mac のキーチェーン）を使う部分は飛ばし、スキルだけそろえる。"""
+    t0 = time.time()
+    st = json.loads(RECORD.read_text(encoding="utf-8")) if RECORD.exists() else {}
+    plugins()
+    st["upstream"] = upstream()
+    st["plugins"] = [p for _, p in PLUGINS]
+    st["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    RECORD.parent.mkdir(parents=True, exist_ok=True)
+    RECORD.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
+    ok(t(f"スキルをそろえました（{int(time.time() - t0) // 60}分）", f"done in {int(time.time() - t0)}s"))
+
+
 def status():
     st = json.loads(RECORD.read_text()) if RECORD.exists() else {}
     say(f"  取ってきたスキル: {len(st.get('upstream', {}))} 本 / プラグイン: {len(st.get('plugins', []))} 個（{st.get('updated_at', '未導入')}）")
@@ -329,4 +342,4 @@ def status():
 if __name__ == "__main__":
     LOG.parent.mkdir(parents=True, exist_ok=True)
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
-    {"install": install, "status": status, "key": key}.get(cmd, status)()
+    {"install": install, "install-win": install_win, "status": status, "key": key}.get(cmd, status)()

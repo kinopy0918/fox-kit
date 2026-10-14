@@ -58,6 +58,29 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/chime.py",
+            "timeout": 25,
+            "statusMessage": "終わりの合図"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.claude/hooks/chime.py",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   },
   "effortLevel": "xhigh",

@@ -41,3 +41,10 @@ footer{max-width:780px;margin:0 auto;padding:0 16px 40px;color:var(--ink2);font-
 html,body{overflow-x:hidden}
 main,.need div,ol.steps>li ol{min-width:0}
 .cmd{max-width:100%}
+/* Mac / Windows の切り替え（入れ方ページ） */
+.os{display:flex;gap:10px;margin:18px 0 6px;flex-wrap:wrap}
+.os button{flex:1 1 140px;border:2px solid var(--line);background:transparent;color:var(--ink2);padding:12px 14px;border-radius:12px;cursor:pointer;font:inherit;font-weight:700;font-size:16px}
+.os button.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.for-win{display:none!important}
+body.os-win .for-mac{display:none!important}
+body.os-win .for-win{display:revert!important}

@@ -23,6 +23,8 @@ import json, os, re, shutil, subprocess, sys, argparse, time, unicodedata
 from pathlib import Path
 
 HOME = Path.home()
+WIN = os.name == "nt"
+PC = "パソコン" if WIN else "Mac"
 CONF = HOME / ".config" / "fox-kit" / "storage.json"
 
 LAYOUTS = {
@@ -57,7 +59,67 @@ def nfc(s):
 
 
 # ------------------------------------------------------------------ detect / install
+GD_WIN = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Google" / "Drive File Stream"
+
+
+def open_path(p):
+    """フォルダやアプリを開く（Mac は open、Windows はエクスプローラー）。"""
+    if WIN:
+        os.startfile(str(p))
+    else:
+        subprocess.run(["open", str(p)])
+
+
+def detect_win():
+    found = []
+    # Google ドライブ（パソコン版）はドライブ文字（G: など）として出る
+    for letter in "DEFGHIJKLMNOPQRSTUVWXYZ":
+        root = Path(f"{letter}:/")
+        try:
+            my = next((root / n for n in ("マイドライブ", "My Drive") if (root / n).is_dir()), None)
+        except OSError:
+            continue
+        if not my:
+            continue
+        found.append({"kind": "Googleドライブ（マイドライブ）", "account": f"{letter}:", "path": str(my)})
+        sh = next((root / n for n in ("共有ドライブ", "Shared drives") if (root / n).is_dir()), None)
+        if sh:
+            for s in sorted(sh.iterdir()):
+                if s.is_dir():
+                    found.append({"kind": f"共有ドライブ「{s.name}」", "name": s.name, "account": f"{letter}:", "path": str(s)})
+    seen = set()
+    for env, label in (("OneDriveCommercial", "OneDrive（会社）"), ("OneDriveConsumer", "OneDrive（個人）"), ("OneDrive", "OneDrive")):
+        v = os.environ.get(env)
+        if v and Path(v).is_dir() and v not in seen:
+            seen.add(v)
+            found.append({"kind": label, "account": Path(v).name, "path": v})
+    for name in ("Dropbox", "Box"):
+        if (HOME / name).is_dir():
+            found.append({"kind": name, "account": "", "path": str(HOME / name)})
+    found.append({"kind": "このパソコンの中だけ（バックアップなし）", "account": "", "path": str(HOME / "Documents")})
+    print(json.dumps({"folders": found, "google_drive_app_installed": GD_WIN.is_dir()}, ensure_ascii=False, indent=2))
+
+
+def install_gdrive_win():
+    if GD_WIN.is_dir():
+        print("Google ドライブのアプリは入っています。画面右下（タスクバー）の雲のアイコンから開けます。")
+        return
+    print("Google ドライブのアプリを入れます（「このアプリがデバイスに変更を加えることを許可しますか？」と出たら「はい」）…")
+    r = subprocess.run(["winget", "install", "--id", "Google.GoogleDrive", "-e", "--silent",
+                        "--accept-package-agreements", "--accept-source-agreements"])
+    if r.returncode != 0:
+        exe = Path(os.environ.get("TEMP", str(HOME))) / "GoogleDriveSetup.exe"
+        subprocess.run(["curl", "-fsSL", "-o", str(exe), "https://dl.google.com/drive-file-stream/GoogleDriveSetup.exe"], check=True)
+        r = subprocess.run([str(exe), "--silent", "--desktop_shortcut"])
+    if r.returncode != 0 and not GD_WIN.is_dir():
+        sys.exit("インストールが取り消されたか、失敗しました。")
+    print("入れました。開いた画面で、会社のGoogleアカウントでログインしてください。"
+          "ログインが済むと、エクスプローラーの左側に「Google Drive (G:)」が出ます。")
+
+
 def detect():
+    if WIN:
+        return detect_win()
     found = []
     cs = HOME / "Library" / "CloudStorage"
     if cs.is_dir():
@@ -87,6 +149,8 @@ def detect():
 
 
 def install_gdrive():
+    if WIN:
+        return install_gdrive_win()
     if Path("/Applications/Google Drive.app").is_dir():
         print("Google ドライブのアプリは入っています。開きます。")
         subprocess.run(["open", "-a", "Google Drive"])
@@ -213,7 +277,7 @@ def index(base: Path, all_=False, descs=None):
 
 # ------------------------------------------------------------------ apply
 def memory_dir():
-    return HOME / ".claude" / "projects" / str(HOME).rstrip("/").replace("/", "-") / "memory"
+    return HOME / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9-]", "-", str(HOME).rstrip("/\\")) / "memory"  # Claude Code と同じ形（C:\Users\x → C--Users-x）
 
 
 def add_stop_hook(cmd: str):
@@ -268,8 +332,17 @@ def apply(root: Path, agent: str, layout: str, memory_in_root: bool, auto_index:
                         shutil.move(str(f), str(dest / f.name))
                 shutil.rmtree(mem)
             mem.parent.mkdir(parents=True, exist_ok=True)
-            mem.symlink_to(dest, target_is_directory=True)
-            print(f"記憶を移しました: {dest}")
+            try:
+                mem.symlink_to(dest, target_is_directory=True)
+                print(f"記憶を移しました: {dest}")
+            except OSError:
+                # Windows は「開発者モード」でないとリンクが作れない → 記憶はこのパソコンに戻し、保存先へは写しを置かない
+                mem.mkdir(parents=True, exist_ok=True)
+                for f in dest.iterdir():            # 移した記憶を元へ戻す（2か所に分かれて食い違わないように）
+                    if not (mem / f.name).exists():
+                        shutil.move(str(f), str(mem / f.name))
+                memory_in_root = False
+                print("記憶はこのパソコンの中に置きました（Windows の設定で、保存先へのつなぎ込みが作れなかったため）")
 
     # 目次
     n = index(base, all_=True, descs=descs)
@@ -281,7 +354,7 @@ def apply(root: Path, agent: str, layout: str, memory_in_root: bool, auto_index:
 
     # 作業が終わるたびに目次を更新
     here = Path(__file__).resolve()
-    if auto_index and add_stop_hook(f"python3 '{here}' index >/dev/null 2>&1 || true"):
+    if auto_index and add_stop_hook(f"python3 '{here.as_posix()}' index >/dev/null 2>&1 || true"):
         print("作業が終わるたびに目次を更新する設定を入れました")
 
     # 保存と読み方の決まり
@@ -293,20 +366,20 @@ def apply(root: Path, agent: str, layout: str, memory_in_root: bool, auto_index:
         "## 探すとき（全部を読みに行かない）", "",
         f"1. まず `{base}/{TOP_INDEX}` を読んで、行き先のフォルダを決める",
         f"2. そのフォルダの `{INDEX_NAME}` を読み、1行の説明から目当てのファイルを選ぶ",
-        "3. 選んだファイルだけ開く。見つからないときだけ、ファイル名で検索する（`mdfind -onlyin` や `grep -rl`）", "",
+        "3. 選んだファイルだけ開く。見つからないときだけ、ファイル名で検索する（" + ("`grep -rl`" if WIN else "`mdfind -onlyin` や `grep -rl`") + "）", "",
         "## 置くとき", "", "| 何を | どこへ |", "|---|---|"]
     body += [f"| {d} | `{n}/` |" for n, d in folders]
     body += [
         "| 動かし続けるプログラム本体 | `~/Tools/` |",
-        "| パスワード・鍵・トークン | Macのキーチェーン（ファイルに書かない） |", "",
+        "| パスワード・鍵・トークン | " + ("Windows の資格情報マネージャー" if WIN else "Macのキーチェーン") + "（ファイルに書かない） |", "",
         "- 新しく作る文書には、1行目に内容がわかる見出しを付ける（目次の説明になる）。",
-        f"- ファイルを置いたら目次を更新する：`python3 {here} index`" + ("（作業の終わりに自動でも更新される）" if auto_index else ""),
+        f"- ファイルを置いたら目次を更新する：`python3 '{here.as_posix()}' index`" + ("（作業の終わりに自動でも更新される）" if auto_index else ""),
         "- 場所を移したら、記憶やスクリプトに書いた場所も一緒に直す。",
         "- 個人情報（マイナンバー・口座・健康情報・住所）はこの保存先の外へ出さない。"]
     if memory_in_root:
         body += [f"- AIの記憶は `{MEMORY_FOLDER[layout]}/` にある（元の場所からも同じ中身が見える）。"]
     if local_only:
-        body += ["", "**注意：この保存先はこのMacの中だけ。** Macが壊れると消える。クラウドの同期フォルダを使えるようになったら移すよう持ち主に勧める。"]
+        body += ["", f"**注意：この保存先はこの{PC}の中だけ。** {PC}が壊れると消える。クラウドの同期フォルダを使えるようになったら移すよう持ち主に勧める。"]
     rules.parent.mkdir(parents=True, exist_ok=True)
     rules.write_text("\n".join(body) + "\n", encoding="utf-8")
 

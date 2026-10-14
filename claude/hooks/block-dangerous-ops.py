@@ -56,6 +56,14 @@ RULES = [
     (r'\b(curl|wget)\b.*(\s-d\b|--data|--data-binary|-F\b|--form|-T\b|--upload-file|@/)',
      "外部へのデータ送信(アップロード)。機密流出の恐れ。"),
     (r'\bnc\b\s.*\d', "nc(netcat)による外部送信の恐れ。"),
+    # --- Windows（PowerShell）---
+    (r'\b(remove-item|rm|del|rd|rmdir|ri)\b.*-recurse\b|\brd\s+/s\b|\brmdir\s+/s\b|\bdel\s+/[a-z]*s',
+     "再帰削除(Remove-Item -Recurse / rd /s 系)。誤指示なら大量消失する。"),
+    (r'\b(format-volume|clear-disk|initialize-disk|remove-partition)\b|\bformat\s+[a-z]:',
+     "ディスクの初期化・フォーマット。"),
+    (r'\bstart-process\b.*-verb\s+runas', "管理者権限での実行(sudo 相当)。"),
+    (r'\b(iwr|irm|invoke-webrequest|invoke-restmethod)\b[^|]*\|\s*(iex|invoke-expression)\b',
+     "ダウンロード内容を直接実行(irm|iex 型)。偽指示の常套手段。"),
 ]
 
 for pat, why in RULES:

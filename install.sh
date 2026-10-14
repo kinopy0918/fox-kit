@@ -76,6 +76,7 @@ python3 - "$HERE/claude/CLAUDE.md.template" "$RENDERED" \
 import sys
 tpl, out, agent, owner, mlabel, mrole, devdir, vault, ghorg, memhome = sys.argv[1:]
 slug = memhome.rstrip("/").replace("/", "-")
+import re; slug = re.sub(r"[^A-Za-z0-9-]", "-", slug)   # Claude Code と同じ形（英数字以外は - ）
 memory_path = f"~/.claude/projects/{slug}/memory/"
 text = open(tpl, encoding="utf-8").read()
 repl = {
@@ -172,7 +173,7 @@ fi
 
 # ---------------------------------------------------------------- 4. memory
 say "記憶の索引スケルトン"
-slug=$(python3 -c "import sys; print(sys.argv[1].rstrip('/').replace('/', '-'))" "$MEMORY_HOME")
+slug=$(python3 -c "import re,sys; print(re.sub(r'[^A-Za-z0-9-]', '-', sys.argv[1].rstrip('/')))" "$MEMORY_HOME")
 MEMDIR="$HOME/.claude/projects/$slug/memory"
 if [[ -f "$MEMDIR/MEMORY.md" ]]; then
   warn "既に記憶があります。上書きしません: $MEMDIR/MEMORY.md"

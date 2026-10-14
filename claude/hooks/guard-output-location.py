@@ -29,7 +29,9 @@ ALLOWED_TOP = {
     "Documents", "Movies", "Music", "Pictures", "Public", "Sites",
     "Workspace", "Applications", "Dropbox",
     "Library",       # CloudStorage（Drive）はこの下
+    "OneDrive", "AppData", "source",   # Windows（OneDrive の同期フォルダ・アプリの設定・Visual Studio の既定）
 }
+WIN_DESKTOP = {"Desktop", "デスクトップ", "Downloads", "ダウンロード"}
 
 GUIDE = """置き場ルール:
   文書・資料・データ・コード → CLAUDE.md の「保管先」を見る
@@ -41,7 +43,7 @@ GUIDE = """置き場ルール:
 def verdict(path):
     """ブロックすべきなら理由を返す。問題なければ None。"""
     p = os.path.abspath(os.path.expanduser(path))
-    if not p.startswith(HOME + os.sep):
+    if not os.path.normcase(p).startswith(os.path.normcase(HOME + os.sep)):
         return None
     rel = p[len(HOME) + 1:]
     parts = rel.split(os.sep)
@@ -49,6 +51,10 @@ def verdict(path):
 
     if top in ("Desktop", "Downloads"):
         return f"~/{top} は生成物の置き場ではありません（受信箱／一時表示用）。"
+    if os.name == "nt" and top.lower().startswith("onedrive") and len(parts) > 1 and parts[1] in WIN_DESKTOP:
+        return f"~/{top}/{parts[1]} は生成物の置き場ではありません（受信箱／一時表示用）。"
+    if os.name == "nt" and top.lower().startswith("onedrive"):
+        return None                       # OneDrive - 会社名 なども同期フォルダ
     if top.startswith("."):
         return None                       # 設定ファイル類は対象外
     if len(parts) == 1:

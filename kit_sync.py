@@ -36,6 +36,8 @@ MAP = [
     ("claude/hooks", HOME / ".claude" / "hooks", "managed"),
     ("tools", HOME / "Tools", "managed"),
 ]
+if os.name == "nt":  # Windows：~/Tools の中身は Mac の常駐・キーチェーン前提なので置かない
+    MAP = [m for m in MAP if m[0] != "tools"]
 # 使うほど育つので、最初の1回だけ置くもの（キット内の相対パス）
 SEED = {
     "claude/skills/shiryo-review-loop/checklist.md",
@@ -61,7 +63,7 @@ def items():
 
 
 def main(dry=False):
-    rec = json.loads(RECORD.read_text()) if RECORD.exists() else {}
+    rec = json.loads(RECORD.read_text(encoding="utf-8")) if RECORD.exists() else {}
     before = rec.get("files", {})
     prev_ver = rec.get("version")
     files, report = {}, {"new": [], "updated": [], "same": [], "kept": [], "seed_kept": []}
@@ -89,7 +91,7 @@ def main(dry=False):
         if action in ("new", "updated"):
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
-            if os.access(src, os.X_OK):
+            if os.name != "nt" and os.access(src, os.X_OK):
                 os.chmod(dest, 0o755)
             files[key] = new_hash
         elif action == "kept":
@@ -106,7 +108,7 @@ def main(dry=False):
         rec.update(version=VERSION, previous_version=prev_ver, updated_at=time.strftime("%Y-%m-%d %H:%M:%S"),
                    files=files)
         rec.setdefault("installed_at", rec["updated_at"])
-        RECORD.write_text(json.dumps(rec, ensure_ascii=False, indent=2))
+        RECORD.write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
         os.chmod(RECORD, 0o600)
 
     home = str(HOME)

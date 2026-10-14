@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>fox-kit</title>
-<meta name="description" content="あなた専用のAI秘書を、Macに1行で入れる手順書">
+<meta name="description" content="あなた専用のAI秘書を、Mac・Windowsに1行で入れる手順書">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css"><script src="site.js"></script>
 </head>
@@ -15,19 +15,22 @@
 </div></header>
 <main>
 <h1>AI秘書を、<span>1行</span>で入れる。</h1>
-<p class="lead for-b">あなたの仕事を手伝うAI秘書を、このMacに用意します。黒い画面に1行はり付けるだけで、あとは画面の質問に答えていけば終わります。</p>
+<div class="os" role="group" aria-label="パソコンの種類">
+  <button data-os="mac">Mac の方</button><button data-os="win">Windows の方</button>
+</div>
+<p class="lead for-b">あなたの仕事を手伝うAI秘書を、このパソコンに用意します。黒い画面に1行はり付けるだけで、あとは画面の質問に答えていけば終わります。</p>
 <p class="lead for-e">Claude Code を汎用FOXとして組み立てるインストーラ。本体・作法集（32項目）・資料品質ループ・保存先・Discord/Slack 接続まで。</p>
 
 <h2>はじめる前に</h2>
 <div class="need">
-  <div><b>いるもの 1</b>Mac（2020年以降のものがおすすめ）</div>
+  <div><b>いるもの 1</b><span class="for-mac">Mac（2020年以降のものがおすすめ）</span><span class="for-win">Windows 10／11 のパソコン（ふだん使っているアカウントで。管理者のパスワードを聞かれることがあります）</span></div>
   <div><b>いるもの 2</b>Claude の有料の契約（Pro／Max／Team）<br><span class="for-b">無料のままでは使えません。会社で使うなら、会社で契約したもの</span></div>
   <div><b>いるもの 3</b>会社の Google アカウントと、使うなら Slack にログインできること<br><span class="for-b">確認のコードが届くスマホを手元に</span></div>
-  <div><b>時間</b>1時間ほど<br><span class="for-b">途中で待つ時間があります。Macが眠らないよう、ふたは開けたままで</span></div>
+  <div><b>時間</b>1時間ほど<br><span class="for-b">途中で待つ時間があります。パソコンが眠らないよう、ふたは開けたままで</span></div>
 </div>
 
 <h2>入れ方</h2>
-<ol class="steps">
+<ol class="steps for-mac">
   <li><b class="t">「ターミナル」を開く</b>
     <span class="for-b">キーボードの <span class="btn">command</span> を押しながら <span class="btn">スペース</span> を押し、「ターミナル」と打って <span class="btn">return</span>。文字だけの画面（黒か白）が開きます。</span>
     <span class="for-e">⌘+Space → ターミナル</span></li>
@@ -46,10 +49,33 @@
     手順の詳しい写真は <a href="discord.html">Discordとつなぐ</a>／<a href="slack.html">Slackとつなぐ</a> にもあります。</li>
 </ol>
 
-<div class="note okbox for-b"><b>途中で止まっても大丈夫です。</b>同じ1行をもう一度貼り付けると、設定画面が続きのところから開きます。</div>
+<ol class="steps for-win">
+  <li><b class="t">「PowerShell」を開く</b>
+    <span class="for-b">画面左下のスタートボタン（窓のマーク）を押し、「powershell」と打って <span class="btn">Enter</span>。青か黒の、文字だけの画面が開きます。<br>（「管理者として実行」は選ばなくて大丈夫です）</span>
+    <span class="for-e">Win キー → powershell（管理者でなくてよい）</span></li>
+  <li><b class="t">次の1行をコピーして、PowerShell に貼り付けて <span class="btn">Enter</span></b>
+    <div class="cmd">powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12';iex ([Text.Encoding]::UTF8.GetString((New-Object Net.WebClient).DownloadData('https://kinopy0918.github.io/fox-kit/get.ps1')))"</div>
+    <span class="for-b">貼り付けは、PowerShell の画面の上で<b>右クリック</b>でもできます。</span>
+    <span class="for-e">irm | iex にしていないのは日本語の文字化け対策（バイトで取って UTF-8 で読む）。</span></li>
+  <li><b class="t">質問に答える → 「変更を許可しますか？」には「はい」</b>
+    <span class="for-b">名前などを聞かれたら、打ち込んで <span class="btn">Enter</span>。途中で AIが使う部品（Git・Python）と AI の本体が自動で入ります。そのたびに「このアプリがデバイスに変更を加えることを許可しますか？」と出たら「はい」を押してください。</span>
+    <span class="for-e">winget で Git for Windows・Python 3.12、claude.ai/install.ps1 で本体。winget が無ければ公式インストーラに切り替え。</span></li>
+  <li><b class="t">AIのアカウントにログイン</b>
+    <span class="for-b">ブラウザが開きます。AIの契約をしたアカウントで「ログイン」→「許可」。コードが表示されたら、それを PowerShell の画面に貼り付けて <span class="btn">Enter</span>。</span>
+    <span class="for-e">claude auth login</span></li>
+  <li><b class="t">AIと最初のお話（初期設定）</b>
+    AIが、あなたの仕事や資料の保存先（Googleドライブがおすすめ）について1問ずつ質問します。答えるだけで設定が進みます。
+    <span class="for-b">AIが「初期設定が終わりました」と言ったら、<span class="btn">Ctrl</span> を押しながら <span class="btn">C</span> を2回押して終わります。</span></li>
+  <li><b class="t">これからは</b>
+    <span class="for-b">スタートから「PowerShell」を開いて <code>claude</code> と打てば、いつでも AI と話せます。途中で入れた「Antigravity」があれば、その中の Claude のマークから話しかけるのがいちばん楽です。</span>
+    <span class="for-e">ホーム（~）で claude、または Antigravity の Claude Code 拡張。</span></li>
+</ol>
+<div class="note for-win"><b>Windows 版でまだできないこと：</b>スマホ（Slack・Discord）から AI に話しかける仕組み、画像づくりの鍵の登録、ブラウザで進める設定画面。これらは今は Mac 版だけです。パソコンの前で使う AI 秘書としては、Mac 版と同じ作法・資料のチェック役・保存先の整理が入ります。</div>
+
+<div class="note okbox for-b"><b>途中で止まっても大丈夫です。</b>同じ1行をもう一度貼り付けると、<span class="for-mac">設定画面が</span>続きのところから<span class="for-mac">開きます</span><span class="for-win">始まります</span>。</div>
 <div class="note">このAIは、いちいち「実行してよいですか？」と聞かずに作業を進める設定になります。<b>お金が動くこと・社外に送ること・あなたしか知らない判断</b>は、必ず先に確認する決まりが入っています。</div>
 
-<div class="for-e">
+<div class="for-e for-mac">
 <h2>会社で配るとき（質問を省く）</h2>
 <div class="cmd">FOX_LEVEL=beginner FOX_OWNER="山田さん" FOX_AGENT="ヤマダAI" FOX_MACHINE="事務所のMac" FOX_ROLE="経理の自動化" \
 /bin/zsh -c "$(curl -fsSL https://kinopy0918.github.io/fox-kit/get.sh)"</div>

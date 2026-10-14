@@ -1,13 +1,13 @@
 # fox-kit
 
-**あなた専用のAI秘書を、Macに1行で入れる。**
+**あなた専用のAI秘書を、Mac・Windowsに1行で入れる。**
 
 Claude Code を「その人・その会社専用の秘書」として組み立てるインストーラです。
 人格・仕事の作法・資料のチェック役・資料の保存先・Discord/Slack とのやり取りまで、
 画面の質問に答えるだけでそろいます。AIに詳しくない人でも入れられるように作っています。
 
 - 手順書（図つき）：https://kinopy0918.github.io/fox-kit/
-- 動く環境：macOS ／ Claude の契約（Pro・Max・Team）
+- 動く環境：macOS ／ Windows 10・11（基本セット）／ Claude の契約（Pro・Max・Team）
 
 ## 入れ方
 
@@ -16,6 +16,15 @@ Claude Code を「その人・その会社専用の秘書」として組み立�
 ```sh
 /bin/zsh -c "$(curl -fsSL https://kinopy0918.github.io/fox-kit/get.sh)"
 ```
+
+**Windows** は PowerShell に次の1行を貼り付けて Enter（Git・Python・本体も自動で入ります）。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12';iex ([Text.Encoding]::UTF8.GetString((New-Object Net.WebClient).DownloadData('https://kinopy0918.github.io/fox-kit/get.ps1')))"
+```
+
+Windows 版に入るのは基本セット（人格・作法・資料のチェック役・安全ガード・記憶・保存先の整理・初期設定の聞き取り・スキル・Antigravity）。
+Discord/Slack の常駐連携・ブラウザの設定画面・画像づくりの鍵は、いまは Mac 版だけです。
 
 最初に「はじめて／慣れている」を選びます。「はじめて」を選ぶと、案内も、入れたあとのAIの話し方も、専門用語を使わなくなります。
 途中で止まっても、同じ1行を貼り直せば続きから始まります。

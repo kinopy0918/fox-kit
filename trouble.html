@@ -27,6 +27,17 @@
 <tr><td>名前などを入れ直したい</td><td><span class="for-b">1行の先頭に <code>FOX_RESET=1 </code> を付けて貼り付けると、最初から聞き直します</span><span class="for-e"><code>FOX_RESET=1</code> を前置</span></td></tr>
 </table>
 
+<h2>Windows で入れるとき</h2>
+<table>
+<tr><th>こうなった</th><th>こうする</th></tr>
+<tr><td>「スクリプトの実行が無効」と赤い字が出る</td><td>手順書の1行を<b>そのまま全部</b>貼ってください（先頭の <code>powershell -NoProfile -ExecutionPolicy Bypass</code> が、この制限を外します）</td></tr>
+<tr><td>「claude は認識されません」と出る</td><td>PowerShell を閉じて開き直し、同じ1行をもう一度（入れた直後は場所が反映されていないことがあります）</td></tr>
+<tr><td>「変更を許可しますか？」で「いいえ」を押してしまった</td><td>同じ1行をもう一度。また聞かれるので「はい」を押す</td></tr>
+<tr><td>会社のパソコンで、許可の画面で管理者のパスワードを求められる</td><td>会社のパソコンの担当の方に入力してもらう（Git・Python・Google ドライブを入れるときに出ます）</td></tr>
+<tr><td>名前などを入れ直したい</td><td><span class="for-b">先に <code>$env:FOX_RESET=1</code> と打って Enter、そのあと同じ1行を貼る</span><span class="for-e"><code>$env:FOX_RESET=1</code> → 再実行</span></td></tr>
+<tr><td>AIが自分の名前や仕事を覚えていない</td><td>PowerShell を開いたら、そのまま（場所を変えずに） <code>claude</code> と打ってください。最初はあなたのフォルダ（<code>C:\Users\あなたの名前</code>）で開きます</td></tr>
+</table>
+
 <h2>使うとき</h2>
 <table>
 <tr><th>こうなった</th><th>こうする</th></tr>
