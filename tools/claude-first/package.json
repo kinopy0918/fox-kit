@@ -1,14 +1,16 @@
 {
   "name": "claude-first",
   "displayName": "Claude を最初に開く（fox-kit）",
-  "description": "Antigravity の起動時に、右側の帯（Gemini の Agent）を閉じ、左を Claude の会話一覧にする",
+  "description": "Antigravity を Claude 中心にする：起動時に右の帯（Gemini）を閉じ左を会話一覧に／⌘⇧2 で画面を撮って Claude に「見て」と送る",
   "publisher": "fox-kit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "engines": {
     "vscode": "^1.80.0"
   },
   "activationEvents": [
-    "onStartupFinished"
+    "onStartupFinished",
+    "onUri",
+    "onCommand:foxKit.shotToClaude"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -24,8 +26,31 @@
           "type": "boolean",
           "default": true,
           "description": "起動時に左側をエクスプローラーから Claude の会話一覧に切り替える"
+        },
+        "foxKit.shot.message": {
+          "type": "string",
+          "default": "この画面を見て",
+          "description": "撮った画面と一緒に Claude へ送る言葉"
+        },
+        "foxKit.shot.autoSend": {
+          "type": "boolean",
+          "default": true,
+          "description": "貼ったらそのまま送る（オフなら貼るだけ）"
         }
       }
-    }
+    },
+    "commands": [
+      {
+        "command": "foxKit.shotToClaude",
+        "title": "画面を撮って Claude に見せる"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "foxKit.shotToClaude",
+        "key": "ctrl+shift+2",
+        "mac": "cmd+shift+2"
+      }
+    ]
   }
 }
