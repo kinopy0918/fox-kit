@@ -1,50 +1,199 @@
-:root{--bg:#f7f6f2;--ink:#1d2433;--ink2:#5b6475;--line:#e3e0d8;--card:#fff;--accent:#c2410c;--soft:#fdf1e8;--ok:#15803d;--code:#141a26;--codeink:#e8ecf3}
-@media (prefers-color-scheme:dark){:root{--bg:#10141c;--ink:#e8ecf3;--ink2:#9aa3b5;--line:#252c3a;--card:#171d28;--accent:#fb923c;--soft:#2a1d14;--ok:#4ade80;--code:#0a0e15;--codeink:#e8ecf3}}
+/* fox-kit 手順書 ── すりガラスのカード × 紺 × コバルト→ミントのグラデーション */
+:root{
+  --bg:#e7ebf5; --ink:#141b34; --ink2:#55607d; --line:rgba(20,27,52,.10);
+  --glass:rgba(255,255,255,.58); --glass2:rgba(255,255,255,.80); --glassline:rgba(255,255,255,.85);
+  --navy:#18214f; --navy2:#2a3a8f; --blue:#3457d5; --mint:#22c3a6; --mint2:#5ee6cb;
+  --grad:linear-gradient(120deg,#3457d5 0%,#3b7be0 45%,#22c3a6 100%);
+  --accent:#3457d5; --ok:#139c84; --warn:#d0663b;
+  --code:#141c45; --codeink:#e6ecff;
+  --shadow:0 10px 30px -12px rgba(30,42,110,.28),0 2px 6px -2px rgba(30,42,110,.10);
+  --blob1:rgba(52,87,213,.18); --blob2:rgba(34,195,166,.12); --blob3:rgba(120,110,240,.20);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0c1230; --ink:#e8edff; --ink2:#a3add0; --line:rgba(255,255,255,.10);
+  --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.10); --glassline:rgba(255,255,255,.12);
+  --accent:#7d9bff; --ok:#4fe0c4; --code:#070b24; --codeink:#e6ecff;
+  --shadow:0 10px 30px -12px rgba(0,0,0,.6);
+  --blob1:rgba(52,87,213,.35); --blob2:rgba(34,195,166,.22); --blob3:rgba(120,110,240,.22);
+}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 "Noto Sans JP",system-ui,sans-serif}
-a{color:var(--accent)}
-header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
-header.top .in{max-width:780px;margin:0 auto;padding:10px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-header.top .brand{font-weight:700;text-decoration:none;color:var(--ink);margin-right:auto}
-header.top nav{max-width:100%;overflow-x:auto;white-space:nowrap}
-header.top nav a{font-size:14px;margin-right:10px;text-decoration:none;color:var(--ink2)}
-header.top nav a.on{color:var(--accent);font-weight:700}
-.lv{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;font-size:13px}
-.lv button{border:0;background:transparent;color:var(--ink2);padding:5px 12px;cursor:pointer;font:inherit}
-.lv button.on{background:var(--accent);color:#fff}
-main{max-width:780px;margin:0 auto;padding:36px 16px 80px}
-h1{font-size:clamp(26px,5vw,36px);line-height:1.35;margin:0 0 10px}
-h1 span{color:var(--accent)}
-h2{font-size:20px;margin:44px 0 12px}
-.lead{color:var(--ink2);margin:0 0 28px}
-.need{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:10px;margin:14px 0}
-.need div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px}
-.need b{display:block;font-size:13px;color:var(--ink2);font-weight:500}
-.cmd{position:relative;background:var(--code);color:var(--codeink);border-radius:10px;padding:16px 18px;font:14px/1.6 "Roboto Mono",monospace;overflow-x:auto;white-space:pre}
-.cmd button{position:absolute;top:10px;right:10px;background:#2a3346;color:#fff;border:0;border-radius:6px;padding:6px 12px;font:12px "Noto Sans JP";cursor:pointer}
-ol.steps{list-style:none;counter-reset:s;padding:0;display:grid;gap:12px;margin:14px 0}
-ol.steps>li{min-width:0;counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px 14px 56px;position:relative}
-ol.steps>li::before{content:counter(s);position:absolute;left:16px;top:14px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font:700 14px/26px "Roboto Mono";text-align:center}
-ol.steps>li b.t{display:block;font-size:17px;margin-bottom:4px}
-.btn{display:inline;border:1px solid var(--line);background:var(--soft);border-radius:6px;padding:0 6px;font-size:14px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
-.btn i{font-style:normal;color:var(--ink2);font-size:12px;margin-left:4px}
-.note{background:var(--card);border-left:4px solid var(--accent);border-radius:6px;padding:12px 16px;color:var(--ink2);font-size:15px;margin:16px 0}
-.okbox{border-left-color:var(--ok)}
-table{width:100%;border-collapse:collapse;font-size:15px}
-td,th{border-bottom:1px solid var(--line);padding:9px 6px;text-align:left;vertical-align:top}
-code{font:13px "Roboto Mono",monospace;background:var(--card);border:1px solid var(--line);border-radius:4px;padding:1px 5px;word-break:break-all}
-.for-e{display:none}
-body.expert .for-b{display:none}
-body.expert .for-e{display:revert}
-footer{max-width:780px;margin:0 auto;padding:0 16px 40px;color:var(--ink2);font-size:13px}
-
 html,body{overflow-x:hidden}
-main,.need div,ol.steps>li ol{min-width:0}
-.cmd{max-width:100%}
-/* Mac / Windows の切り替え（入れ方ページ） */
-.os{display:flex;gap:10px;margin:18px 0 6px;flex-wrap:wrap}
-.os button{flex:1 1 140px;border:2px solid var(--line);background:transparent;color:var(--ink2);padding:12px 14px;border-radius:12px;cursor:pointer;font:inherit;font-weight:700;font-size:16px}
-.os button.on{border-color:var(--accent);background:var(--accent);color:#fff}
-.for-win{display:none!important}
-body.os-win .for-mac{display:none!important}
-body.os-win .for-win{display:revert!important}
+body{margin:0;min-height:100vh;color:var(--ink);font:16px/1.85 "Noto Sans JP",system-ui,sans-serif;
+  background:
+    radial-gradient(40vw 40vw at 8% 4%,var(--blob1),transparent 70%),
+    radial-gradient(38vw 38vw at 95% 18%,var(--blob2),transparent 70%),
+    radial-gradient(50vw 40vw at 50% 105%,var(--blob3),transparent 70%),
+    var(--bg);
+  background-attachment:scroll}
+a{color:var(--accent);text-underline-offset:3px}
+
+/* ---------- 上の帯 ---------- */
+header.top{position:sticky;top:0;z-index:5;background:var(--glass);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-bottom:1px solid var(--glassline)}
+header.top .in{max-width:900px;margin:0 auto;padding:10px 16px;display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+header.top .brand{display:flex;align-items:center;gap:8px;font:700 17px/1 "Noto Sans JP";letter-spacing:.02em;text-decoration:none;color:var(--ink);margin-right:auto}
+header.top .brand::before{content:"";width:22px;height:22px;border-radius:7px;background:var(--grad);box-shadow:0 0 0 3px rgba(255,255,255,.6),0 4px 12px -2px rgba(52,87,213,.5)}
+header.top nav{max-width:100%;overflow-x:auto;white-space:nowrap;display:flex;gap:4px}
+header.top nav a{font-size:14px;padding:5px 11px;border-radius:999px;text-decoration:none;color:var(--ink2)}
+header.top nav a:hover{background:var(--glass2)}
+header.top nav a.on{background:var(--glass2);color:var(--navy);font-weight:500;box-shadow:inset 0 0 0 1px var(--glassline),var(--shadow)}
+.lv{display:inline-flex;padding:3px;border-radius:999px;background:var(--glass2);border:1px solid var(--glassline);font-size:13px}
+.lv button{border:0;background:transparent;color:var(--ink2);padding:4px 12px;border-radius:999px;cursor:pointer;font:inherit}
+.lv button.on{background:var(--grad);color:#fff;box-shadow:0 4px 10px -4px rgba(52,87,213,.6)}
+
+/* ---------- 本文 ---------- */
+main{max-width:900px;margin:0 auto;padding:28px 16px 80px;min-width:0}
+.hero{position:relative;overflow:hidden;border-radius:20px;padding:clamp(26px,5vw,48px);color:#fff;
+  background:radial-gradient(60% 90% at 100% 0%,rgba(34,195,166,.55),transparent 60%),
+             radial-gradient(70% 80% at 0% 100%,rgba(52,87,213,.75),transparent 65%),
+             linear-gradient(140deg,#16204d,#22307a);
+  box-shadow:0 24px 50px -24px rgba(24,33,79,.65);border:1px solid rgba(255,255,255,.14)}
+.hero::after{content:"";position:absolute;right:48px;top:50%;transform:translateY(-50%);width:180px;height:180px;border-radius:50%;
+  background:conic-gradient(from 200deg,transparent 0 40%,#3457d5,#5ee6cb);-webkit-mask:radial-gradient(closest-side,transparent 70%,#000 71%);mask:radial-gradient(closest-side,transparent 70%,#000 71%);opacity:.7}
+.hero::before{content:"";position:absolute;right:48px;top:50%;transform:translateY(-50%);width:180px;height:180px;border-radius:50%;box-shadow:inset 0 0 0 14px rgba(255,255,255,.08)}
+.hero .lead{max-width:min(40em,calc(100% - 200px))}
+@media(max-width:760px){.hero::after,.hero::before{width:110px;height:110px;right:-30px;top:-30px;transform:none;opacity:.35}.hero .lead{max-width:none}}
+.hero>*{position:relative;z-index:1}
+.hero .kick{display:inline-block;font-size:12px;letter-spacing:.12em;color:#bfe9ff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);padding:3px 12px;border-radius:999px;margin-bottom:14px}
+h1{font-size:clamp(28px,5.4vw,46px);line-height:1.3;margin:0 0 12px;font-weight:600;letter-spacing:.02em}
+h1 span{background:linear-gradient(100deg,#8fb2ff,#5ee6cb);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .lead{color:rgba(232,238,255,.86);margin:0;max-width:40em}
+.hero .lead b{color:#fff}
+.lead{color:var(--ink2);margin:0 0 28px}
+
+h2{display:flex;align-items:center;gap:12px;font-size:21px;font-weight:600;margin:52px 0 16px;letter-spacing:.02em}
+h2::before{content:"";width:4px;height:16px;border-radius:2px;background:var(--grad);opacity:.8}
+
+/* Mac / Windows の切り替え（hero の中） */
+.os{display:flex;gap:6px;margin:24px 0 18px;padding:5px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);max-width:460px}
+.os button{flex:1 1 0;border:0;background:transparent;color:rgba(232,238,255,.8);padding:10px 12px;border-radius:12px;cursor:pointer;font:700 15px/1.3 "Noto Sans JP"}
+.os button.on{background:#fff;color:var(--navy);box-shadow:0 6px 16px -6px rgba(0,0,0,.45)}
+
+/* はじめる前に：タイル */
+.need{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:12px;margin:16px 0;counter-reset:n}
+.need>div{counter-increment:n;position:relative;background:var(--glass);border:1px solid var(--glassline);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:16px;padding:16px 18px 18px;font-size:15px;box-shadow:var(--shadow);min-width:0}
+.need>div::after{content:counter(n,decimal-leading-zero);position:absolute;right:16px;top:8px;font:300 34px/1 "Roboto","Noto Sans JP",sans-serif;letter-spacing:-.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.75}
+.need>div>b:first-child{display:block;font-size:12px;letter-spacing:.08em;color:var(--ink2);font-weight:500;margin-bottom:4px}
+.need>div.key{background:linear-gradient(140deg,#13897b,#2b45b8);color:#fff;border-color:rgba(255,255,255,.35)}
+.need>div.key>b:first-child{color:rgba(255,255,255,.85)}
+.need>div.key::after{background:none;color:rgba(255,255,255,.75);-webkit-text-fill-color:currentColor}
+.need>div.key code{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff}
+
+/* 手順 */
+ol.steps{list-style:none;counter-reset:s;padding:0;display:grid;gap:14px;margin:16px 0}
+ol.steps>li{min-width:0;counter-increment:s;position:relative;background:var(--glass);border:1px solid var(--glassline);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:16px;padding:20px 22px 20px 92px;box-shadow:var(--shadow)}
+ol.steps>li::before{content:counter(s,decimal-leading-zero);position:absolute;left:22px;top:16px;font:300 42px/1 "Roboto","Noto Sans JP",sans-serif;letter-spacing:-.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+ol.steps>li b.t{display:block;font-size:18px;font-weight:600;margin-bottom:6px;line-height:1.55}
+ol.steps>li ol{padding-left:1.3em;min-width:0}
+ol.steps>li>span:not(.btn){display:block}
+@media (max-width:560px){
+  ol.steps>li{padding:18px 18px 18px 18px}
+  ol.steps>li::before{position:static;display:block;font-size:30px;margin-bottom:6px}
+}
+
+/* 1行のコマンド */
+.cmd{position:relative;max-width:100%;margin:12px 0;background:linear-gradient(140deg,#121a44,#1c2766);color:var(--codeink);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:50px 20px 18px;font:14px/1.7 "Roboto Mono",monospace;white-space:pre-wrap;word-break:break-all;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 14px 30px -18px rgba(18,26,68,.8)}
+.cmd::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(#5ee6cb,#3457d5)}
+.cmd button{position:absolute;top:10px;right:10px;background:#2b3780;color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:6px 14px;font:500 13px "Noto Sans JP";cursor:pointer;backdrop-filter:blur(6px)}
+.cmd button:hover{background:var(--grad);border-color:transparent}
+
+/* ボタン名・キー */
+.btn{display:inline;border:1px solid var(--line);background:var(--glass2);border-radius:7px;padding:1px 7px;font-size:14px;box-decoration-break:clone;-webkit-box-decoration-break:clone;box-shadow:0 1px 0 rgba(20,27,52,.08)}
+.btn i{font-style:normal;color:var(--ink2);font-size:12px;margin-left:4px}
+
+/* お知らせ */
+.note{position:relative;background:var(--glass);border:1px solid var(--glassline);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;padding:14px 18px 14px 24px;color:var(--ink2);font-size:15px;margin:16px 0;box-shadow:var(--shadow);overflow:hidden}
+.note::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:linear-gradient(#3457d5,#7b6cf0)}
+.note b{color:var(--ink)}
+.okbox::before{background:linear-gradient(#22c3a6,#5ee6cb)}
+
+/* 表・箇条書き（困ったとき・Discord） */
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:15px;background:var(--glass);border:1px solid var(--glassline);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+td,th{border-bottom:1px solid var(--line);padding:12px 14px;text-align:left;vertical-align:top;min-width:0;overflow-wrap:anywhere}
+tr:last-child td{border-bottom:0}
+th{font-size:12px;letter-spacing:.08em;color:var(--ink2);background:var(--glass2);font-weight:500}
+tr:nth-child(even) td{background:rgba(255,255,255,.28)}
+main>ul{background:var(--glass);border:1px solid var(--glassline);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:14px;padding:16px 20px 16px 38px;box-shadow:var(--shadow)}
+main>ul li::marker{color:var(--mint)}
+code{font:13px "Roboto Mono",monospace;background:var(--glass2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;overflow-wrap:anywhere}
+
+/* 表示の切り替え：隠すルールだけ（はじめて／慣れている × Mac／Windows を組み合わせても競合しない） */
+body:not(.expert) .for-e,body.expert .for-b,body:not(.os-win) .for-win,body.os-win .for-mac{display:none!important}
+
+footer{max-width:900px;margin:0 auto;padding:0 16px 48px;color:var(--ink2);font-size:13px}
+
+/* ---------- 鍵の画面 ---------- */
+.gate{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
+.gate .box{width:100%;max-width:420px;text-align:center;padding:36px 28px 30px;border-radius:20px;background:var(--glass);border:1px solid var(--glassline);backdrop-filter:blur(22px) saturate(1.3);-webkit-backdrop-filter:blur(22px) saturate(1.3);box-shadow:0 30px 60px -30px rgba(24,33,79,.55)}
+.gate .logo{width:56px;height:56px;margin:0 auto 16px;border-radius:18px;background:var(--grad);box-shadow:0 0 0 6px rgba(255,255,255,.5),0 14px 30px -10px rgba(52,87,213,.7)}
+.gate h1{font-size:24px;margin:0 0 6px;color:var(--ink)}
+.gate p{color:var(--ink2);font-size:14px;margin:0 0 20px}
+.gate input[type=password]{width:100%;font:500 18px/1 "Roboto Mono",monospace;letter-spacing:.12em;text-align:center;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--glass2);color:var(--ink);outline:none}
+.gate input[type=password]:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(52,87,213,.18)}
+.gate label.keep{display:flex;justify-content:center;gap:8px;align-items:center;font-size:13px;color:var(--ink2);margin:12px 0 4px}
+.gate button{width:100%;margin-top:12px;border:0;border-radius:14px;padding:13px;font:700 16px "Noto Sans JP";color:#fff;background:var(--grad);cursor:pointer;box-shadow:0 12px 24px -12px rgba(52,87,213,.8)}
+.gate button:disabled{opacity:.6}
+.gate .err{min-height:1.6em;color:var(--warn);font-size:14px;margin-top:10px}
+html.chk .gate{visibility:hidden}
+
+/* 白いカードの内側の光（参考の発光） */
+.need>div:not(.key),ol.steps>li,.note{background:radial-gradient(120% 90% at 0% 0%,rgba(255,255,255,.55),transparent 55%),radial-gradient(60% 80% at 100% 100%,rgba(34,195,166,.08),transparent 70%),var(--glass)}
+/* 紺のカード（コマンドが入る手順） */
+ol.steps>li:has(.cmd){background:radial-gradient(70% 90% at 100% 0%,rgba(34,195,166,.35),transparent 60%),linear-gradient(140deg,#18214f,#22307a);color:#e8edff;border-color:rgba(255,255,255,.12)}
+ol.steps>li:has(.cmd) .btn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:#fff}
+ol.steps>li:has(.cmd) b{color:#fff}
+ol.steps>li:has(.cmd) .cmd{background:rgba(5,9,35,.55)}
+@media (prefers-color-scheme:dark){
+  .need>div:not(.key),ol.steps>li:not(:has(.cmd)),.note{background:var(--glass)}
+  tr:nth-child(even) td{background:rgba(255,255,255,.03)}
+  .gate .logo{box-shadow:0 0 0 6px rgba(255,255,255,.10),0 14px 30px -10px rgba(52,87,213,.7)}
+  header.top .brand::before{box-shadow:0 0 0 3px rgba(255,255,255,.10),0 4px 12px -2px rgba(52,87,213,.5)}
+}
+tr.for-mac{display:table-row}
+.gate .logo{display:grid;place-items:center;color:#fff;font:700 20px/1 "Roboto",sans-serif;letter-spacing:.02em}
+.gate .help{font-size:12px;color:var(--ink2);margin:14px 0 0}
+/* 紺のお知らせカード（鍵の注意など。参考の紺カード） */
+.note.dark{background:radial-gradient(70% 90% at 100% 0%,rgba(34,195,166,.32),transparent 60%),linear-gradient(140deg,#18214f,#22307a);color:#dbe3ff;border-color:rgba(255,255,255,.12)}
+.note.dark b{color:#fff}.note.dark::before{background:linear-gradient(#5ee6cb,#3457d5)}
+.note.dark .btn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);color:#fff}
+@media (prefers-color-scheme:dark){
+  :root{--glassline:rgba(255,255,255,.14)}
+  .need>div:not(.key),ol.steps>li:not(:has(.cmd)),.note:not(.dark),table,main>ul{background:radial-gradient(120% 90% at 0% 0%,rgba(125,155,255,.10),transparent 55%),linear-gradient(140deg,rgba(42,58,143,.30),rgba(24,33,79,.30))}
+  th{background:rgba(125,155,255,.10)}
+  .gate .logo{box-shadow:0 0 0 6px rgba(125,155,255,.08),0 14px 30px -10px rgba(52,87,213,.7)}
+  header.top nav a.on{color:#fff}
+}
+.btn{display:inline-block;max-width:100%;line-height:1.5;margin:1px 0;vertical-align:baseline}
+em.nw{font-style:normal;white-space:nowrap}
+.hero p.lead{max-width:min(40em,calc(100% - 210px))}
+@media(max-width:760px){.hero p.lead{max-width:none}}
+/* 3周目：見出しを細く・空きマスを埋める・明るいコバルトのカード・文末の1文字送りを防ぐ */
+h1{font-weight:500}h2{font-weight:500}ol.steps>li b.t{font-weight:500}.need>div.key b{font-weight:500}
+body:not(.os-win) .need>div.key{grid-column:span 2}
+@media(max-width:760px){.need>div.key{grid-column:auto}}
+.need>div.blue{background:linear-gradient(140deg,#3457d5,#8fa6f0);color:#fff;border-color:rgba(255,255,255,.35)}
+.need>div.blue>b:first-child{color:rgba(255,255,255,.85)}
+.need>div.blue::after{background:none;color:rgba(255,255,255,.7);-webkit-text-fill-color:currentColor}
+p,li,td,.need>div,.note,.gate .help,.lead{text-wrap:pretty}
+td{padding:9px 14px;line-height:1.7}
+@media (prefers-color-scheme:dark){
+  ol.steps>li:has(.cmd),.note.dark{background:radial-gradient(70% 90% at 100% 0%,rgba(34,195,166,.5),transparent 60%),linear-gradient(140deg,#24318a,#2f45b0)}
+}
+@media(max-width:560px){.hero::after,.hero::before{display:none}}
+.need>div .big{display:block;font:300 52px/1.1 "Roboto","Noto Sans JP",sans-serif;letter-spacing:-.02em;margin:4px 0 0}
+.need>div.blue::after{display:none}
+.gate input[type=checkbox]{accent-color:var(--blue)}
+code.nw{white-space:normal}
+.notes2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.notes2 .note{margin:0}
+@media(max-width:760px){.notes2{grid-template-columns:1fr}}
+@media(max-width:560px){header.top nav a{font-size:13px;padding:5px 9px}.os button{font-size:14px;padding:10px 6px}}
+/* スマホでは表を「こうなった」→「こうする」の縦積みに */
+@media(max-width:560px){
+  table,tbody,tr,td{display:block;width:100%}
+  tr:first-child:has(th){display:none}
+  td{border-bottom:0;padding:4px 14px}
+  td:first-child{padding-top:12px;font-weight:500;color:var(--ink)}
+  td:last-child{padding-bottom:12px;border-bottom:1px solid var(--line)}
+  tr:last-child td:last-child{border-bottom:0}
+  tr:nth-child(even) td{background:transparent}
+}

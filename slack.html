@@ -2,56 +2,23 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Slackとつなぐ</title>
-<meta name="description" content="AI秘書をSlackとつないで、スマホから話せるようにする手順">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>fox-kit</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Roboto:wght@300;400&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css"><script src="site.js"></script>
+<script src="gate.js" defer></script>
 </head>
 <body>
-<header class="top"><div class="in">
-  <a class="brand" href="index.html">fox-kit</a>
-  <nav><a href="index.html">入れ方</a><a href="discord.html">Discord</a><a class="on" href="slack.html">Slack</a><a href="trouble.html">困ったとき</a></nav>
-  <div class="lv"><button data-lv="beginner">はじめて</button><button data-lv="expert">慣れている</button></div>
-</div></header>
-<main>
-<h1>Slackとつなぐ</h1>
-<p class="lead">会社でSlackを使っているなら、こちら。<b>手でやるのは2か所だけ</b>。チャンネル作りと、いつでも返事ができる設定は自動です。</p>
-
-<div class="need">
-  <div><b>時間</b>10分ほど</div>
-  <div><b>いるもの</b>Slackのワークスペース（無ければ途中で作れます）</div>
-  <div><b>注意</b>会社のSlackでは、アプリを入れるのに管理者の許可が要ることがあります</div>
-</div>
-<div class="note">英語の画面が出てきます。ボタンの名前は <span class="btn">英語<i>（日本語の意味）</i></span> の形で書いています。</div>
-
-<h2>手でやる2か所</h2>
-<ol class="steps">
-  <li><b class="t">先にブラウザで Slack にログインしておく</b>
-    <span class="for-b">ログインしていないと、次の画面で選べるワークスペースが1つも出ません。<a href="https://app.slack.com/" target="_blank">Slack を開いて</a>、会社のワークスペースが見えればOKです。</span></li>
-  <li><b class="t">AIの分身（アプリ）を作る</b>
-    設定画面の「アプリを作る画面を開く」を押すと、<b>設定が入った状態の作成画面</b>が開きます。
-    <ol>
-      <li>AIを入れるワークスペースを選ぶ → <span class="btn">Next<i>（次へ）</i></span></li>
-      <li>もう一度 <span class="btn">Next</span> → <span class="btn">Create<i>（作成）</i></span></li>
-      <li><span class="btn">Install to Workspace<i>（ワークスペースに入れる）</i></span> → <span class="btn">許可する</span>（押しても進まないときは、少し待ってもう一度）</li>
-    </ol>
-    <span class="for-e">manifest: bot scopes = channels:history/read/manage/join, chat:write, files:read/write, users:read, reactions:write。Socket Mode 不使用（ポーリング方式）なので app-level token（xapp）は不要。</span></li>
-  <li><b class="t">鍵をコピーして貼る</b>
-    入れ終わると英語の設定画面（Basic Information）になります。左の一覧の <span class="btn">OAuth &amp; Permissions<i>（許可の設定）</i></span> を押し、<b>少し下へスクロール</b>した「OAuth Tokens」の <span class="btn">Bot User OAuth Token</span>（<code>xoxb-</code> で始まる）の <span class="btn">Copy</span> → 設定画面の欄に貼り付けて <span class="btn">確かめる</span>。
-    <span class="for-b">「User」ではなく「Bot」の方です。</span></li>
-  <li><b class="t">AIのチャンネルに参加して「はじめまして」</b>
-    チャンネルを開いて、下に <span class="btn">チャンネルに参加する</span> と出ていたら押します（参加しないと送れません）。「はじめまして」と送って、AIが返事をしたら完了です。</li>
-</ol>
-
-<h2>自動で進むこと</h2>
-<ul>
-  <li>AI用のチャンネル作成（ここに書くとAIが返事）</li>
-  <li>いつでも返事ができる設定（Macが起きている間）</li>
-  <li>つながったかの確認：開いたチャンネルに「はじめまして」と送ると、AIが返事をします</li>
-</ul>
-<div class="note">Slackの無料プランでは、見られる会話の履歴が直近90日分になります。</div>
-<div class="note"><b>鍵（xoxb- で始まる文字列）は、誰にも見せないでください。</b>AIとの会話にも貼らないでください。</div>
-</main>
-<footer>うまくいかないときは <a href="trouble.html">困ったとき</a> へ。</footer>
+<div class="gate"><form class="box" id="gate">
+  <div class="logo">AI</div>
+  <h1>fox-kit</h1>
+  <p>AI秘書セットアップの手順書です。<br>お伝えしたパスワードを入れてください。</p>
+  <input type="password" id="pw" autocomplete="current-password" placeholder="パスワード" aria-label="パスワード" autofocus>
+  <label class="keep"><input type="checkbox" id="keep" checked>この端末では次から入れなくてよい</label>
+  <button id="go">開く</button>
+  <div class="err" id="err" role="alert"></div>
+  <p class="help">分からないときは、渡した人に聞いてください。</p>
+</form></div>
+<script type="application/json" id="fx">{"v":1,"n":310000,"s":"pxubPLjU3x3q99TBtIxjhA==","i":"rN8j3rdsq+pTMCq5","c":"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"}</script>
 </body>
 </html>

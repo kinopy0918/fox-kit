@@ -6,3 +6,6 @@ _probe.html
 node_modules/
 package-lock.json
 .venv/
+# 手順書の原稿（公開しない。vault 04_Ops/fox-kit/手順書の原稿 に控え）
+site/*.html
+site/_review/

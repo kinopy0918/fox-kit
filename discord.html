@@ -2,60 +2,23 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Discordとつなぐ</title>
-<meta name="description" content="AI秘書をDiscordとつないで、スマホから話せるようにする手順">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>fox-kit</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Roboto:wght@300;400&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="site.css"><script src="site.js"></script>
+<script src="gate.js" defer></script>
 </head>
 <body>
-<header class="top"><div class="in">
-  <a class="brand" href="index.html">fox-kit</a>
-  <nav><a href="index.html">入れ方</a><a class="on" href="discord.html">Discord</a><a href="slack.html">Slack</a><a href="trouble.html">困ったとき</a></nav>
-  <div class="lv"><button data-lv="beginner">はじめて</button><button data-lv="expert">慣れている</button></div>
-</div></header>
-<main>
-<h1>Discordとつなぐ</h1>
-<p class="lead">つなぐと、スマホのDiscordからAIに話しかけられるようになります。<b>手でやるのは3か所だけ</b>。残り（チャンネル作り・いつでも返事できる設定・つながったかの確認）は自動です。</p>
-
-<div class="need">
-  <div><b>時間</b>10分ほど</div>
-  <div><b>いるもの</b>Discordのアカウント（無ければ途中で作れます）</div>
-  <div><b>始め方</b><span class="for-b">設定画面の「スマホから話せるように」で「Discord」を選ぶと、手順が画面に出ます。</span><span class="for-e"><code>~/Tools/fox-bridge/つなぐ.command</code> または <code>python3 connect.py</code></span></div>
-</div>
-
-<div class="note">英語の画面が出てきます。ボタンの名前は <span class="btn">英語<i>（日本語の意味）</i></span> の形で書いています。</div>
-
-<h2>手でやる3か所</h2>
-<ol class="steps">
-  <li><b class="t">AIの部屋（サーバー）を用意する</b>
-    <span class="for-b">新しく作るのがおすすめです。画面の左はしの <span class="btn">＋<i>（サーバーを追加）</i></span> →「オリジナルの作成」→「自分と友達のため」→ 名前（例：「ヤマダAIの部屋」）を入れて「新規作成」。<br>いつも使っているサーバーに入れることもできます。</span>
-    <span class="for-e">新規作成 or 既存（管理者権限が必要）。</span></li>
-  <li><b class="t">AIの分身（ボット）を作って、鍵をコピーする</b>
-    設定画面のボタンから <a href="https://discord.com/developers/applications">開発者用の画面</a> を開きます。
-    <ol>
-      <li>右上の <span class="btn">New Application<i>（新しいアプリ）</i></span></li>
-      <li>名前にAIの名前を入れ、同意にチェック → <span class="btn">Create<i>（作成）</i></span></li>
-      <li>左の一覧の <span class="btn">Bot</span></li>
-      <li><span class="btn">Reset Token<i>（鍵を作り直す）</i></span> → <span class="btn">Yes, do it!<i>（はい）</i></span>（パスワードを聞かれたら入れる）</li>
-      <li>出てきた長い文字列の <span class="btn">Copy<i>（コピー）</i></span> → 設定画面の欄に貼り付けて <span class="btn">確かめる</span></li>
-    </ol>
-    <span class="for-b">貼り付けても画面には何も出ません（見えないようにしています）。そのまま return を押して大丈夫です。</span></li>
-  <li><b class="t">ボットをサーバーに招待する</b>
-    設定画面の「招待の画面を開く」を押します。「サーバーに追加」で1のサーバーを選び → <span class="btn">はい</span> → <span class="btn">認証</span>。
-    <span class="for-e">権限は固定済み（チャンネル閲覧・送信・履歴・添付・埋め込み・チャンネル管理・リアクション）。</span></li>
-</ol>
-
-<h2>自動で進むこと</h2>
-<ul>
-  <li>AIが文章を読めるようにする設定 <span class="for-e">（<code>PATCH /applications/@me</code> で限定版 Message Content を有効化。できない場合だけ、Botの画面で <span class="btn">MESSAGE CONTENT INTENT</span> をオン→<span class="btn">Save Changes</span> を案内）</span></li>
-  <li>AIの名前のカテゴリと、<b>#相談</b>（ここに書くとAIが返事）・#お知らせ・#記録 のチャンネル作成</li>
-  <li>いつでも返事ができる設定（Macが起きている間）</li>
-  <li>つながったかの確認：#相談 に「はじめまして」と送ると、AIが返事をします</li>
-</ul>
-
-<div class="note"><b>鍵（長い文字列）は、誰にも見せないでください。</b>AIとの会話やチャットにも貼らないでください。貼ってしまったら、手順2の <span class="btn">Reset Token</span> で作り直せば古い鍵は使えなくなります。</div>
-<div class="note okbox">Macのふたを閉じる・電源を切ると、返事が止まります。いつでも返事をさせたいMacは、電源につないだままにしてください。</div>
-</main>
-<footer>うまくいかないときは <a href="trouble.html">困ったとき</a> へ。</footer>
+<div class="gate"><form class="box" id="gate">
+  <div class="logo">AI</div>
+  <h1>fox-kit</h1>
+  <p>AI秘書セットアップの手順書です。<br>お伝えしたパスワードを入れてください。</p>
+  <input type="password" id="pw" autocomplete="current-password" placeholder="パスワード" aria-label="パスワード" autofocus>
+  <label class="keep"><input type="checkbox" id="keep" checked>この端末では次から入れなくてよい</label>
+  <button id="go">開く</button>
+  <div class="err" id="err" role="alert"></div>
+  <p class="help">分からないときは、渡した人に聞いてください。</p>
+</form></div>
+<script type="application/json" id="fx">{"v":1,"n":310000,"s":"pxubPLjU3x3q99TBtIxjhA==","i":"2V/J8Tjf/FAZ8HLi","c":"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"}</script>
 </body>
 </html>

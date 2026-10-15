@@ -17,7 +17,8 @@
   }
   var os = /Windows/i.test(navigator.userAgent) ? "win" : "mac";
   try { os = localStorage.getItem(OSKEY) || os; } catch (e) {}
-  document.addEventListener("DOMContentLoaded", function () {
+  // 鍵つきのページは、本文を差し込んだあとに gate.js が foxInit() を呼ぶ
+  window.foxInit = function () {
     set(lv);
     setOs(os);
     document.querySelectorAll(".os button").forEach(function (b) { b.onclick = function () { setOs(b.dataset.os); }; });
@@ -30,5 +31,6 @@
       };
       el.appendChild(btn);
     });
-  });
+  };
+  document.addEventListener("DOMContentLoaded", function () { if (!document.getElementById("fx")) window.foxInit(); });
 })();
