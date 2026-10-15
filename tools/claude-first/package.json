@@ -1,17 +1,30 @@
 {
   "name": "claude-first",
   "displayName": "Claude を最初に開く（fox-kit）",
-  "description": "Antigravity の起動時に、右側の帯を Gemini の Agent から Claude Code に切り替える",
+  "description": "Antigravity の起動時に、右側の帯（Gemini の Agent）を閉じ、左を Claude の会話一覧にする",
   "publisher": "fox-kit",
-  "version": "0.1.0",
-  "engines": { "vscode": "^1.80.0" },
-  "activationEvents": ["onStartupFinished"],
+  "version": "0.3.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./extension.js",
   "contributes": {
     "configuration": {
       "title": "Claude を最初に開く",
       "properties": {
-        "foxKit.claudeFirst.enabled": { "type": "boolean", "default": true, "description": "起動時に右側の帯を Claude Code にする" }
+        "foxKit.claudeFirst.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "起動時に右側の帯（Gemini の Agent）を閉じる"
+        },
+        "foxKit.claudeFirst.sessionsOnLeft": {
+          "type": "boolean",
+          "default": true,
+          "description": "起動時に左側をエクスプローラーから Claude の会話一覧に切り替える"
+        }
       }
     }
   }
