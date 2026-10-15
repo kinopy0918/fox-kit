@@ -367,9 +367,12 @@ if (-not $agDir -and -not (IsDone 'antigravity')) {
       $m = [regex]::Match($page, "https://[^`"' ]+/$arch/Antigravity%20IDE\.exe")
       if (-not $m.Success) { throw 'url' }
       $exe = Join-Path $env:TEMP 'AntigravityIDE.exe'
-      Write-Host ('  ' + (T 'Antigravity を取ってきます（数分かかります）…' 'download Antigravity IDE'))
+      Write-Host ('  ' + (T 'Antigravity を取ってきます（約230MB。回線によっては10分以上かかります。画面が止まって見えても待ってください）…' 'download Antigravity IDE (~230MB)'))
       Download $m.Value $exe
-      Start-Process -FilePath $exe -ArgumentList '/VERYSILENT', '/NORESTART' -Wait
+      Write-Host ('  ' + (T '入れています…（入れ終わると Antigravity が開くことがあります。開いたままで大丈夫です）' 'install (silent)'))
+      # -Wait にすると、インストーラが起動した Antigravity が閉じられるまで待ってしまう（PowerShell は子の子まで待つ）。インストーラ本体だけ待つ
+      $inst = Start-Process -FilePath $exe -ArgumentList '/VERYSILENT', '/NORESTART', '/SUPPRESSMSGBOXES' -PassThru
+      if (-not $inst.WaitForExit(900000)) { throw 'timeout' }
       $agDir = Find-Antigravity
       if ($agDir) { Ok (T 'Antigravity を入れました' 'Antigravity IDE installed') } else { throw 'install' }
     } catch {
@@ -382,10 +385,16 @@ if (-not $agDir -and -not (IsDone 'antigravity')) {
 if ($agDir) {
   $cli = Get-ChildItem -Path "$agDir\bin" -Filter '*.cmd' -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($cli) {
-    foreach ($ext in @('anthropic.claude-code', 'ms-ceintl.vscode-language-pack-ja')) { & $cli.FullName --install-extension $ext *>> $Log }
+    # 拡張の取り込みは、まれに終わらないことがあるので1つ2分で打ち切る（あとで Antigravity の画面から入れ直せる）
+    function Install-Ext($arg) {
+      $pr = Start-Process -FilePath $cli.FullName -ArgumentList '--install-extension', $arg, '--force' -PassThru -WindowStyle Hidden
+      if (-not $pr.WaitForExit(120000)) { try { $pr.Kill() } catch {}; LogLine "extension timeout: $arg" }
+    }
+    Write-Host ('  ' + (T 'Antigravity に AI の部品を入れています（1〜3分）…' 'install extensions'))
+    foreach ($ext in @('anthropic.claude-code', 'ms-ceintl.vscode-language-pack-ja')) { Install-Ext $ext }
     # 起動のたびに Gemini の Agent パネルが開く（設定で止められない）→ 開いた直後に右側の帯を Claude に切り替える
     $vsix = Join-Path $KitDir 'tools\claude-first\claude-first.vsix'
-    if (Test-Path $vsix) { & $cli.FullName --install-extension $vsix *>> $Log }
+    if (Test-Path $vsix) { Install-Ext $vsix }
     # 画面を日本語に・Claude の最初の案内を出さない・会話は真ん中のタブで開く（持ち主が決めた値は上書きしない）
     $agUser = Join-Path $env:APPDATA ((Split-Path $agDir -Leaf) + '\User\settings.json')
     $agArgv = Join-Path $HOME '.antigravity-ide\argv.json'
