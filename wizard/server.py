@@ -31,7 +31,8 @@ HOME = Path.home()
 CONF = HOME / ".config/fox-kit"
 WSTATE = CONF / "wizard.json"
 ENVSTATE = CONF / "state.env"
-LOGDIR = HOME / "Library/Logs/fox-wizard"
+WIN = os.name == "nt" or bool(os.getenv("FOX_WIZARD_FAKE_WIN"))   # 後者は Mac で Windows の画面を確かめる検証用
+LOGDIR = (HOME / ".config/fox-kit/logs") if WIN else (HOME / "Library/Logs/fox-wizard")
 LOGDIR.mkdir(parents=True, exist_ok=True)
 CONF.mkdir(parents=True, exist_ok=True)
 TOKEN = secrets.token_urlsafe(16)
@@ -53,6 +54,18 @@ STEPS = [  # (id, 題名, 誰がやるか)
     ("talk", "AIと最初のお話", "you"),
     ("done", "完了", "auto"),
 ]
+if WIN:   # Windows：スマホから話す仕組みはまだ Mac だけ
+    STEPS = [s for s in STEPS if s[0] != "channel"]
+NOWIN = {"creationflags": 0x08000000} if os.name == "nt" else {}   # Windows：裏の作業で黒い窓を出さない
+PY = sys.executable                     # 設定画面を動かしている Python（Windows は /usr/bin/python3 が無い）
+
+
+def open_path(target: str):
+    """フォルダ・URL・設定画面を開く（Mac は open、Windows はエクスプローラー等）"""
+    if WIN:
+        os.startfile(target)
+    else:
+        subprocess.run(["open", target], **NOWIN)
 
 LOCK = threading.Lock()
 JOBS: dict[str, dict] = {}          # 実行中・終わった作業
@@ -63,14 +76,14 @@ LAST = [time.time()]                # 最後に画面から操作があった時
 # ------------------------------------------------------------------ 状態
 def load() -> dict:
     try:
-        return json.loads(WSTATE.read_text())
+        return json.loads(WSTATE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {"answers": {}, "done": [], "data": {}}
 
 
 def save(st: dict):
     tmp = WSTATE.with_suffix(".tmp")
-    tmp.write_text(json.dumps(st, ensure_ascii=False, indent=2))
+    tmp.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
     os.chmod(tmp, 0o600)
     tmp.replace(WSTATE)
     # インストーラ（get.sh）や他の道具と答えを共有する
@@ -80,9 +93,9 @@ def save(st: dict):
                  ("FOX_MACHINE", a.get("machine")), ("FOX_ROLE", a.get("role"))):
         if v:
             lines.append(f"{k}={shq(v)}")
-    old = [l for l in (ENVSTATE.read_text().splitlines() if ENVSTATE.exists() else [])
+    old = [l for l in (ENVSTATE.read_text(encoding="utf-8").splitlines() if ENVSTATE.exists() else [])
            if not l.split("=", 1)[0] in {x.split("=", 1)[0] for x in lines}]
-    ENVSTATE.write_text("\n".join(old + lines) + "\n")
+    ENVSTATE.write_text("\n".join(old + lines) + "\n", encoding="utf-8")
     os.chmod(ENVSTATE, 0o600)
 
 
@@ -110,13 +123,21 @@ def set_data(step: str, **data):
 MIN_MACOS = (13, 0)   # Claude Code が動く最低の macOS
 
 
+def check_updates_win():
+    """Windows の版を確かめる。入れていない更新の一覧は管理者でないと取れないので、Windows Update の画面を開いてもらう。"""
+    build = sys.getwindowsversion().build if os.name == "nt" else 19045
+    set_data("update", state="done", version=f"build {build}", too_old=build < 17763, items=[], win=True)
+
+
 def check_updates():
     """macOS の版と、入れていない更新を調べる（softwareupdate -l は1分ほどかかる）。"""
-    ver = subprocess.run(["sw_vers", "-productVersion"], capture_output=True, text=True).stdout.strip()
+    if WIN:
+        return check_updates_win()
+    ver = subprocess.run(["sw_vers", "-productVersion"], capture_output=True, text=True, **NOWIN).stdout.strip()
     nums = tuple(int(x) for x in re.findall(r"\d+", ver)[:2]) or (0, 0)
     set_data("update", state="checking", version=ver, too_old=nums < MIN_MACOS)
     try:
-        out = subprocess.run(["softwareupdate", "-l"], capture_output=True, text=True, timeout=300)
+        out = subprocess.run(["softwareupdate", "-l"], capture_output=True, text=True, timeout=300, **NOWIN)
         txt = out.stdout + out.stderr
         items = []
         for m in re.finditer(r"Title:\s*([^,\n]+),\s*Version:\s*([^,\n]+)(.*)", txt):
@@ -134,16 +155,22 @@ def env_for(st: dict) -> dict:
              FOX_MACHINE=a.get("machine", ""), FOX_ROLE=a.get("role", "作業機"), KIT_DIR=str(KIT),
              SUDO_ASKPASS=str(ASKPASS), PATH=f"{HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:{e.get('PATH', '')}",
              LOG=str(LOGDIR / "install.log"))
+    if WIN:
+        e["PATH"] = f"{HOME}\\.local\\bin;{os.path.dirname(PY)};{os.environ.get('PATH', '')}"
+        e["PYTHONUTF8"] = "1"
     return e
 
 
 def claude_bin() -> str:
+    if WIN:
+        return shutil.which("claude", path=str(HOME / ".local/bin")) or shutil.which("claude") or str(HOME / ".local/bin/claude.exe")
     return shutil.which("claude", path=f"{HOME}/.local/bin:/usr/local/bin:/opt/homebrew/bin") or str(HOME / ".local/bin/claude")
 
 
 def logged_in() -> bool:
     try:
-        r = subprocess.run([claude_bin(), "auth", "status"], capture_output=True, text=True, timeout=20)
+        r = subprocess.run([claude_bin(), "auth", "status"], capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=20, **NOWIN)
         return bool(re.search(r'"loggedIn":\s*true', r.stdout))
     except Exception:
         return False
@@ -159,9 +186,9 @@ def run_job(name: str, cmd, env=None, on_ok=None, cwd=None):
         JOBS[name] = {"state": "running", "log": str(log), "started": time.time()}
 
     def work():
-        with open(log, "w") as f:
+        with open(log, "w", encoding="utf-8", errors="replace") as f:
             r = subprocess.run(cmd, stdout=f, stderr=subprocess.STDOUT, env=env, cwd=cwd or str(HOME),
-                               shell=isinstance(cmd, str))
+                               shell=isinstance(cmd, str), **NOWIN)
         ok = r.returncode == 0
         if ok and on_ok:
             try:
@@ -180,7 +207,7 @@ def tail(name: str, n=12) -> str:
     if not j:
         return ""
     try:
-        txt = Path(j["log"]).read_text(errors="ignore")
+        txt = Path(j["log"]).read_text(encoding="utf-8", errors="ignore")
     except OSError:
         return ""
     txt = re.sub(r"\x1b\[[0-9;]*m", "", txt)
@@ -210,7 +237,7 @@ def act(step: str, body: dict) -> dict:
 
     if step == "update":
         if body.get("open"):
-            subprocess.run(["open", "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"])
+            open_path("ms-settings:windowsupdate-action" if WIN else "x-apple.systempreferences:com.apple.Software-Update-Settings.extension")
             return {"ok": True}
         if body.get("next"):
             mark("update", **({"skipped": True} if body.get("later") else {}))
@@ -220,8 +247,16 @@ def act(step: str, body: dict) -> dict:
         return {"ok": True}
 
     if step == "claude":
-        if shutil.which("claude", path=f"{HOME}/.local/bin") or (HOME / ".local/bin/claude").exists():
+        if Path(claude_bin()).exists():
             mark("claude"); return {"ok": True}
+        if WIN:
+            ps = ("$ProgressPreference='SilentlyContinue';[Net.ServicePointManager]::SecurityProtocol='Tls12';"
+                  "irm https://claude.ai/install.ps1 | iex;"
+                  "$lb=Join-Path $HOME '.local\\bin';$up=[Environment]::GetEnvironmentVariable('Path','User');"
+                  "if($up -notlike \"*$lb*\"){[Environment]::SetEnvironmentVariable('Path',\"$lb;$up\",'User')}")
+            run_job("claude", ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps],
+                    env=env_for(st), on_ok=lambda: mark("claude"))
+            return {"ok": True, "started": True}
         run_job("claude", "curl -fsSL https://claude.ai/install.sh | bash", env=env_for(st), on_ok=lambda: mark("claude"))
         return {"ok": True, "started": True}
 
@@ -246,7 +281,8 @@ def act(step: str, body: dict) -> dict:
         if LOGIN["proc"] and LOGIN["proc"].poll() is None:
             LOGIN["proc"].kill()
         p = subprocess.Popen([claude_bin(), "auth", "login"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT, text=True, env={**env_for(st), "BROWSER": "true"})
+                             stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
+                             env={**env_for(st), **({} if WIN else {"BROWSER": "true"})}, **NOWIN)
         LOGIN.update(proc=p, url="")
         t0 = time.time()
         buf = ""
@@ -259,7 +295,24 @@ def act(step: str, body: dict) -> dict:
         return {"ok": bool(LOGIN["url"]), "url": LOGIN["url"], "error": "" if LOGIN["url"] else buf[-300:]}
 
     if step == "build":
+        if WIN:
+            run_job("build", [PY, str(KIT / "setup/build_win.py")], env=env_for(st), on_ok=lambda: mark("build"))
+            return {"ok": True, "started": True}
         run_job("build", ["/bin/zsh", str(KIT / "setup/build.sh")], env=env_for(st), on_ok=lambda: mark("build"))
+        return {"ok": True, "started": True}
+
+    if step == "mac" and WIN:
+        if body.get("open"):   # 既定のブラウザ・拡張の画面など、Windows が本人に押させる画面を開く
+            open_path({"defaultapps": "ms-settings:defaultapps",
+                       "ext": "https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn"}[body["open"]])
+            return {"ok": True}
+        if body.get("next"):
+            mark("mac"); return {"ok": True}
+        use = "mobile" if body.get("use") == "mobile" else "office"
+        e = {**env_for(st), "FOX_PC_USE": use, "FOX_CHROME": "1" if body.get("chrome", True) else "2",
+             "FOX_ANTIGRAVITY": "1" if body.get("antigravity", True) else "2"}
+        run_job("mac", ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(KIT / "setup/pc_win.ps1")],
+                env=e, on_ok=lambda: set_data("mac", installed=True, use=use, chrome=bool(body.get("chrome", True))))
         return {"ok": True, "started": True}
 
     if step == "mac":
@@ -274,6 +327,10 @@ def act(step: str, body: dict) -> dict:
         if os.getenv("FOX_WIZARD_FAKE_PACKS"):   # 検証用：道具の導入（端末全体に入る）を飛ばす
             run_job("packs", "sleep 3", on_ok=lambda: mark("packs"))
             return {"ok": True, "started": True}
+        if WIN:   # Windows：プラグインと配布元のスキルだけ（画像づくりの鍵は Mac のキーチェーン前提なので聞かない）
+            run_job("packs", [PY, str(KIT / "tools/fox-packs/packs.py"), "install-win"], env=env_for(st),
+                    on_ok=lambda: (mark("packs"), mark("gemini", skipped=True)))
+            return {"ok": True, "started": True}
         run_job("packs", ["/usr/bin/python3", str(KIT / "tools/fox-packs/packs.py"), "install"],
                 env={**env_for(st), "FOX_NO_KEY": "1"}, on_ok=lambda: mark("packs"))
         return {"ok": True, "started": True}
@@ -285,7 +342,7 @@ def act(step: str, body: dict) -> dict:
         except Exception:
             return {"ok": False, "error": "この鍵ではつながりませんでした。もう一度コピーして貼ってください"}
         subprocess.run(["security", "add-generic-password", "-U", "-s", "fox-kit", "-a", "gemini", "-w", key],
-                       check=True, capture_output=True)
+                       check=True, capture_output=True, **NOWIN)
         mark("gemini")
         return {"ok": True}
 
@@ -300,26 +357,26 @@ def act(step: str, body: dict) -> dict:
         if body.get("open_base"):
             base = st["data"].get("storage", {}).get("base")
             if base and Path(base).is_dir():
-                subprocess.run(["open", base])
+                open_path(base)
             return {"ok": True}
         if body.get("install_drive"):
-            run_job("drive", ["/usr/bin/python3", str(KIT / "claude/skills/fox-setup/storage.py"), "install-gdrive"],
+            run_job("drive", [PY, str(KIT / "claude/skills/fox-setup/storage.py"), "install-gdrive"],
                     env=env_for(st))
             return {"ok": True, "started": True}
         root = body.get("root")
         if not root or not Path(root).is_dir():
             return {"ok": False, "error": "保存先を選んでください"}
-        cmd = ["/usr/bin/python3", str(HOME / ".claude/skills/fox-setup/storage.py"), "apply", "--root", root,
+        cmd = [PY, str(HOME / ".claude/skills/fox-setup/storage.py"), "apply", "--root", root,
                "--agent", a.get("agent", "FOX"), "--layout", body.get("layout", "fox")]
         if not root.startswith(str(HOME / "Documents")):
             cmd.append("--memory-in-root")
         if body.get("auto_index", True):
             cmd.append("--auto-index")
-        r = subprocess.run(cmd, capture_output=True, text=True, env=env_for(st))
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env_for(st), **NOWIN)
         if r.returncode != 0:
             return {"ok": False, "error": (r.stderr or r.stdout)[-300:]}
         base = str(Path(root) / a.get("agent", "FOX"))
-        subprocess.run(["open", base])
+        open_path(base)
         mark("storage", base=base)
         return {"ok": True, "base": base}
 
@@ -429,7 +486,8 @@ def talk(body: dict, st: dict) -> dict:
     sid = st["data"].get("talk", {}).get("sid")
     if sid:
         cmd += ["--resume", sid]
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd=str(HOME), env=env_for(st), timeout=600)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HOME),
+                       env=env_for(st), timeout=600, **NOWIN)
     try:
         j = json.loads(r.stdout or "{}")
     except ValueError:
@@ -453,6 +511,7 @@ def state() -> dict:
         "steps": [{"id": s, "title": t_, "who": w, "done": s in done} for s, t_, w in STEPS],
         "jobs": {k: {"state": v["state"], "tail": tail(k)} for k, v in JOBS.items()},
         "home": str(HOME),
+        "platform": "win" if WIN else "mac",
     }
 
 
@@ -515,8 +574,10 @@ def main():
     srv = ThreadingHTTPServer(("127.0.0.1", port), H)
     url = f"http://127.0.0.1:{srv.server_address[1]}/?t={TOKEN}"
     (CONF / "wizard.url").write_text(url)
-    os.chmod(CONF / "wizard.url", 0o600)
-    print(f"設定画面：{url}", flush=True)
+    if not WIN:
+        os.chmod(CONF / "wizard.url", 0o600)
+    if sys.stdout:   # Windows の pythonw（画面なしで動かす）では書き出し先が無い
+        print(f"設定画面：{url}", flush=True)
     if "--no-open" not in sys.argv:
         webbrowser.open(url)
 

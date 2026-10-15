@@ -1,4 +1,4 @@
-// fox-kit 設定画面：いまやること1つだけを大きく出し、押したら裏でこのMacが作業する
+// fox-kit 設定画面：いまやること1つだけを大きく出し、押したら裏でこのパソコン（Mac / Windows）が作業する
 (function () {
   const T = new URLSearchParams(location.search).get("t");
   const $ = (s, el) => (el || document).querySelector(s);
@@ -8,6 +8,8 @@
   let local = {};            // 段の中の途中経過（画面だけのもの）
   const B = () => (S?.answers?.level || "beginner") === "beginner";
   const t = (b, e) => (B() ? b : e);
+  const W = () => S?.platform === "win";          // Windows か
+  const PC = () => (W() ? "パソコン" : "Mac");
 
   async function api(path, body) {
     const r = await fetch(path + (path.includes("?") ? "&" : "?") + "t=" + T, body ? {
@@ -32,10 +34,30 @@
     }),
     update: () => {
       const d = S.data.update || {};
+      if (W() && d.state === "done") {
+        return {
+          title: t("パソコンを最新にしましょう", "Windows Update"),
+          lead: t("AIを入れる前に、このパソコンの更新を確かめます。古いままだと、AIや道具がうまく動かないことがあります。", "Windows 10 1809（build 17763）以上が必須"),
+          html: d.too_old
+            ? `<div class="err"><b>${t(`このパソコンの Windows（${esc(d.version)}）は古く、AIの本体が動きません。`, `${esc(d.version)} は対応外`)}</b>下の「Windows Update を開く」から新しい版にしてから進めてください。</div>
+               <div class="row"><button class="btn" id="open">Windows Update を開く</button><button class="btn sub" id="again">更新したので確かめ直す</button></div>`
+            : `<ol class="do"><li>${t(`下の ${k("Windows Update を開く")} を押す`, "Windows Update を開く")}</li>
+                 <li>${t(`開いた画面で ${k("更新プログラムのチェック")} → 出てきたものを ${k("ダウンロードしてインストール")}（30分〜1時間かかることがあります）`, "チェック → インストール")}</li>
+                 <li>${t("「今すぐ再起動」が必要と出たら再起動し、PowerShell を開いて<b>はじめと同じ1行</b>を貼り付けてください。この画面が続きから開きます", "再起動後は同じ1行で再開（状態は保持）")}</li></ol>
+               <div class="note">${t("ここまでに入れた内容は覚えています。更新で再起動しても、やり直しにはなりません。もう済ませてあれば「次へ」で大丈夫です。", "wizard.json に保存済み")}</div>
+               <div class="row"><button class="btn sub" id="open">Windows Update を開く</button><button class="btn" id="next">次へ</button></div>`,
+          bind: (el) => {
+            const on = (id, f) => { const b = $("#" + id, el); if (b) b.onclick = f; };
+            on("open", () => act("update", { open: true }));
+            on("next", async () => { await act("update", { next: true }); refresh(true); });
+            on("again", async () => { await act("update", { again: true }); refresh(true); });
+          },
+        };
+      }
       const items = d.items || [];
       let html;
       if (!d.state || d.state === "checking") {
-        html = `<p><span class="spin"></span>${t("このMacに入れていない更新があるか調べています（1分ほど）…", "softwareupdate -l を実行中")}</p>`;
+        html = `<p><span class="spin"></span>${t(`この${PC()}に入れていない更新があるか調べています${W() ? "" : "（1分ほど）"}…`, "softwareupdate -l を実行中")}</p>`;
       } else if (d.state === "error") {
         html = `<div class="err">${t("更新を調べられませんでした。", "softwareupdate -l 失敗：")}${esc(d.error || "")}</div>
                 <div class="row"><button class="btn" id="open">更新の画面を開いて自分で確かめる</button><button class="btn sub" id="later">このまま進む</button></div>`;
@@ -78,10 +100,10 @@
       return {
         title: t("あなたとAIの名前を決めましょう", "基本情報"),
         lead: t("AIはこの名前で名乗り、あなたの秘書として動きます。", "CLAUDE.md の人格に入ります（あとから AI に頼めば書き換え可）"),
-        html: `<label class="f">このMacを使う人のお名前</label><input class="t" id="owner" placeholder="例：山田さん" value="${esc(a.owner)}">
+        html: `<label class="f">この${PC()}を使う人のお名前</label><input class="t" id="owner" placeholder="例：山田さん" value="${esc(a.owner)}">
                <label class="f">AIの名前</label><input class="t" id="agent" placeholder="例：ヤマダAI" value="${esc(a.agent || "")}">
-               <label class="f">このMacの呼び方 <span class="hint">（空欄でも大丈夫）</span></label><input class="t" id="machine" placeholder="例：事務所のMac" value="${esc(a.machine)}">
-               <label class="f">このMacで主にすること <span class="hint">（空欄でも大丈夫）</span></label><input class="t" id="role" placeholder="例：経理の仕事" value="${esc(a.role)}">
+               <label class="f">この${PC()}の呼び方 <span class="hint">（空欄でも大丈夫）</span></label><input class="t" id="machine" placeholder="例：事務所の${PC()}" value="${esc(a.machine)}">
+               <label class="f">この${PC()}で主にすること <span class="hint">（空欄でも大丈夫）</span></label><input class="t" id="role" placeholder="例：経理の仕事" value="${esc(a.role)}">
                <div class="note"><b>あとから変えられますか？</b>
                  <ul><li><b>どれも変えられます。</b>あとで AI に「私の呼び方を〇〇に変えて」「あなたの名前を〇〇に変えて」と頼むだけです。</li>
                  <li>ただし<b>AIの名前</b>を変えても、Slack・Discord に出るAIの表示名と、資料フォルダの名前は元のままです（そこも変えたいときは AI に頼めば手順を案内します）。迷ったら、今のうちに決めておくのがおすすめです。</li></ul></div>
@@ -96,7 +118,7 @@
     claude: () => autoStep("claude", t("AIの本体を入れています", "Claude Code を導入"), t("数分かかります。この画面はそのままで大丈夫です。", "claude.ai/install.sh")),
     login: () => ({
       title: t("AIのアカウントにログインします", "Claude にログイン"),
-      lead: t("AIを動かすための契約（Claude）にログインします。会社のMacなら、会社で契約したアカウントを使ってください。", "claude auth login（コード貼り付け方式）"),
+      lead: t(`AIを動かすための契約（Claude）にログインします。会社の${PC()}なら、会社で契約したアカウントを使ってください。`, "claude auth login（コード貼り付け方式）"),
       html: `<ol class="do">
                <li>下の ${k("ログイン画面を開く")} を押す（新しいタブが開きます）</li>
                <li>開いた画面でアカウントを選び、${k("Authorize", "許可する")} を押す</li>
@@ -130,7 +152,7 @@
       },
     }),
     build: () => autoStep("build", t("あなた専用に組み立てています", "組み立て（install.sh）"), t("仕事の作法・資料のチェック役・話し方の設定などを入れています（1分ほど）。", "人格・作法・スキル・settings・hooks・点検")),
-    mac: () => ({
+    mac: () => (W() ? pcWin() : {
       title: t("パソコンの設定", "Mac 設定（電源・Chrome・Antigravity）"),
       lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Chrome（既定ブラウザ）/ Antigravity IDE"),
       html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。", "実行中（既定ブラウザの確認ダイアログあり）")) : `
@@ -157,7 +179,13 @@
       const status = pj === "error" ? failNote("packs")
         : pj === "ok" || S.steps.find((x) => x.id === "packs")?.done
           ? `<p class="okmsg">✓ スキルと道具はそろいました</p>${reg ? "" : `<p><b>あとは下の鍵だけです。</b>「登録」か「あとでやる」を押すと次へ進みます。</p>`}`
-          : running("packs", t("入れています…この画面はそのままで大丈夫です。途中でMacのパスワードを聞かれることがあります。", "実行中"));
+          : running("packs", t(`入れています…この画面はそのままで大丈夫です。${W() ? "" : "途中でMacのパスワードを聞かれることがあります。"}`, "実行中"));
+      if (W()) return {
+        title: t("スキルをそろえています", "packs（plugins / upstream skills）"),
+        lead: t("SEO・ノート・文書づくり・マーケティングなどのスキルを入れます（5〜10分）。", "install-win"),
+        html: status,
+        bind: (el) => { if (!job("packs")) act("packs"); const retry = $("#retry", el); if (retry) retry.onclick = async () => { await act("packs"); refresh(true); }; },
+      };
       return {
         title: t("スキルと道具をそろえています", "packs"),
         lead: t("SEO・動画・ノート・画像づくり・意味で探す・ブラウザ操作などを入れます（はじめてだと20分ほど）。待っている間に、下の「画像づくりの鍵」を済ませておくと早く終わります。",
@@ -187,8 +215,8 @@
     },
     storage: () => ({
       title: t("資料の保存先を決めます", "保存先"),
-      lead: t("AIが作ったもの・受け取ったものを置く場所です。Google ドライブにすると、Macが壊れても残り、スマホからも見られます。", "storage.py apply（FOX型11フォルダ・目次・記憶の移動）"),
-      html: `<div id="places"><span class="spin"></span>このMacの保存先を調べています…</div>
+      lead: t("AIが作ったもの・受け取ったものを置く場所です。Google ドライブにすると、パソコンが壊れても残り、スマホからも見られます。", "storage.py apply（FOX型11フォルダ・目次・記憶の移動）"),
+      html: `<div id="places"><span class="spin"></span>このパソコンの保存先を調べています…</div>
              <div class="sub-card"><b>フォルダの形</b>
                <label class="choice"><input type="radio" name="layout" value="fox" checked><b>しっかり整理する形（おすすめ）</b><small>案件・議事録・記録・手順・テンプレート・タスク・メモ・AIの記憶・目標・保管庫の11フォルダ</small></label>
                <label class="choice"><input type="radio" name="layout" value="simple"><b>簡単な形</b><small>5フォルダだけ。まずは小さく始めたい方に</small></label>
@@ -198,9 +226,9 @@
         const r = await act("storage", { detect: true });
         const list = (r.folders || []);
         const hasG = list.some((f) => f.kind.startsWith("Google"));
-        $("#places", el).innerHTML = list.map((f, i) => `<label class="choice"><input type="radio" name="root" value="${esc(f.path)}" ${i === 0 ? "checked" : ""}><b>${esc(f.kind)}</b><small>${esc(f.account || "")}${f.kind.includes("このMac") ? "　※Macが壊れると消えます" : ""}</small></label>`).join("")
+        $("#places", el).innerHTML = list.map((f, i) => `<label class="choice"><input type="radio" name="root" value="${esc(f.path)}" ${i === 0 ? "checked" : ""}><b>${esc(f.kind)}</b><small>${esc(f.account || "")}${/この(Mac|パソコン)/.test(f.kind) ? "　※パソコンが壊れると消えます" : ""}</small></label>`).join("")
           + (list.some((f) => f.name) ? `<p class="hint">AI専用の共有ドライブを新しく作りたいときは、<a href="https://drive.google.com/drive/shared-drives" target="_blank">Google ドライブの共有ドライブの画面</a>で「＋新規」→ 名前（例：${esc(S.answers.agent || "AI")}）→「作成」を押してから、下の ${k("もう一度調べる")} を押してください。</p><div class="row"><button class="btn sub" id="again">もう一度調べる</button></div>` : "")
-          + (hasG ? "" : `<div class="sub-card"><b>Google ドライブを使うなら（おすすめ）</b><ol class="do"><li>${k("Google ドライブのアプリを入れる")} を押す（Macのパスワードを聞かれます）</li><li>開いたアプリで<b>会社の Google アカウント</b>でログイン</li><li>ログインできたら ${k("もう一度調べる")}</li></ol>${shot("drive-1", "Google ドライブのアプリのログイン画面")}
+          + (hasG ? "" : `<div class="sub-card"><b>Google ドライブを使うなら（おすすめ）</b><ol class="do"><li>${k("Google ドライブのアプリを入れる")} を押す（${W() ? "「変更を許可しますか？」と出たら「はい」" : "Macのパスワードを聞かれます"}）</li><li>開いたアプリで<b>会社の Google アカウント</b>でログイン</li><li>ログインできたら ${k("もう一度調べる")}</li></ol>${shot("drive-1", "Google ドライブのアプリのログイン画面")}
              <div class="row"><button class="btn sub" id="drive">Google ドライブのアプリを入れる</button><button class="btn sub" id="again">もう一度調べる</button></div>${running("drive", "")}</div>`);
         const d = $("#drive", el); if (d) d.onclick = async () => { await act("storage", { install_drive: true }); refresh(true); };
         el.querySelectorAll("#again").forEach((ag) => (ag.onclick = () => { view = null; refresh(true); }));
@@ -251,22 +279,24 @@
       lead: t(`これで ${S.answers.agent || "AI"} があなたの秘書として動けます。`, "セットアップ完了"),
       html: (() => {
         const ch = S.data.channel || {}, where = ch.platform === "slack" ? "Slack" : ch.platform === "discord" ? "Discord" : "";
-        const base = S.data.storage?.base || "", folder = base.split("/").pop();
-        const drive = base.includes("/共有ドライブ/") ? "Google ドライブの共有ドライブ" : base.includes("GoogleDrive-") ? "Google ドライブ" : "このMac";
+        const base = S.data.storage?.base || "", folder = base.split(/[\\/]/).pop();
+        const drive = /[\\/]共有ドライブ[\\/]|Shared drives/.test(base) ? "Google ドライブの共有ドライブ" : /GoogleDrive-|マイドライブ|My Drive/.test(base) ? "Google ドライブ" : `この${PC()}`;
         const g = S.data.gemini;
         return `<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
+                 : W() ? `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話す仕組みは、いまは Mac 版だけです。</li>
+               <li>見せたい画面があれば ${k("Ctrl")} + ${k("Shift")} + ${k("2")}。範囲を選ぶと、その画像が AI に届きます。</li>`
                  : `<li>いまは Slack・Discord につないでいません。つなぎたくなったら、担当者に連絡してください。</li>`}
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」フォルダに整理して置きます。<div class="row"><button class="btn sub" id="openBase">フォルダを開く</button></div></li>` : ""}
-               ${g && !g.skipped ? "" : `<li>あとでできること：画像づくりの鍵の登録（${where || "AI"} に「画像づくりの鍵を登録したい」と言うだけ）</li>`}
+               ${(g && !g.skipped) || W() ? "" : `<li>あとでできること：画像づくりの鍵の登録（${where || "AI"} に「画像づくりの鍵を登録したい」と言うだけ）</li>`}
                </ul></div>
-             <details class="sub-card"${B() ? "" : " open"}><summary><b>パソコンに慣れている方へ：Antigravity から指示する</b></summary>
-               <p>このMacの前で作業するときは、<b>Antigravity</b>（AIと一緒に作業する編集ソフト）から話しかけるのがいちばん速くて便利です。ファイルを見ながら直してもらえて、${esc(S.answers.agent || "AI")} と同じ設定・記憶で動きます。</p>
-               <ol class="do"><li>Dock か「アプリケーション」から ${k("Antigravity")} を開く（はじめはGoogleアカウントでログイン）</li>
-                 <li>上のメニューの「ファイル」→「フォルダーを開く」で、ホーム（家のマーク・${esc((S.home || "").split("/").pop())}）を選ぶ</li>
-                 <li>右上か左はしの Claude のマーク（✳）を押すと、会話の欄が開きます。そこに頼みごとを書く</li></ol>
+             <details class="sub-card"${B() && !W() ? "" : " open"}><summary><b>Antigravity の使い方（${W() ? "" : "パソコンの前で使うとき"}いちばん便利な入口）</b></summary>
+               <p>この${PC()}の前で作業するときは、<b>Antigravity</b>（AIと一緒に作業するアプリ）から話しかけるのがいちばん速くて便利です。作ったファイルをその場で開けて、${esc(S.answers.agent || "AI")} と同じ設定・記憶で動きます。</p>
+               <ol class="do"><li>${W() ? "スタートメニュー" : "Dock か「アプリケーション」"}から ${k("Antigravity")} を開く（はじめは Google アカウントでログイン）</li>
+                 <li>左に Claude の会話一覧が出ます。上の ${k("New session", "新しい会話")} を押すと、真ん中に会話が開きます</li>
+                 <li>頼みごとを書いて送るだけ。見せたい画面があれば ${W() ? `${k("Ctrl")}+${k("Shift")}+${k("2")}` : `${k("⌘")}+${k("Shift")}+${k("2")}`}</li></ol>
                <p class="hint">入っていない・使い方を詳しく知りたいときは、${where || "AI"} で「Antigravity の使い方を教えて」と聞いてください。</p></details>
              <p class="hint">この画面は閉じて大丈夫です。</p>`;
       })(),
@@ -294,6 +324,50 @@
       bind: (el) => {
         if (!job(name)) act(name);
         const r = $("#retry", el); if (r) r.onclick = async () => { await act(name); refresh(true); };
+      },
+    };
+  }
+
+  // ---------------------------------------------------------------- Windows のパソコンの設定
+  function pcWin() {
+    const d = S.data.mac || {}, j = job("mac");
+    if (d.installed) {   // 入れ終わった：Windows が本人に押させる2つを案内
+      return {
+        title: t("あと2つだけ、画面で押してください", "既定ブラウザ・Claude in Chrome"),
+        lead: t("Windows の決まりで、ここだけはあなたが押す必要があります。どちらも「あとで」でも大丈夫です。", "Windows は既定ブラウザをスクリプトで変えられない"),
+        html: `${d.chrome ? `<div class="sub-card"><b>① AIがブラウザを使えるようにする（Claude の拡張）</b><ol class="do">
+                 <li>${k("Claude の拡張を開く")} を押す（Chrome が開きます）</li><li>${k("Chrome に追加")} → ${k("拡張機能を追加")}</li><li>出てきた画面で、AI と同じアカウントでログイン</li></ol>
+                 <div class="row"><button class="btn sub" id="ext">Claude の拡張を開く</button></div></div>
+               <div class="sub-card"><b>② Chrome を「いつも使うブラウザ」にする</b><ol class="do">
+                 <li>${k("既定のアプリの画面を開く")} を押す</li><li>一覧から ${k("Google Chrome")} を押す</li><li>いちばん上の ${k("既定値に設定")} を押す</li></ol>
+                 <div class="row"><button class="btn sub" id="def">既定のアプリの画面を開く</button></div></div>` : ""}
+               <div class="row"><button class="btn" id="next">次へ</button></div>`,
+        bind: (el) => {
+          const on = (id, f) => { const b = $("#" + id, el); if (b) b.onclick = f; };
+          on("ext", () => act("mac", { open: "ext" }));
+          on("def", () => act("mac", { open: "defaultapps" }));
+          on("next", async () => { await act("mac", { next: true }); refresh(true); });
+        },
+      };
+    }
+    return {
+      title: t("パソコンの設定", "電源・Chrome・Antigravity"),
+      lead: t("このパソコンの使い方に合わせて設定し、AIと画面で話すためのアプリを入れます。途中で「変更を許可しますか？」と出たら「はい」を押してください。", "powercfg / winget Google.Chrome / Antigravity IDE＋拡張"),
+      html: j?.state === "running" ? running("mac", t("設定しています（Antigravity は約230MBあるので、10分以上かかることがあります）。「変更を許可しますか？」と出たら「はい」。Antigravity の画面が開いても、そのままで大丈夫です。", "実行中")) : `
+             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて使う</b><small>電源につないでいる間は眠らないようにします（画面だけは消えます）</small></label>
+             <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて使う</b><small>眠る設定はそのままにします</small></label>
+             <label class="choice"><input type="checkbox" id="chrome" checked><b>Chrome を入れる</b><small>AIがブラウザを操作する公式の機能（Claude in Chrome）は Chrome で動きます</small></label>
+             <label class="choice"><input type="checkbox" id="ag" checked><b>Antigravity（AIと画面で話すアプリ）を入れる（おすすめ）</b><small>AI に話しかけるいちばんの入口になります。画面は日本語にします</small></label>
+             ${failNote("mac")}
+             <div class="row"><button class="btn" id="go">この内容で設定する</button><button class="btn sub" id="skip">あとでやる</button></div>`,
+      bind: (el) => {
+        const go = $("#go", el); if (!go) return;
+        go.onclick = async () => {
+          await act("mac", { use: $("input[name=use]:checked").value, chrome: $("#chrome").checked, antigravity: $("#ag").checked });
+          refresh(true);
+        };
+        $("#skip", el).onclick = async () => { await act("skip", { target: "mac" }); refresh(true); };
+        const r = $("#retry", el); if (r) r.onclick = async () => { await act("mac", { use: "office", chrome: true, antigravity: true }); refresh(true); };
       },
     };
   }
@@ -400,7 +474,7 @@
     def.bind($("#body"));
   }
   async function refresh(force) {
-    try { S = await api("/api/state"); draw(force); } catch (e) { $("#progText").textContent = "このMacとの通信が切れました。ターミナルでもう一度1行を貼ってください。"; }
+    try { S = await api("/api/state"); draw(force); } catch (e) { $("#progText").textContent = `この${PC()}との通信が切れました。${W() ? "PowerShell" : "ターミナル"}でもう一度1行を貼ってください。`; }
   }
   refresh(true);
   setInterval(() => refresh(false), 2000);

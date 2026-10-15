@@ -130,6 +130,15 @@ function Find-GitBash {
 # ------------------------------------------------------------------ はじめに
 Write-Host 'fox-kit（AI秘書のセットアップ・Windows 版）' -ForegroundColor White
 if ($env:OS -ne 'Windows_NT') { Die 'これは Windows 用です。Mac は手順書の「Mac」の1行を使ってください' }
+# 既定はブラウザの設定画面で進める（Mac と同じ）。ここでは Git・Python・キットだけ用意して画面を開く
+$Wizard = -not ($env:FOX_TERMINAL -or $env:FOX_OWNER -or $env:FOX_UPDATE)
+$build = [Environment]::OSVersion.Version.Build
+if ($build -lt 17763) { Die "このパソコンの Windows は古く（ビルド $build）、AIの本体が動きません。設定 →「Windows Update」で新しい版にしてから、同じ1行をもう一度貼ってください" }
+if ($Wizard) {
+  $script:B = $true
+  Write-Host '  このあとは、ブラウザに出る設定画面で進めます。まず最低限の準備をします（5〜10分）。'
+  Write-Host '  「このアプリがデバイスに変更を加えることを許可しますか？」と出たら「はい」を押してください。'
+} else {
 
 $lv = if ($env:FOX_LEVEL) { $env:FOX_LEVEL } else { $S.FOX_LEVEL }
 if (-not $lv) {
@@ -171,6 +180,8 @@ if (-not (IsDone 'update')) {
   }
   Mark 'update'
 }
+
+}  # ブラウザの設定画面で進めるとき、ここまで（質問・更新）は画面で行う
 
 # ------------------------------------------------------------------ 2. 準備（Git と Python）
 Step 2 (T 'AIが使う部品を入れる（Git・Python）' 'Git for Windows / Python')
@@ -227,6 +238,7 @@ if ($up -notlike "*$pyDir*") { [Environment]::SetEnvironmentVariable('Path', "$p
 Refresh-Path
 Mark 'prep'
 
+if (-not $Wizard) {
 # ------------------------------------------------------------------ 3. 本体
 Step 3 (T 'AIの本体を入れる' 'Claude Code 本体')
 if (Get-Command claude -ErrorAction SilentlyContinue) { Ok (T 'もう入っています' "入っています: $(claude --version 2>$null)") }
@@ -246,6 +258,8 @@ else {
 $gb = Find-GitBash
 if ($gb) { [Environment]::SetEnvironmentVariable('CLAUDE_CODE_GIT_BASH_PATH', $gb, 'User'); $env:CLAUDE_CODE_GIT_BASH_PATH = $gb }
 Mark 'claude'
+
+}
 
 # ------------------------------------------------------------------ 4. キット
 Step 4 (T 'AI秘書の部品を取ってくる' 'キットを取得')
@@ -274,6 +288,27 @@ try {
 Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 Ok (T '取ってきました' $KitDir)
 Mark 'kit'
+}
+
+if ($Wizard) {
+  $pyw = Join-Path (Split-Path $py) 'pythonw.exe'
+  if (-not (Test-Path $pyw)) { $pyw = $py }
+  $urlFile = Join-Path $Conf 'wizard.url'
+  Remove-Item $urlFile -ErrorAction SilentlyContinue
+  Get-CimInstance Win32_Process -Filter "Name like 'python%'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -like '*wizard*server.py*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+  $env:PYTHONUTF8 = '1'
+  Start-Process -FilePath $pyw -ArgumentList "`"$KitDir\wizard\server.py`"" -WindowStyle Hidden
+  for ($i = 0; $i -lt 40 -and -not (Test-Path $urlFile); $i++) { Start-Sleep -Milliseconds 500 }
+  Write-Host ''
+  if (Test-Path $urlFile) {
+    Write-Host '  ブラウザで設定画面が開きました。ここから先は画面の案内どおりに進めてください。' -ForegroundColor Green
+    Write-Host "  （開かないときは、このURLをブラウザに貼ってください：$(Get-Content $urlFile)）"
+    Write-Host '  この黒い画面は閉じても大丈夫です。'
+  } else {
+    Die '設定画面を開けませんでした。同じ1行をもう一度貼るか、先頭に $env:FOX_TERMINAL=1; を付けて貼ると、この画面だけで進められます'
+  }
+  exit 0
 }
 
 # ------------------------------------------------------------------ 5. 組み立て
