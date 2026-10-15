@@ -21,6 +21,13 @@ async function claudeFirst() {
   const cfg = vscode.workspace.getConfiguration("foxKit.claudeFirst");
   if (!cfg.get("enabled", true)) return;
   await run(["workbench.action.closeAuxiliaryBar"]);
+  // 会話は真ん中のタブで開く。Claude Code は一度右の小窓で開くと「次からも右」と覚えてしまうので、起動のたびに戻す
+  if (cfg.get("keepCenter", true)) {
+    const cc = vscode.workspace.getConfiguration("claudeCode");
+    if (cc.get("preferredLocation") !== "panel") {
+      try { await cc.update("preferredLocation", "panel", vscode.ConfigurationTarget.Global); } catch (e) {}
+    }
+  }
   // 左：会話一覧（Claude Code の「会話の一覧」が使える版のときだけ出る）
   if (cfg.get("sessionsOnLeft", true)) await run(["workbench.view.extension.claude-sessions-sidebar"]);
 }

@@ -3,7 +3,7 @@
   "displayName": "Claude を最初に開く（fox-kit）",
   "description": "Antigravity を Claude 中心にする：起動時に右の帯（Gemini）を閉じ左を会話一覧に／⌘⇧2 で画面を撮って Claude に「見て」と送る",
   "publisher": "fox-kit",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -36,6 +36,11 @@
           "type": "boolean",
           "default": true,
           "description": "貼ったらそのまま送る（オフなら貼るだけ）"
+        },
+        "foxKit.claudeFirst.keepCenter": {
+          "type": "boolean",
+          "default": true,
+          "description": "起動のたびに、Claude の会話を真ん中のタブで開く設定に戻す"
         }
       }
     },

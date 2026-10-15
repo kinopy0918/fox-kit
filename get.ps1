@@ -386,6 +386,10 @@ if ($agDir) {
     # 起動のたびに Gemini の Agent パネルが開く（設定で止められない）→ 開いた直後に右側の帯を Claude に切り替える
     $vsix = Join-Path $KitDir 'tools\claude-first\claude-first.vsix'
     if (Test-Path $vsix) { & $cli.FullName --install-extension $vsix *>> $Log }
+    # 画面を日本語に・Claude の最初の案内を出さない・会話は真ん中のタブで開く（持ち主が決めた値は上書きしない）
+    $agUser = Join-Path $env:APPDATA ((Split-Path $agDir -Leaf) + '\User\settings.json')
+    $agArgv = Join-Path $HOME '.antigravity-ide\argv.json'
+    & $py -c "import json,os,sys`nfor p,kv in ((sys.argv[1],{'claudeCode.preferredLocation':'panel','claudeCode.hideOnboarding':True}),(sys.argv[2],{'locale':'ja'})):`n    os.makedirs(os.path.dirname(p),exist_ok=True)`n    try: d=json.load(open(p,encoding='utf-8')) if os.path.exists(p) else {}`n    except Exception: continue`n    [d.setdefault(k,v) for k,v in kv.items()]`n    json.dump(d,open(p,'w',encoding='utf-8'),indent=4,ensure_ascii=False)" $agUser $agArgv *>> $Log
     Ok (T 'Antigravity の中で AI を使えるようにし、画面を日本語にしました' 'extensions: claude-code, language-pack-ja')
   }
 }
