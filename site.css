@@ -197,3 +197,4 @@ code.nw{white-space:normal}
   tr:last-child td:last-child{border-bottom:0}
   tr:nth-child(even) td{background:transparent}
 }
+@media(max-width:760px){.need>div.key{grid-column:auto!important}}
