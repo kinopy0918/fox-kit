@@ -383,6 +383,9 @@ if ($agDir) {
   $cli = Get-ChildItem -Path "$agDir\bin" -Filter '*.cmd' -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($cli) {
     foreach ($ext in @('anthropic.claude-code', 'ms-ceintl.vscode-language-pack-ja')) { & $cli.FullName --install-extension $ext *>> $Log }
+    # 起動のたびに Gemini の Agent パネルが開く（設定で止められない）→ 開いた直後に右側の帯を Claude に切り替える
+    $vsix = Join-Path $KitDir 'tools\claude-first\claude-first.vsix'
+    if (Test-Path $vsix) { & $cli.FullName --install-extension $vsix *>> $Log }
     Ok (T 'Antigravity の中で AI を使えるようにし、画面を日本語にしました' 'extensions: claude-code, language-pack-ja')
   }
 }

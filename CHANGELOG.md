@@ -1,5 +1,10 @@
 # 変更履歴
 
+## 0.3.2（Antigravity を主役に・2026-10-15）
+
+- **どのフォルダで開いても同じ記憶を読む**：Claude Code の記憶の置き場所を1か所に固定（`autoMemoryDirectory`）。Antigravity で Google ドライブのフォルダなどを開いても「何も覚えていないAI」にならない。持ち主が決めた値は触らない
+- **Antigravity を開くと Claude が前に出る**：Antigravity は起動のたびに Gemini の「Agent」パネルを必ず開く（設定では止められない作り）ため、開いた直後に右側の帯を Claude Code に切り替える小さな拡張機能（`tools/claude-first`）を同梱し、Mac・Windows とも自動で入れる。止めるときは設定の「Claude を最初に開く」をオフ
+
 ## 0.3.1（パソコンを最新に・Chrome の拡張・2026-10-15）
 
 - **はじめにパソコンを最新にする段**：Mac は設定画面の2番目で、入れていない更新を調べて（softwareupdate -l）一覧を出し、更新の画面を開く。最新なら「最新です」で次へ。macOS 13 より古いと先へ進ませない。Windows は最初に Windows Update の画面を開くか聞き、Windows 10 1809 より古いと止める。更新で再起動しても、同じ1行で続きから

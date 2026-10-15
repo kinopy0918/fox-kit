@@ -67,6 +67,8 @@ for ev, entries in (new.get("hooks") or {}).items():
             h["command"] = re.sub(r"^python3 ", lambda m: f'"{Path(sys.executable).as_posix()}" ', h["command"])
 new["permissions"]["allow"] = [a for a in new["permissions"]["allow"] if not a.startswith(("Bash(osascript", "Bash(open"))]
 new.setdefault("env", {})["PYTHONUTF8"] = "1"
+# 記憶の置き場所を1か所に固定する：どのフォルダで開いても同じ記憶を読む
+new["autoMemoryDirectory"] = f"~/.claude/projects/{slug(str(HOME))}/memory"
 sp = CLAUDE / "settings.json"
 backup(sp)
 cur = {}
@@ -86,6 +88,8 @@ for a in (new["permissions"]["allow"] + ((cur.get("permissions") or {}).get("all
     if a not in allow:
         allow.append(a)
 out["permissions"]["allow"] = allow
+if cur.get("autoMemoryDirectory"):
+    out["autoMemoryDirectory"] = cur["autoMemoryDirectory"]   # 持ち主が決めた場所は触らない
 hooks = {}
 for src in ((cur.get("hooks") or {}), (new.get("hooks") or {})):
     for ev, entries in src.items():

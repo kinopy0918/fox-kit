@@ -120,6 +120,8 @@ antigravity() {
     for ext in anthropic.claude-code ms-ceintl.vscode-language-pack-ja; do
       "$cli" --list-extensions 2>/dev/null | grep -qx "$ext" || "$cli" --install-extension "$ext" >/dev/null 2>&1 || true
     done
+    # 起動のたびに Gemini の Agent パネルが開く（設定で止められない）→ 開いた直後に右側の帯を Claude に切り替える
+    [[ -f "$HERE/../claude-first/claude-first.vsix" ]] && "$cli" --install-extension "$HERE/../claude-first/claude-first.vsix" >/dev/null 2>&1 || true
     # 画面を日本語に
     local argv="$HOME/.antigravity-ide/argv.json"; mkdir -p "${argv:h}"
     if [[ ! -f "$argv" ]]; then print -r -- '{ "locale": "ja" }' > "$argv"

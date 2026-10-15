@@ -152,6 +152,9 @@ if os.path.exists(dest):
                     lst.append(e)
     if hooks:
         result["hooks"] = hooks
+# 記憶の置き場所を1か所に固定する：Antigravity でどのフォルダを開いても同じ記憶を読む（持ち主が決めていれば触らない）
+import re as _re
+result.setdefault("autoMemoryDirectory", "~/.claude/projects/" + _re.sub(r"[^A-Za-z0-9-]", "-", os.path.expanduser("~").rstrip("/")) + "/memory")
 os.makedirs(os.path.dirname(dest), exist_ok=True)
 json.dump(result, open(dest, "w"), indent=2, ensure_ascii=False)
 open(dest, "a").write("\n")
