@@ -10,7 +10,8 @@
   プラグイン  SEO（AgriciDaniel/claude-seo）・Obsidian（kepano）・マーケティング（coreyhaines31）・
             文書とスキル作り（anthropics/skills）・世間の反応（last30days）・文章の仕上げ（humanizer）
   スキル     動画づくり（remotion-dev）・セキュリティ・構成図・手抜き防止・スキル探し・キャラ画像・
-            本をスキルに・Google（gcloud / GA4）
+            本をスキルに・Google（gcloud / GA4）・
+            Apple風の触感（apple-design）・管理画面の設計（ui-ux-pro-max）・壁打ちと不具合の原因探し（superpowers）
   自作       画像生成（nanobanana）・意味検索（vault-rag）＝ fox-kit に同梱
   MCP       playwright（ブラウザ操作）・vault-rag（意味検索）
 """
@@ -60,6 +61,12 @@ UPSTREAM = [  # (リポジトリ, リポジトリ内の場所, 入れる名前)�
     ("virgiliojr94/book-to-skill", ".", "book-to-skill"),
     ("google/skills", "plugins/cloud/google-cloud-developer/skills/gcloud", "gcloud"),
     ("google/skills", "skills/analytics/google-analytics-data-api-basics", "google-analytics-data-api-basics"),
+    ("emilkowalski/skills", "skills/apple-design", "apple-design"),
+    ("nextlevelbuilder/ui-ux-pro-max-skill", ".claude/skills/ui-ux-pro-max", "ui-ux-pro-max"),
+    ("obra/superpowers", "skills/brainstorming", "brainstorming"),
+    ("obra/superpowers", "skills/systematic-debugging", "systematic-debugging"),
+    ("obra/superpowers", "skills/test-driven-development", "test-driven-development"),
+    ("obra/superpowers", "skills/verification-before-completion", "verification-before-completion"),
 ]
 
 

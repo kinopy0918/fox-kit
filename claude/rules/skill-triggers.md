@@ -4,7 +4,7 @@
 根拠：実運用で1,600本超の会話を数えたところ、ここに書いたスキルだけが呼ばれ、書いていないものは使われなかった。
 
 1. **資料を作る・直す** — スライド・企画書・提案書・チラシ・HTML資料・事業計画 → `shiryo-review-loop`（言われなくても回す）
-2. **HP・LP・サイトを作る** — 「HP作って／LP作って／サイト作って／おしゃれにして」→ `design-taste`（方向決め）→ 制作 → `impeccable-design`（見た目の土台の点検）→ `emil-motion`（動き）
+2. **HP・LP・サイトを作る** — 「HP作って／LP作って／サイト作って／おしゃれにして」→ `design-taste`（方向決め）→ 制作 → `impeccable-design`（見た目の土台の点検）→ `emil-motion`（動き）＋`apple-design`（ドラッグ・スワイプ・半透明・文字の詰めをApple風の手触りに）
 3. **SEO・検索順位・記事** — 検索順位／流入／キーワード／サイトの調子 → `seo-audit`（全体）・`seo-page`（1ページ）・`seo-google`（実データ）・`seo-geo`（AI検索）・`seo-technical`（残りは `seo-audit` が振り分ける）
 4. **売れる文章・数字を上げる** — 申込が少ない→`cro`、書く・直す→`copywriting`、計測→`analytics`、どこから来たか→`attribution`、A/Bテスト→`ab-testing`、ほかのマーケ全般は `marketing-skills` の中から選ぶ
 5. **外に出る文章の仕上げ** — 記事本文・SNSの文・メール返信案・HP/LPの文は、書き終えたら `humanizer` を1回通す（進捗報告・コード・数字の通知は除く）
@@ -23,8 +23,11 @@
 18. **知らない種類の作業** — 自分で作る前に `find-skills`（`npx skills find <言葉>`）で既にあるスキルを探す
 19. **手を抜かずにやり切る** — 長い作業・「最後までやって」→ `unlazy`
 20. **Word・Excel・PowerPoint・PDF のファイル** — 作る・読む・直す → `docx`・`xlsx`・`pptx`・`pdf`
+21. **ダッシュボード・管理画面を作る** — 「ダッシュボード／管理画面／グラフの見せ方／配色決め」→ `ui-ux-pro-max`（`python3 ~/.claude/skills/ui-ux-pro-max/scripts/search.py "<用途>" --design-system`）。英字フォントの提案は日本語の書体に置き換える
+22. **アイデアの壁打ち** — 「一緒に考えて／壁打ち／新しい企画を考えたい」で、何を作るかがまだ決まっていないとき → `brainstorming`（答えを先に出さず1問ずつ聞く）。具体的な指示や「任せる」のときは使わない
+23. **不具合・お金や予約のロジック** — 原因の分からない不具合は直す前に `systematic-debugging`、お金・席数などの計算を書く前は `test-driven-development`、「できました／直りました」と言う前は `verification-before-completion`
 
-21. **自分（AI）の設定・点検を頼まれた** — 持ち主にターミナルを打たせず、自分で実行して結果を日本語で返す。
+24. **自分（AI）の設定・点検を頼まれた** — 持ち主にターミナルを打たせず、自分で実行して結果を日本語で返す。
     「調子を見て」→ `fox-kit status`／「新しい版に更新して」→ `fox-kit update`／「画像づくりの鍵を登録したい」→ `python3 ~/Tools/fox-packs/packs.py key --dialog`（Macの画面に鍵を貼る窓が出る、と先に伝える。鍵を会話に貼らせない）／
     「名前（呼び方）を変えて」→ `~/.claude/CLAUDE.md` の名前と `~/.config/fox-kit/state.env` の `FOX_OWNER`・`FOX_AGENT` を書き換える（AIの名前を変えても Slack/Discord の表示名と資料フォルダ名は変わらない、と添えて、変えたいなら手順を案内）／
     「初期設定の続きをして」→ `fox-setup`／「Antigravity の使い方を教えて」→ 開き方・フォルダの開き方（ホーム）・Claude のマーク（✳）から話しかける、を1つずつ案内

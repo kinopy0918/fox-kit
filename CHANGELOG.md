@@ -1,5 +1,11 @@
 # 変更履歴
 
+## 0.4.1（スキルを6本追加・2026-10-24）
+
+- `apple-design`（Apple風の触感・半透明・文字の詰め）を HP/LP づくりの仕上げに追加
+- `ui-ux-pro-max`（ダッシュボード・管理画面の配色と書体）、`brainstorming`（壁打ち）、`systematic-debugging`・`test-driven-development`・`verification-before-completion`（不具合の原因探し・計算の確認・完了前の確認）を追加
+- どれも配布元（emilkowalski/skills・nextlevelbuilder/ui-ux-pro-max-skill・obra/superpowers、いずれも MIT）から直接取ってくる。発動ルールも追加
+
 ## 0.4.0（Windows もブラウザの設定画面で・2026-10-15）
 
 - **Windows も Mac と同じ「ブラウザの設定画面」で進むように**。PowerShell は Git・Python・キットを用意したら設定画面を開いて終わり（黒い画面での質問はなし）。設定画面は全10ステップ（スマホ連携の段は Windows では出ない）：パソコンが最新か→名前→本体→ログイン→組み立て→パソコンの設定（電源・Chrome・Antigravity。既定のブラウザと Claude の拡張は画面のボタンから）→スキル→保存先→AIと最初のお話
