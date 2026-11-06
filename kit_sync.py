@@ -26,7 +26,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 HOME = Path.home()
 RECORD = HOME / ".config" / "fox-kit" / "install.json"
-VERSION = (HERE / "VERSION").read_text().strip() if (HERE / "VERSION").exists() else "0.0.0"
+VERSION = (HERE / "VERSION").read_text(encoding="utf-8").strip() if (HERE / "VERSION").exists() else "0.0.0"
 
 # (キット内の場所, 置き先, 種類)。フォルダは中身を再帰で扱う。
 MAP = [

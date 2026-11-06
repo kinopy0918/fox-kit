@@ -9,7 +9,7 @@ plist = HOME / "Library/LaunchAgents" / f"{LABEL}.plist"
 plist.parent.mkdir(parents=True, exist_ok=True)
 sh = G / "run.sh"
 sh.write_text(f'#!/bin/zsh\nexport PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"\n'
-              f'/usr/bin/python3 "{G}/skill_guard.py"\n/usr/bin/python3 "{G}/health.py"\n')
+              f'/usr/bin/python3 "{G}/skill_guard.py"\n/usr/bin/python3 "{G}/health.py"\n', encoding="utf-8")
 sh.chmod(0o755)
 with open(plist, "wb") as f:
     plistlib.dump({"Label": LABEL, "ProgramArguments": [str(sh)],

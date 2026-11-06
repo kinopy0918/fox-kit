@@ -99,7 +99,7 @@ def _chrome(*args):
     return subprocess.run(
         [CHROME, "--headless", "--disable-gpu", "--hide-scrollbars",
          "--no-first-run", "--no-default-browser-check", *args],
-        check=True, capture_output=True, text=True)
+        check=True, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 def shoot(html_text, out_png, scale=2):

@@ -36,7 +36,7 @@ RECORD = HOME / ".config" / "fox-kit" / "packs.json"
 LOG = (HOME / ".config" / "fox-kit" / "fox-install.log") if os.name == "nt" else (HOME / "Library" / "Logs" / "fox-install.log")
 B = True
 try:
-    B = "FOX_LEVEL=expert" not in (HOME / ".config/fox-kit/state.env").read_text()
+    B = "FOX_LEVEL=expert" not in (HOME / ".config/fox-kit/state.env").read_text(encoding="utf-8")
 except OSError:
     pass
 
@@ -92,7 +92,7 @@ def warn(s):
 
 
 def sh(cmd, check=False, **kw):
-    with open(LOG, "a") as f:
+    with open(LOG, "a", encoding="utf-8") as f:
         f.write(f"$ {cmd if isinstance(cmd, str) else ' '.join(map(str, cmd))}\n")
         r = subprocess.run(cmd, shell=isinstance(cmd, str), stdout=f, stderr=subprocess.STDOUT, **kw)
     if check and r.returncode != 0:
@@ -123,12 +123,12 @@ def tools():
             return False
         prof = HOME / ".zprofile"
         line = f'eval "$({brew_bin()} shellenv)"'
-        if line not in (prof.read_text() if prof.exists() else ""):
-            with open(prof, "a") as f:
+        if line not in (prof.read_text(encoding="utf-8") if prof.exists() else ""):
+            with open(prof, "a", encoding="utf-8") as f:
                 f.write("\n" + line + "\n")
     brew = brew_bin()
     os.environ["PATH"] = f"{Path(brew).parent}:{os.environ['PATH']}"
-    have = subprocess.run([brew, "list", "--formula", "-1"], capture_output=True, text=True).stdout.split()
+    have = subprocess.run([brew, "list", "--formula", "-1"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.split()
     need = [f for f in BREW if f not in have]
     for i, f in enumerate(need, 1):
         now(t(f"道具：{f}", f"brew {f}"), i, len(need))
@@ -224,7 +224,7 @@ def own_tools():
     if nb.exists() and shutil.which("npm"):
         sh(["npm", "install", "--silent"], cwd=str(nb))
         w = bin_dir / "nanobanana"
-        w.write_text(f'#!/bin/zsh\nexec node "{nb}/generate.js" "$@"\n')
+        w.write_text(f'#!/bin/zsh\nexec node "{nb}/generate.js" "$@"\n', encoding="utf-8")
         w.chmod(0o755)
     rag = TOOLS / "vault-rag"
     if rag.exists() and shutil.which("uv"):
@@ -233,7 +233,7 @@ def own_tools():
             sh(["uv", "venv", "--python", "3.12", str(venv)])
         sh(["uv", "pip", "install", "--python", str(venv / "bin/python"), "numpy", "mcp"])
         w = bin_dir / "vault-rag"
-        w.write_text(f'#!/bin/zsh\nexec "{venv}/bin/python" "{rag}/rag.py" "$@"\n')
+        w.write_text(f'#!/bin/zsh\nexec "{venv}/bin/python" "{rag}/rag.py" "$@"\n', encoding="utf-8")
         w.chmod(0o755)
     ok(t("画像づくり（nanobanana）と、意味で探す仕組み（vault-rag）を用意しました", "nanobanana / vault-rag"))
 
@@ -242,7 +242,7 @@ def mcps():
     c = claude_bin()
     rag = TOOLS / "vault-rag"
     added = []
-    listing = subprocess.run([c, "mcp", "list"], capture_output=True, text=True).stdout
+    listing = subprocess.run([c, "mcp", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout
     if "playwright" not in listing and sh([c, "mcp", "add", "--scope", "user", "playwright", "--",
                                           "npx", "-y", "@playwright/mcp@latest"]):
         added.append("playwright")
@@ -276,7 +276,7 @@ def ask_key() -> str:
     """ターミナルが無いとき（Slack から AI が呼んだとき）は、Mac の画面に鍵を貼る小さな窓を出す。鍵は会話に書かせない。"""
     script = ('display dialog "Google（Gemini）の鍵を貼り付けて「登録」を押してください。\\n（あとでやるなら「キャンセル」）" '
               'default answer "" with hidden answer with title "画像づくりの鍵" buttons {"キャンセル", "登録"} default button "登録"')
-    r = subprocess.run(["osascript", "-e", script, "-e", "text returned of result"], capture_output=True, text=True)
+    r = subprocess.run(["osascript", "-e", script, "-e", "text returned of result"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
@@ -284,7 +284,7 @@ def key():
     say(t("\n  画像づくりと「意味で探す」には、Google の AI（Gemini）の鍵が1つ要ります（無料枠あり）。",
           "\n  Gemini API キー（画像生成・埋め込み）"))
     cur = subprocess.run(["security", "find-generic-password", "-s", "fox-kit", "-a", "gemini", "-w"],
-                         capture_output=True, text=True).stdout.strip()
+                         capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip()
     if cur and "--force" not in sys.argv:
         ok(t("鍵はもう登録されています", "登録済み"))
         return True
@@ -323,7 +323,7 @@ def first_index():
 # ------------------------------------------------------------------ 入口
 def install():
     t0 = time.time()
-    st = json.loads(RECORD.read_text()) if RECORD.exists() else {}
+    st = json.loads(RECORD.read_text(encoding="utf-8")) if RECORD.exists() else {}
     if tools():
         own_tools()
         mcps()
@@ -333,7 +333,7 @@ def install():
     st["plugins"] = [p for _, p in PLUGINS]
     st["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
     RECORD.parent.mkdir(parents=True, exist_ok=True)
-    RECORD.write_text(json.dumps(st, ensure_ascii=False, indent=2))
+    RECORD.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
     if not os.getenv("FOX_NO_KEY") and key():
         first_index()
     ok(t(f"スキルと道具をそろえました（{int(time.time() - t0) // 60}分）", f"done in {int(time.time() - t0)}s"))
@@ -353,7 +353,7 @@ def install_win():
 
 
 def status():
-    st = json.loads(RECORD.read_text()) if RECORD.exists() else {}
+    st = json.loads(RECORD.read_text(encoding="utf-8")) if RECORD.exists() else {}
     say(f"  取ってきたスキル: {len(st.get('upstream', {}))} 本 / プラグイン: {len(st.get('plugins', []))} 個（{st.get('updated_at', '未導入')}）")
     k = subprocess.run(["security", "find-generic-password", "-s", "fox-kit", "-a", "gemini"], capture_output=True).returncode == 0
     say(f"  Gemini の鍵: {'登録済み' if k else 'まだ（fox-kit packs key）'}")

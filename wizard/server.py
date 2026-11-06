@@ -90,7 +90,13 @@ def save(st: dict):
     tmp = WSTATE.with_suffix(".tmp")
     tmp.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
     os.chmod(tmp, 0o600)
-    tmp.replace(WSTATE)
+    for i in range(6):
+        try:
+            tmp.replace(WSTATE); break
+        except PermissionError:
+            if i == 5:
+                raise
+            time.sleep(0.3)
     # インストーラ（get.sh）や他の道具と答えを共有する
     a = st["answers"]
     lines = []
@@ -200,7 +206,7 @@ def run_job(name: str, cmd, env=None, on_ok=None, cwd=None):
                 on_ok()
             except Exception as e:
                 ok = False
-                with open(log, "a") as f:
+                with open(log, "a", encoding="utf-8") as f:
                     f.write(f"\n{e}\n")
         with LOCK:
             JOBS[name].update(state="ok" if ok else "error", ended=time.time())
@@ -406,7 +412,7 @@ def act(step: str, body: dict) -> dict:
             dst = KIT / "claude/skills/fox-setup/storage.py"
         cmd = [PY, str(dst), "apply", "--root", root,
                "--agent", a.get("agent", "FOX"), "--layout", body.get("layout", "fox")]
-        if not root.startswith(str(HOME / "Documents")):
+        if not root.lower().startswith(str(sto.local_docs()).lower()):
             cmd.append("--memory-in-root")
         if body.get("auto_index", True):
             cmd.append("--auto-index")
@@ -428,7 +434,12 @@ def act(step: str, body: dict) -> dict:
         return talk(body, st)
 
     if step == "skip":
-        mark(body.get("target", ""), skipped=True)
+        target = body.get("target", "")
+        if target not in {s for s, _, _ in STEPS} | {"gemini"} or target in ("claude", "login", "build", "talk", "done"):
+            return {"ok": False, "error": "この段は「あとでやる」にできません"}
+        mark(target, skipped=True)
+        if target == "packs":
+            mark("gemini", skipped=True)
         return {"ok": True}
 
     if step == "reopen":   # 「あとでやる」にした段へ戻る（左の一覧から押す）
@@ -547,14 +558,20 @@ def talk(body: dict, st: dict) -> dict:
     if body.get("finish"):
         mark("talk"); return {"ok": True}
     if not msg:
+        ch = st["data"].get("channel", {})
+        linked = ch.get("platform") in ("discord", "slack") and not ch.get("skipped")
         msg = ("/fox-setup 初期設定をお願いします。保存先（3）とやり取りの場所（5）は設定画面で済ませました。"
-               "残りの段を、この画面のチャットで1問ずつ進めてください。")
+               + ("" if linked else "スマホとはつないでいません（あとでできることに入れてください）。")
+               + "残りの段を、この画面のチャットで1問ずつ進めてください。")
     cmd = [claude_bin(), "-p", "--output-format", "json", "--permission-mode", "bypassPermissions"]   # 本文は標準入力で（下）
     sid = st["data"].get("talk", {}).get("sid")
     if sid:
         cmd += ["--resume", sid]
-    r = subprocess.run(cmd, input=msg, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HOME),
-                       env=env_for(st), timeout=600, **NOWIN)
+    try:
+        r = subprocess.run(cmd, input=msg, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HOME),
+                           env=env_for(st), timeout=600, **NOWIN)
+    except subprocess.TimeoutExpired:
+        return {"ok": False, "error": "AIの返事に10分以上かかったので止めました。もう少し短く分けて送ってください"}
     try:
         j = json.loads(r.stdout or "{}")
     except ValueError:
@@ -665,7 +682,7 @@ def main():
     port = int(os.getenv("FOX_WIZARD_PORT", "0"))
     srv = ThreadingHTTPServer(("127.0.0.1", port), H)
     url = f"http://127.0.0.1:{srv.server_address[1]}/?t={TOKEN}"
-    (CONF / "wizard.url").write_text(url)
+    (CONF / "wizard.url").write_text(url, encoding="utf-8")
     if not WIN:
         os.chmod(CONF / "wizard.url", 0o600)
     if sys.stdout:   # Windows の pythonw（画面なしで動かす）では書き出し先が無い

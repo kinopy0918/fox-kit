@@ -122,7 +122,7 @@ def watch():
         env = dict(os.environ)
         tok = HOME / ".config/claude/token"   # 常駐は長寿命トークンで動く（fox-bridge と同じ）
         if tok.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
-            env["CLAUDE_CODE_OAUTH_TOKEN"] = tok.read_text().strip()
+            env["CLAUDE_CODE_OAUTH_TOKEN"] = tok.read_text(encoding="utf-8-sig").strip()
         r = subprocess.run([claude, "auth", "status"], capture_output=True, text=True, timeout=60, env=env, **NOWIN)
         try:
             logged = json.loads(r.stdout).get("loggedIn") is True
@@ -147,7 +147,7 @@ def clean():
     tmps = {Path(os.getenv("FOX_HOME_TMP") or tempfile.gettempdir())}   # FOX_HOME_TMP は試験用
     if not WIN and not os.getenv("FOX_HOME_TMP"):
         try:   # launchd の中では TMPDIR が無いことがあるので、本人用の一時フォルダを直接聞く（confstr では取れない）
-            d = subprocess.run(["/usr/bin/getconf", "DARWIN_USER_TEMP_DIR"], capture_output=True, text=True, timeout=10).stdout.strip()
+            d = subprocess.run(["/usr/bin/getconf", "DARWIN_USER_TEMP_DIR"], capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace").stdout.strip()
             if d:
                 tmps.add(Path(d))
         except (OSError, subprocess.TimeoutExpired):
@@ -364,7 +364,7 @@ Register-ScheduledTask -TaskName 'fox-home-{n}' -Action $a -Trigger $t -Settings
             with open(f, "wb") as fh:
                 plistlib.dump(pl, fh)
             for _ in range(2):   # bootout の直後は「5: Input/output error」になることがあるので1回だけ待ってやり直す
-                r = subprocess.run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(f)], capture_output=True, text=True)
+                r = subprocess.run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(f)], capture_output=True, text=True, encoding="utf-8", errors="replace")
                 if r.returncode == 0:
                     break
                 time.sleep(2)

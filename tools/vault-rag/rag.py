@@ -43,7 +43,7 @@ import numpy as np
 def _default_vault() -> str:
     """fox-kit の保存先（~/.config/fox-kit/storage.json の base）。無ければ ~/Documents。"""
     try:
-        return json.loads((Path.home() / ".config/fox-kit/storage.json").read_text())["base"]
+        return json.loads((Path.home() / ".config/fox-kit/storage.json").read_text(encoding="utf-8"))["base"]
     except (OSError, ValueError, KeyError):
         return str(Path.home() / "Documents")
 
@@ -94,7 +94,7 @@ def api_key() -> str:
             return os.environ[var]
     import subprocess
     r = subprocess.run(["security", "find-generic-password", "-s", "fox-kit", "-a", "gemini", "-w"],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode == 0 and r.stdout.strip():
         return r.stdout.strip()
     sys.exit("Gemini の API キーがありません（fox-kit packs key で登録）")
@@ -275,7 +275,7 @@ def load_index() -> tuple[np.ndarray, list[dict]]:
 def build(full: bool = False) -> dict:
     key = api_key()
     old_manifest = {} if full else (
-        json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {})
+        json.loads(MANIFEST.read_text(encoding="utf-8")) if MANIFEST.exists() else {})
     old_vecs, old_meta = (np.zeros((0, DIMS), dtype=np.float32), []) if full else load_index()
 
     notes = iter_notes()

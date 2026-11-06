@@ -270,9 +270,12 @@ def main() -> int:
         print("\n" + text)
         return 0
 
-    notify(text, "スキルの点検")
+    sent = notify(text, "スキルの点検")
     if high or med or added:
         record("スキル点検", f"{now():%Y-%m-%d}.md", f"# スキル点検 {stamp}\n\n{text}\n")
+    if not sent:      # 知らせられなかったら基準を進めない（次の回にもう一度知らせる。指摘を1回の失敗で消さない）
+        print("知らせられなかったので、次の点検でもう一度知らせます")
+        return 1
     STATE.write_text(json.dumps(state, ensure_ascii=False, indent=1), encoding="utf-8")
     return 0
 

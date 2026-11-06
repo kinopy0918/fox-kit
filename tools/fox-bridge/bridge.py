@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -101,7 +102,7 @@ def _run_claude(prompt: str, sid: str | None, platform: str, model: str | None):
         env.setdefault("PYTHONUTF8", "1")
     tok_file = Path.home() / ".config" / "claude" / "token"
     if tok_file.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
-        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok_file.read_text().strip()   # 常駐でログインが切れないように
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok_file.read_text(encoding="utf-8").strip()   # 常駐でログインが切れないように
     r = subprocess.run(cmd, input=prompt, cwd=str(Path.home()), capture_output=True, text=True, encoding="utf-8", errors="replace",
                        timeout=TIMEOUT, env=env, **({"creationflags": 0x08000000} if c.WIN else {}))
     try:
@@ -204,12 +205,19 @@ def handle(api, platform: str, channel: str, msgs: list[dict], st: dict, cfg: di
         return
 
     reply = (j.get("result") or "").strip() or "（返事が空でした）"
-    attach = [q for q in (local_path(p) for p in FILE_RE.findall(reply)) if q.is_file()]
+    wanted = [local_path(p) for p in FILE_RE.findall(reply)]
+    attach = [q for q in wanted if q.is_file()]
+    missing = [str(q) for q in wanted if not q.is_file()]
     reply = FILE_RE.sub("", reply).strip()
-    if placeholder:
-        api.send(channel, reply, attach, placeholder=placeholder)
-    else:
-        api.send(channel, reply, attach)
+    if missing:
+        reply += "\n\n（添付できなかったファイル：" + "、".join(missing[:5]) + "）"
+    reply = reply or "（添付だけです）"
+    kw = {"placeholder": placeholder} if placeholder else {}
+    try:
+        api.send(channel, reply, attach, **kw)
+    except Exception as e:  # noqa: BLE001  添付が大きすぎる等 → 本文だけでも届ける
+        c.log("添付つきで送れませんでした:", repr(e)[:200])
+        api.send(channel, reply + "\n\n（添付を送れませんでした。大きすぎるかもしれません）", **kw)
     ch_state.update(session=j.get("session_id"), ts=time.time(),
                     last=f"相手: {prompt[-600:]}\nあなた: {reply[:600]}")
     c.log(f"返信 {channel}: {len(reply)}字 添付{len(attach)}")
@@ -224,8 +232,14 @@ def poll_once(api, cfg, st):
         after = cs.get("after")
         try:
             msgs = api.fetch(channel, after)
-        except Exception as e:
+            cs.pop("fail_since", None)
+        except Exception as e:  # noqa: BLE001
             c.log("読めませんでした:", channel, e)
+            first = cs.setdefault("fail_since", time.time())
+            if time.time() - first > 60 and time.time() - cs.get("alerted", 0) > 3600:   # 1分続いたら知らせる（1時間に1回）
+                cs["alerted"] = time.time(); c.save(c.STATE, st)
+                alert(f"Discord/Slack を読めない状態が続いています（{str(e)[:120]}）。鍵の期限切れか、ネットの不調かもしれません。"
+                      "AIに「スマホから頼めるようにしたい」と言うと、つなぎ直せます。")
             continue
         if not after:                       # 初回は今より前を読まない（空なら最初から読む）
             cs["after"] = msgs[-1]["id"] if msgs else "0"
@@ -243,16 +257,48 @@ def poll_once(api, cfg, st):
         c.save(c.STATE, st)
         mine = [m for m in msgs if not m["bot"] and m["user"] != me and (not allowed or m["user"] in allowed)]
         if mine:
-            handle(api, cfg["platform"], channel, mine, st, cfg)
+            cs["pending"] = time.time()          # 途中で止まったら、次に動き出したとき本人に知らせる
             c.save(c.STATE, st)
+            try:
+                handle(api, cfg["platform"], channel, mine, st, cfg)
+            except Exception as e:  # noqa: BLE001  落ちても黙らない：本人に知らせる
+                c.log("処理の途中で失敗:", channel, traceback.format_exc()[-800:])
+                try:
+                    api.send(channel, f"⚠️ うまく処理できませんでした（{e.__class__.__name__}）。もう一度送ってください。")
+                except Exception:  # noqa: BLE001
+                    pass
+            cs.pop("pending", None)
+            c.save(c.STATE, st)
+
+
+def alert(msg: str):
+    """パソコンに知らせる（Discord/Slack が使えないとき用）。記録にも必ず残す"""
+    c.log("知らせ:", msg)
+    try:
+        if os.name == "nt":
+            subprocess.run(["msg", "*", "/TIME:3600", "fox-kit: " + msg[:250]], capture_output=True, timeout=20)
+        else:
+            subprocess.run(["osascript", "-e", f'display notification "{msg[:180].replace(chr(34), chr(39))}" with title "fox-kit"'],
+                           capture_output=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired):
+        pass
 
 
 def main():
     cfg = c.load(c.CONFIG, {})
     if not cfg.get("platform") or not cfg.get("channels"):
-        raise SystemExit("まだつながっていません。connect.py を先に実行してください。")
+        c.log("まだつながっていません。connect.py を先に実行してください。（5分待ってから終わります）")
+        time.sleep(300)                      # 起こし直しを20秒ごとに繰り返さない
+        raise SystemExit(1)
     api = pf.make(cfg["platform"])
     st = c.load(c.STATE, {})
+    for ch, cs in st.get("channels", {}).items():   # 前回、頼みごとの途中で止まっていたら知らせる
+        if cs.pop("pending", None):
+            try:
+                api.send(ch, "⚠️ 前の頼みごとの途中で止まりました（パソコンの再起動など）。お手数ですが、もう一度送ってください。")
+            except Exception as e:  # noqa: BLE001
+                c.log("途中で止まったことを知らせられませんでした:", repr(e)[:200])
+    c.save(c.STATE, st)
     c.log(f"開始: {cfg['platform']} / チャンネル {len(cfg['channels'])} 本 / {POLL}秒ごと")
     once = "--once" in sys.argv
     while True:
@@ -267,4 +313,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except BaseException:  # noqa: BLE001  Windows（pythonw）は画面が無いので、落ちた理由を必ず記録に残す
+        c.log("止まりました:", traceback.format_exc()[-1500:])
+        time.sleep(60)
+        raise

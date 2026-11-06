@@ -70,6 +70,21 @@ def open_path(p):
         subprocess.run(["open", str(p)])
 
 
+def local_docs() -> Path:
+    """「このパソコンの中だけ」の置き場。Windows で OneDrive にドキュメントを移していても、実際の場所を返す"""
+    if WIN:
+        try:
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders") as k:
+                p = Path(os.path.expandvars(winreg.QueryValueEx(k, "Personal")[0]))
+            if p.is_dir():
+                return p
+        except OSError:
+            pass
+    d = HOME / "Documents"
+    return d if d.is_dir() else HOME
+
+
 def detect_win():
     found = []
     # Google ドライブ（パソコン版）はドライブ文字（G: など）として出る
@@ -96,7 +111,7 @@ def detect_win():
     for name in ("Dropbox", "Box"):
         if (HOME / name).is_dir():
             found.append({"kind": name, "account": "", "path": str(HOME / name)})
-    found.append({"kind": "このパソコンの中だけ（バックアップなし）", "account": "", "path": str(HOME / "Documents")})
+    found.append({"kind": "このパソコンの中だけ（バックアップなし）", "account": "", "path": str(local_docs())})
     print(json.dumps({"folders": found, "google_drive_app_installed": GD_WIN.is_dir()}, ensure_ascii=False, indent=2))
 
 
@@ -143,7 +158,7 @@ def detect():
     icloud = HOME / "Library" / "Mobile Documents" / "com~apple~CloudDocs"
     if icloud.is_dir():
         found.append({"kind": "iCloud Drive", "account": "", "path": str(icloud)})
-    found.append({"kind": "このMacの中だけ（バックアップなし）", "account": "", "path": str(HOME / "Documents")})
+    found.append({"kind": "このMacの中だけ（バックアップなし）", "account": "", "path": str(local_docs())})
     gd_app = Path("/Applications/Google Drive.app").is_dir()
     print(json.dumps({"folders": found, "google_drive_app_installed": gd_app}, ensure_ascii=False, indent=2))
 
@@ -158,7 +173,7 @@ def install_gdrive():
     dmg = Path("/tmp/GoogleDrive.dmg")
     print("Google ドライブのアプリを取ってきます…")
     subprocess.run(["curl", "-fsSL", "-o", str(dmg), "https://dl.google.com/drive-file-stream/GoogleDrive.dmg"], check=True)
-    out = subprocess.run(["hdiutil", "attach", "-nobrowse", "-noverify", str(dmg)], capture_output=True, text=True, check=True).stdout
+    out = subprocess.run(["hdiutil", "attach", "-nobrowse", "-noverify", str(dmg)], capture_output=True, text=True, check=True, encoding="utf-8", errors="replace").stdout
     vol = next((l.split("\t")[-1].strip() for l in out.splitlines() if "/Volumes/" in l), None)
     pkg = next(Path(vol).glob("*.pkg"))
     print("入れます（Macのパスワードを聞く画面が出ます）…")
@@ -282,12 +297,12 @@ def memory_dir():
 
 def add_stop_hook(cmd: str):
     sp = HOME / ".claude" / "settings.json"
-    s = json.loads(sp.read_text()) if sp.exists() else {}
+    s = json.loads(sp.read_text(encoding="utf-8")) if sp.exists() else {}
     stops = s.setdefault("hooks", {}).setdefault("Stop", [])
     if any(cmd in h.get("command", "") for e in stops for h in e.get("hooks", [])):
         return False
     stops.append({"hooks": [{"type": "command", "command": cmd, "timeout": 30, "statusMessage": "目次を更新"}]})
-    sp.write_text(json.dumps(s, ensure_ascii=False, indent=2) + "\n")
+    sp.write_text(json.dumps(s, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return True
 
 
@@ -297,7 +312,7 @@ def apply(root: Path, agent: str, layout: str, memory_in_root: bool, auto_index:
     base = root / agent
     folders = LAYOUTS[layout]
     descs = dict(folders)
-    local_only = str(root).startswith(str(HOME / "Documents"))
+    local_only = str(root).lower().startswith(str(local_docs()).lower())
     print(f"保存先: {base}（{'FOXと同じ構成' if layout == 'fox' else '簡単な構成'}）")
     if dry:
         print("（dry-run：何も変えていません）"); return
@@ -445,9 +460,9 @@ if __name__ == "__main__":
         if args.root:
             base = Path(os.path.expanduser(args.root))
         elif CONF.exists():
-            base = Path(json.loads(CONF.read_text())["base"])
+            base = Path(json.loads(CONF.read_text(encoding="utf-8"))["base"])
         else:
             sys.exit("保存先がまだ決まっていません（apply を先に）")
         if base.is_dir():
-            descs = dict(LAYOUTS.get(json.loads(CONF.read_text()).get("layout", "fox"), [])) if CONF.exists() else {}
+            descs = dict(LAYOUTS.get(json.loads(CONF.read_text(encoding="utf-8")).get("layout", "fox"), [])) if CONF.exists() else {}
             print(f"目次を更新: {index(base, all_=args.all, descs=descs)} フォルダ")

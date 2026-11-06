@@ -150,7 +150,7 @@ def cmd_worker(args) -> int:
     lock = LOGS / "worker.lock"
     if lock.exists() and (time.time() - lock.stat().st_mtime) < 300:
         return 0  # 多重起動防止（stale lockは5分で無効化）
-    lock.write_text(str(os.getpid()))
+    lock.write_text(str(os.getpid()), encoding="utf-8")
     me = host()
     try:
         for jp in sorted(Q.glob("*.json")):
@@ -191,7 +191,7 @@ def _run_job(claimed: Path, job: dict, me: str) -> None:
         try:
             proc = subprocess.run(cmd, shell=True, cwd=job.get("cwd") or None,
                                   capture_output=True, text=True,
-                                  timeout=job.get("timeout", 1800))
+                                  timeout=job.get("timeout", 1800), encoding="utf-8", errors="replace")
             logf.write_text(f"$ {cmd}\n\n[stdout]\n{proc.stdout}\n\n[stderr]\n{proc.stderr}",
                             encoding="utf-8")
             result.update(status="ok" if proc.returncode == 0 else "failed",

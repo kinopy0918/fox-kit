@@ -35,7 +35,7 @@ VAULT = Path(os.environ["LOOP_VAULT"]) if os.environ.get("LOOP_VAULT") else None
 def _read_env_file(path: Path) -> dict:
     out = {}
     try:
-        for line in path.read_text().splitlines():
+        for line in path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line or line.startswith("#") or "=" not in line:
                 continue
@@ -214,7 +214,7 @@ def run_claude(prompt: str, cwd: Path | None = None, timeout: int = 900,
     for attempt in range(retries + 1):
         try:
             proc = subprocess.run(cmd, cwd=str(cwd or HOME),
-                                  capture_output=True, text=True, timeout=timeout)
+                                  capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace")
         except subprocess.TimeoutExpired:
             return f"⏱ タイムアウト（{timeout}秒）"
 

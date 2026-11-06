@@ -266,7 +266,7 @@ Start-ScheduledTask -TaskName '{TASK}'""")
 def running() -> bool:
     if c.WIN:
         return _ps(f"(Get-ScheduledTask -TaskName '{TASK}' -ErrorAction SilentlyContinue).State").stdout.strip() == "Running"
-    r = subprocess.run(["launchctl", "print", f"gui/{os.getuid()}/{LABEL}"], capture_output=True, text=True)
+    r = subprocess.run(["launchctl", "print", f"gui/{os.getuid()}/{LABEL}"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     return "state = running" in r.stdout
 
 

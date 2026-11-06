@@ -300,8 +300,17 @@ def scan():
                     ("codex", lambda: session_files(HOME / ".codex" / "sessions", "**/*.jsonl"))):
         try:
             fs = fn()
-            ts = [t for t in map(mtime, fs) if t]
-            res[key] = {"sessions": len(fs), "period": f"{day(min(ts))}〜{day(max(ts))}" if ts else ""}
+            ok = []
+            for f in fs[:400]:            # 新しいものから。初期設定そのもの・自動ジョブ・中身の無い会話は数えない
+                if late():
+                    break
+                try:
+                    if jsonl_user(f):
+                        ok.append(f)
+                except OSError:
+                    pass
+            ts = [t for t in map(mtime, ok) if t]
+            res[key] = {"sessions": len(ok), "files": len(fs), "period": f"{day(min(ts))}〜{day(max(ts))}" if ts else ""}
         except Exception as e:  # noqa: BLE001
             res[key] = {"error": f"{e.__class__.__name__}: {e}"}
     try:

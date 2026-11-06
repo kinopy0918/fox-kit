@@ -168,13 +168,15 @@ function Download($url, $dest) {
   }
 }
 
+# 3.8 以上か（古い Python だと設定画面が黙って落ちる）
+function Py-Ok($exe) { try { return ((& $exe -c "import sys;print(sys.version_info>=(3,8))" 2>$null) -eq 'True') } catch { return $false } }
 function Find-Python {
   foreach ($c in @(Get-Command python -All -ErrorAction SilentlyContinue)) {
-    if ($c.Source -notlike '*WindowsApps*') { return $c.Source }   # WindowsApps のものはストアへの入口で、中身がない
+    if ($c.Source -notlike '*WindowsApps*' -and (Py-Ok $c.Source)) { return $c.Source }   # WindowsApps のものはストアへの入口で、中身がない
   }
   foreach ($d in @("$env:LOCALAPPDATA\Programs\Python", "$env:ProgramFiles\Python*")) {
-    $p = Get-ChildItem -Path $d -Filter python.exe -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($p) { return $p.FullName }
+    $ps = Get-ChildItem -Path $d -Filter python.exe -Recurse -Depth 2 -ErrorAction SilentlyContinue | Sort-Object FullName -Descending
+    foreach ($p in $ps) { if (Py-Ok $p.FullName) { return $p.FullName } }
   }
   return $null
 }

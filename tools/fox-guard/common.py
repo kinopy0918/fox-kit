@@ -19,28 +19,41 @@ def now() -> datetime:
     return datetime.now()
 
 
-def notify(text: str, title: str = "fox-kit"):
-    """Discord/Slack がつながっていればそこへ、無ければ Mac の通知へ。"""
+def notify(text: str, title: str = "fox-kit") -> bool:
+    """Discord/Slack がつながっていればそこへ、無ければ Mac の通知へ。届けられたら True"""
     cfg_p = HOME / ".config/fox-bridge/config.json"
     try:
-        cfg = json.loads(cfg_p.read_text())
+        cfg = json.loads(cfg_p.read_text(encoding="utf-8"))
         sys.path.insert(0, str(HOME / "Tools/fox-bridge"))
         import platforms  # noqa: E402
         api = platforms.make(cfg["platform"])
         ch = cfg.get("notify_channel") or cfg["channels"][0]
         api.send(ch, text)
-        return
-    except Exception:
-        pass
+        return True
+    except Exception as e:  # noqa: BLE001  つながっていない・鍵切れ → Mac の通知へ（理由は記録に残す）
+        _log_problem(f"Discord/Slack へ知らせられませんでした: {e!r}"[:300])
     first = text.strip().splitlines()[0].replace('"', "'")[:180] if text.strip() else title
-    subprocess.run(["osascript", "-e", f'display notification "{first}" with title "{title}"'], capture_output=True)
+    try:
+        r = subprocess.run(["osascript", "-e", f'display notification "{first}" with title "{title}"'], capture_output=True, timeout=20)
+        return r.returncode == 0
+    except (OSError, subprocess.TimeoutExpired) as e:
+        _log_problem(f"Mac の通知も出せませんでした: {e!r}")
+        return False
+
+
+def _log_problem(msg: str):
+    try:
+        with open(DATA / "problems.log", "a", encoding="utf-8") as f:
+            f.write(f"{datetime.now():%Y-%m-%d %H:%M:%S} {msg}\n")
+    except OSError:
+        pass
 
 
 def record(sub: str, name: str, text: str):
     """保存先の 03_記録/ に残す（無ければ ~/.local/share/fox-kit/guard）。"""
     base = None
     try:
-        base = Path(json.loads((HOME / ".config/fox-kit/storage.json").read_text())["base"])
+        base = Path(json.loads((HOME / ".config/fox-kit/storage.json").read_text(encoding="utf-8"))["base"])
     except (OSError, ValueError, KeyError):
         pass
     root = (base / "03_記録" / sub) if base and (base / "03_記録").is_dir() else (DATA / sub)
@@ -53,10 +66,10 @@ def claude(prompt: str, model: str = "haiku", timeout: int = 240) -> str:
     env = dict(os.environ)
     tok = HOME / ".config/claude/token"
     if tok.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
-        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok.read_text().strip()
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok.read_text(encoding="utf-8-sig").strip()
     try:
         r = subprocess.run([c, "-p", prompt, "--model", model, "--output-format", "text"],
-                           capture_output=True, text=True, timeout=timeout, cwd=str(HOME), env=env)
+                           capture_output=True, text=True, timeout=timeout, cwd=str(HOME), env=env, encoding="utf-8", errors="replace")
         return r.stdout.strip() if r.returncode == 0 else ""
     except Exception:
         return ""

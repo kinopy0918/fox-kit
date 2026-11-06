@@ -38,7 +38,7 @@ def is_secret(path):
 def git(args):
     try:
         return subprocess.run(["git"] + args, cwd=cwd, capture_output=True,
-                              text=True, timeout=10).stdout.splitlines()
+                              text=True, timeout=10, encoding="utf-8", errors="replace").stdout.splitlines()
     except Exception:
         return []
 

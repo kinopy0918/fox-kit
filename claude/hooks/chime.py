@@ -132,7 +132,7 @@ def screen_away():
         return None                       # Windows はオレンジ（未読）を待つ判定だけで鳴らす
     try:
         out = subprocess.run(["ioreg", "-n", "Root", "-d1"], capture_output=True,
-                             text=True, timeout=3).stdout
+                             text=True, timeout=3, encoding="utf-8", errors="replace").stdout
         if re.search(r'"IOConsoleLocked" = Yes', out):
             return "画面ロック中"
     except Exception:

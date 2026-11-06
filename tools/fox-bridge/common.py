@@ -42,7 +42,13 @@ def save(p: Path, data):
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     if not WIN:
         os.chmod(tmp, 0o600)
-    tmp.replace(p)
+    for i in range(6):   # Windows：ウイルス対策ソフトなどに一瞬つかまれても、少し待ってやり直す
+        try:
+            tmp.replace(p); break
+        except PermissionError:
+            if i == 5:
+                raise
+            time.sleep(0.3)
 
 
 # ------------------------------------------------------------------ 秘密は Mac のキーチェーン／Windows の資格情報マネージャーに
@@ -84,7 +90,7 @@ def secret_get(name: str) -> str:
         finally:
             adv.CredFree(p)
     r = subprocess.run(["security", "find-generic-password", "-s", KC_SERVICE, "-a", name, "-w"],
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
@@ -152,7 +158,7 @@ def level() -> str:
     """インストーラで答えた慣れ度合い（beginner / expert）。"""
     st = HOME / ".config" / "fox-kit" / "state.env"
     try:
-        for line in st.read_text().splitlines():
+        for line in st.read_text(encoding="utf-8").splitlines():
             if line.startswith("FOX_LEVEL="):
                 return line.split("=", 1)[1].strip()
     except OSError:
@@ -163,7 +169,7 @@ def level() -> str:
 def agent_name() -> str:
     st = HOME / ".config" / "fox-kit" / "state.env"
     try:
-        for line in st.read_text().splitlines():
+        for line in st.read_text(encoding="utf-8").splitlines():
             if line.startswith("FOX_AGENT="):
                 return line.split("=", 1)[1].strip().replace("\\ ", " ")
     except OSError:

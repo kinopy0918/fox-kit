@@ -27,7 +27,7 @@ JOBS = {  # 常駐の名前 → 人向けの呼び名
 
 
 def job(label: str) -> dict:
-    r = subprocess.run(["launchctl", "print", f"gui/{UID}/{label}"], capture_output=True, text=True)
+    r = subprocess.run(["launchctl", "print", f"gui/{UID}/{label}"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         return {"loaded": False}
     out = r.stdout
@@ -47,7 +47,7 @@ def main():
             continue
         if label == "com.fox-bridge":
             try:   # 持ち主が「止めて」と言った常駐は起こさない（connect.py --stop が paused を書く）
-                if json.loads((HOME / ".config/fox-bridge/config.json").read_text()).get("paused"):
+                if json.loads((HOME / ".config/fox-bridge/config.json").read_text(encoding="utf-8")).get("paused"):
                     continue
             except (OSError, ValueError):
                 pass
@@ -72,16 +72,19 @@ def main():
     env = dict(os.environ)
     tok = HOME / ".config/claude/token"   # 常駐は長寿命トークンで動く。それで通るならログイン切れではない
     if tok.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
-        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok.read_text().strip()
-    r = subprocess.run([c, "auth", "status"], capture_output=True, text=True, env=env)
-    if '"loggedIn": true' not in r.stdout.replace(" ", "").replace('"loggedIn":true', '"loggedIn": true'):
-        if not re.search(r'"loggedIn":\s*true', r.stdout):
-            issues.append(("AIのログインが切れています", "自分では直せません（本人の承認が要るため）",
-                           "ターミナルで  claude auth login  を実行してください"))
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok.read_text(encoding="utf-8-sig").strip()
+    try:
+        out = subprocess.run([c, "auth", "status"], capture_output=True, text=True, env=env, encoding="utf-8", errors="replace", timeout=60).stdout
+    except (OSError, subprocess.TimeoutExpired) as e:
+        out = ""
+        issues.append(("AIの本体を動かせませんでした", f"{e.__class__.__name__}", "AIに「調子を見て」と頼むか、新しい版に更新してください"))
+    if out and not re.search(r'"loggedIn":\s*true', out):
+        issues.append(("AIのログインが切れています", "自分では直せません（本人の承認が要るため）",
+                       "ターミナルで  claude auth login  を実行してください"))
 
     # 3) 保存先
     try:
-        base = Path(json.loads((HOME / ".config/fox-kit/storage.json").read_text())["base"])
+        base = Path(json.loads((HOME / ".config/fox-kit/storage.json").read_text(encoding="utf-8"))["base"])
         if not base.is_dir():
             issues.append((f"保存先が見えません（{base}）", "自分では直せません",
                            "Google ドライブのアプリが起動してログインできているか確かめてください"))

@@ -365,8 +365,9 @@
   function failNote(name) {
     const j = job(name);
     if (!j || j.state !== "error") return "";
-    return `<div class="err">うまくいきませんでした。もう一度押してみてください。続くときは、この画面を開いたまま担当者に連絡してください。</div><pre class="log">${esc(j.tail)}</pre><div class="row"><button class="btn sub" id="retry">もう一度</button></div>`;
+    return `<div class="err">うまくいきませんでした。もう一度押してみてください。続くときは、この画面を開いたまま担当者に連絡してください。</div><pre class="log">${esc(j.tail)}</pre><div class="row"><button class="btn sub" id="retry">もう一度</button>${name === "packs" ? `<button class="btn sub" id="pskip" onclick="window.__packsSkip()">あとでやる</button>` : ""}</div>`;
   }
+  window.__packsSkip = async () => { await act("skip", { target: "packs" }); refresh(true); };   // スキルが入らなくても先へ進めるように（あとで左の一覧から戻れる）
   function autoStep(name, title, lead) {
     return {
       title, lead,
