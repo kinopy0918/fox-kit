@@ -271,7 +271,16 @@ Mark 'claude'
 
 # ------------------------------------------------------------------ 4. キット
 Step 4 (T 'AI秘書の部品を取ってくる（1〜2分）' 'キットを取得')
-if ((IsDone 'kit') -and (Test-Path "$KitDir\setup\build_win.py") -and -not $env:FOX_UPDATE) { Ok (T 'もう取ってあります' "取得済み: $KitDir（取り直しは `$env:FOX_UPDATE=1）") } else {
+# 取ってあるキットが最新の版でなければ取り直す（同じ1行を貼り直すだけで新しい版になるように）
+$latest = $env:FOX_VERSION
+if (-not $latest -and -not $env:FOX_KIT_URL) { try { $latest = ((Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest").tag_name) -replace '^v', '' } catch {} }
+$have = if (Test-Path "$KitDir\VERSION") { (Get-Content "$KitDir\VERSION" -ErrorAction SilentlyContinue | Select-Object -First 1).Trim() } else { '' }
+$stale = $latest -and $have -and ($latest -ne $have)
+if ($stale) { Write-Host ('  ' + (T "新しい版（$have → $latest）があるので、取り直します" "update kit $have -> $latest")) }
+# 取り直す前に、動いている設定画面を止める（使用中のフォルダは入れ替えられないため）
+Get-CimInstance Win32_Process -Filter "Name like 'python%'" -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -like '*wizard*server.py*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+if ((IsDone 'kit') -and (Test-Path "$KitDir\setup\build_win.py") -and -not $env:FOX_UPDATE -and -not $stale) { Ok (T 'もう取ってあります（最新の版です）' "取得済み: $KitDir（取り直しは `$env:FOX_UPDATE=1）") } else {
 $tmp = Join-Path $env:TEMP ("fox-kit-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 if ($env:FOX_KIT_URL -and (Test-Path $env:FOX_KIT_URL)) {
@@ -279,8 +288,7 @@ if ($env:FOX_KIT_URL -and (Test-Path $env:FOX_KIT_URL)) {
 } else {
   $url = $env:FOX_KIT_URL
   if (-not $url) {
-    $ver = $env:FOX_VERSION
-    if (-not $ver) { try { $ver = ((Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest").tag_name) -replace '^v', '' } catch {} }
+    $ver = $latest
     $url = if ($ver) { "https://github.com/$Repo/archive/refs/tags/v$ver.zip" } else { "https://github.com/$Repo/archive/refs/heads/main.zip" }
   }
   try { Download $url "$tmp\kit.zip"; Expand-Archive -Path "$tmp\kit.zip" -DestinationPath "$tmp\x" -Force -ErrorAction Stop }

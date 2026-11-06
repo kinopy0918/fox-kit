@@ -305,9 +305,9 @@ def act(step: str, body: dict) -> dict:
 
     if step == "build":
         if WIN:
-            run_job("build", [PY, str(KIT / "setup/build_win.py")], env=env_for(st), on_ok=lambda: mark("build"))
+            run_job("build", [PY, str(KIT / "setup/build_win.py")], env=env_for(st), on_ok=lambda: mark("build", version=kit_version()))
             return {"ok": True, "started": True}
-        run_job("build", ["/bin/zsh", str(KIT / "setup/build.sh")], env=env_for(st), on_ok=lambda: mark("build"))
+        run_job("build", ["/bin/zsh", str(KIT / "setup/build.sh")], env=env_for(st), on_ok=lambda: mark("build", version=kit_version()))
         return {"ok": True, "started": True}
 
     if step == "mac" and WIN:
@@ -603,7 +603,23 @@ class H(BaseHTTPRequestHandler):
             return self._send(200, {"ok": False, "error": f"うまく動きませんでした：{e}"})
 
 
+def kit_version() -> str:
+    try:
+        return (KIT / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+def rebuild_if_new_kit():
+    """キットが新しい版になっていたら、組み立ての段だけをもう一度回す（新しいスキル・手順を ~/.claude へ配るため）"""
+    with LOCK:
+        st = load()
+        if "build" in st["done"] and st["data"].get("build", {}).get("version") != kit_version():
+            st["done"].remove("build"); save(st)
+
+
 def main():
+    rebuild_if_new_kit()
     port = int(os.getenv("FOX_WIZARD_PORT", "0"))
     srv = ThreadingHTTPServer(("127.0.0.1", port), H)
     url = f"http://127.0.0.1:{srv.server_address[1]}/?t={TOKEN}"
