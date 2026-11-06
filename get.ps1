@@ -72,6 +72,69 @@ function Run-Logged($file, $argList, $what) {
   foreach ($f in "$o.out", "$o.err") { if (Test-Path $f) { Get-Content $f -Encoding UTF8 -ErrorAction SilentlyContinue | Add-Content -Path $Log -Encoding UTF8; Remove-Item $f -ErrorAction SilentlyContinue } }
   return $code
 }
+function Ok($s)   { Write-Host "  ✓ $s" -ForegroundColor Green }
+function Warn($s) { Write-Host "  ! $s" -ForegroundColor Yellow }
+function Die($s)  {
+  Write-Host ''; Write-Host "  ✕ $s" -ForegroundColor Red
+  Write-Host ('  ' + (T 'もう一度、同じ1行を貼り付けると続きから始まります。' '再実行で続きから再開します。'))
+  Write-Host "  （記録: $Log）"
+  exit 1
+}
+function LogLine($s) { Add-Content -Path $Log -Value "$(Get-Date -Format s) $s" -Encoding UTF8 }
+
+# ------------------------------------------------------------------ 覚えておく（続きから再開）
+if ($env:FOX_RESET) { Remove-Item -Force $State -ErrorAction SilentlyContinue }
+$S = @{ done = @() }
+$Resumed = $false
+if (Test-Path $State) {
+  try {
+    $j = Get-Content $State -Raw -Encoding UTF8 | ConvertFrom-Json
+    foreach ($p in $j.PSObject.Properties) { $S[$p.Name] = $p.Value }
+    if (-not $S.done) { $S.done = @() }
+    $Resumed = $true
+  } catch { $S = @{ done = @() } }
+}
+function Save { ($S | ConvertTo-Json -Depth 4) | Set-Content -Path $State -Encoding UTF8 }
+function Mark($id) { if ($S.done -notcontains $id) { $S.done = @($S.done) + $id }; Save }
+function IsDone($id) { return ($S.done -contains $id) }
+
+function Ask-YesNo($q, $default = $true) {
+  $hint = if ($default) { '（空欄なら はい）' } else { '（空欄なら いいえ）' }
+  for ($i = 0; $i -lt 3; $i++) {
+    $a = (Read-Host "  $q [はい=y / いいえ=n]$hint").Trim().ToLower()
+    if ($a -eq '') { return $default }
+    if ($a -in @('y', 'yes', 'はい', '1')) { return $true }
+    if ($a -in @('n', 'no', 'いいえ', '2')) { return $false }
+    Warn 'y か n で答えてください'
+  }
+  return $default
+}
+function Valid-Name($v) {
+  if (-not $v) { return '空欄はできません' }
+  if ($v.Length -gt 30) { return "30文字以内にしてください（いま$($v.Length)文字）" }
+  if ($v -match '["$`\\|]') { return '記号（" $ ` \ |）は使えません' }
+  return $null
+}
+function Ask-Name($key, $q, $default) {
+  $envv = [Environment]::GetEnvironmentVariable($key)
+  if ($envv) { $S[$key] = $envv }
+  if ($S[$key]) { $err = Valid-Name $S[$key]; if (-not $err) { Save; return } }
+  for ($i = 0; $i -lt 3; $i++) {
+    $hint = if ($default) { "（空欄なら「$default」）" } else { '' }
+    $a = (Read-Host "  $q$hint").Trim()
+    if (-not $a) { $a = $default }
+    $err = Valid-Name $a
+    if (-not $err) { $S[$key] = $a; Save; return }
+    Warn $err
+  }
+  Die "「$q」を受け取れませんでした"
+}
+
+function Refresh-Path {
+  $m = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+  $u = [Environment]::GetEnvironmentVariable('Path', 'User')
+  $env:Path = "$HOME\.local\bin;$u;$m"
+}
 function Has-Winget { return [bool](Get-Command winget -ErrorAction SilentlyContinue) }
 function Winget-Install($id) {
   LogLine "winget install $id"
@@ -271,10 +334,13 @@ Mark 'claude'
 
 # ------------------------------------------------------------------ 4. キット
 Step 4 (T 'AI秘書の部品を取ってくる（1〜2分）' 'キットを取得')
+# AIが Git Bash の場所を迷わないように（設定画面で進める道でも）
+$gb0 = Find-GitBash
+if ($gb0) { [Environment]::SetEnvironmentVariable('CLAUDE_CODE_GIT_BASH_PATH', $gb0, 'User'); $env:CLAUDE_CODE_GIT_BASH_PATH = $gb0 }
 # 取ってあるキットが最新の版でなければ取り直す（同じ1行を貼り直すだけで新しい版になるように）
 $latest = $env:FOX_VERSION
 if (-not $latest -and -not $env:FOX_KIT_URL) { try { $latest = ((Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest").tag_name) -replace '^v', '' } catch {} }
-$have = if (Test-Path "$KitDir\VERSION") { (Get-Content "$KitDir\VERSION" -ErrorAction SilentlyContinue | Select-Object -First 1).Trim() } else { '' }
+$have = if (Test-Path "$KitDir\VERSION") { "$(Get-Content "$KitDir\VERSION" -ErrorAction SilentlyContinue | Select-Object -First 1)".Trim() } else { '' }
 $stale = $latest -and $have -and ($latest -ne $have)
 if ($stale) { Write-Host ('  ' + (T "新しい版（$have → $latest）があるので、取り直します" "update kit $have -> $latest")) }
 # 取り直す前に、動いている設定画面を止める（使用中のフォルダは入れ替えられないため）
