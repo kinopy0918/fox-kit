@@ -102,17 +102,34 @@
         lead: t("AIはこの名前で名乗り、あなたの秘書として動きます。", "CLAUDE.md の人格に入ります（あとから AI に頼めば書き換え可）"),
         html: `<label class="f">この${PC()}を使う人のお名前</label><input class="t" id="owner" placeholder="例：山田さん" value="${esc(a.owner)}">
                <label class="f">AIの名前</label><input class="t" id="agent" placeholder="例：ヤマダAI" value="${esc(a.agent || "")}">
+               <div class="names" id="names"><p class="hint">迷ったら、押すと入ります（あとで変えられます）</p>
+                 ${[["あなたの名前から", ["__own__"]],
+                    ["動物", ["フォックス", "コン", "ポチ", "タマ", "ハチ", "ラッコ"]],
+                    ["愛称", ["ミライ", "ココ", "モモ", "ハル", "ひしょっち"]],
+                    ["人の名前", ["はやと", "さくら", "ゆうき", "あおい", "けんた"]],
+                    ["執事・相棒", ["ジャービス", "セバスチャン", "アルフレッド", "バディ"]]]
+                   .map(([g, xs]) => `<div class="ng"><span>${g}</span>${xs.map((x) => `<button type="button" class="nm" data-n="${esc(x)}">${x === "__own__" ? "（お名前を入れると出ます）" : esc(x)}</button>`).join("")}</div>`).join("")}</div>
                <label class="f">この${PC()}の呼び方 <span class="hint">（空欄でも大丈夫）</span></label><input class="t" id="machine" placeholder="例：事務所の${PC()}" value="${esc(a.machine)}">
                <label class="f">この${PC()}で主にすること <span class="hint">（空欄でも大丈夫）</span></label><input class="t" id="role" placeholder="例：経理の仕事" value="${esc(a.role)}">
                <div class="note"><b>あとから変えられますか？</b>
                  <ul><li><b>どれも変えられます。</b>あとで AI に「私の呼び方を〇〇に変えて」「あなたの名前を〇〇に変えて」と頼むだけです。</li>
                  <li>ただし<b>AIの名前</b>を変えても、Slack・Discord に出るAIの表示名と、資料フォルダの名前は元のままです（そこも変えたいときは AI に頼めば手順を案内します）。迷ったら、今のうちに決めておくのがおすすめです。</li></ul></div>
                <div class="err" id="err"></div><div class="row"><button class="btn" id="go">この名前で進む</button></div>`,
-        bind: (el) => ($("#go", el).onclick = async () => {
-          const r = await act("names", { owner: $("#owner").value, agent: $("#agent").value, machine: $("#machine").value, role: $("#role").value });
-          if (!r.ok) return ($("#err").textContent = r.error);
-          refresh(true);
-        }),
+        bind: (el) => {
+          // 「あなたの名前から」の候補は、お名前の欄から作る（「山田さん」→「山田AI」）
+          const own = () => { const b = $('[data-n="__own__"]', el) || $(".nm.own", el); if (!b) return;
+            const base = $("#owner").value.trim().replace(/(さん|様|さま|くん|ちゃん)$/, "");
+            b.classList.add("own"); b.dataset.n = base ? base + "AI" : ""; b.textContent = base ? base + "AI" : "（お名前を入れると出ます）"; b.disabled = !base; };
+          own(); $("#owner", el).addEventListener("input", own);
+          $("#agent", el).addEventListener("input", () => el.querySelectorAll(".nm.on").forEach((x) => x.classList.remove("on")));
+          el.querySelectorAll(".nm").forEach((b) => (b.onclick = () => { if (!b.dataset.n) return; $("#agent").value = b.dataset.n;
+            el.querySelectorAll(".nm").forEach((x) => x.classList.toggle("on", x === b)); }));
+          $("#go", el).onclick = async () => {
+            const r = await act("names", { owner: $("#owner").value, agent: $("#agent").value, machine: $("#machine").value, role: $("#role").value });
+            if (!r.ok) return ($("#err").textContent = r.error);
+            refresh(true);
+          };
+        },
       };
     },
     claude: () => autoStep("claude", t("AIの本体を入れています", "Claude Code を導入"), t("数分かかります。この画面はそのままで大丈夫です。", "claude.ai/install.sh")),

@@ -64,3 +64,12 @@ details.sub-card summary{cursor:pointer}
 .st.later small{flex-basis:100%;padding-left:34px;color:var(--accent);font-size:12px}
 .st.later:hover{background:var(--soft)}
 .nowline{color:var(--ink2);font-size:14px;margin:4px 0 0}
+
+/* AIの名前の候補 */
+.names{margin:8px 0 4px}.names .hint{margin:0 0 6px}
+.names .ng{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0}
+.names .ng>span{font-size:12px;color:var(--ink2);min-width:7.5em}
+.names .nm{font:inherit;font-size:14px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.names .nm:hover{border-color:var(--accent)}.names .nm.on{border-color:var(--accent);background:var(--soft);font-weight:600}
+.names .nm:disabled{color:var(--ink2);cursor:default;border-style:dashed}
+@media (max-width:560px){.names .ng>span{min-width:100%}}
