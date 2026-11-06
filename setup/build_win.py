@@ -40,12 +40,18 @@ for k, v in {"{{AGENT_NAME}}": AGENT, "{{OWNER_NAME}}": OWNER, "{{OWNER_LABEL}}"
              "{{MACHINE_ROLE}}": ROLE, "{{DEV_DIR}}": "~/dev", "{{VAULT_PATH}}": "（未設定。使うなら書く）",
              "{{GITHUB_ORG}}": "（未設定）", "{{MEMORY_PATH}}": mem_rel}.items():
     text = text.replace(k, v)
+NEW_WIN = ("- Mac の設定（pmset など）・キーチェーン・Homebrew の道具（動画を見る・画像づくり・意味で探す・ブラウザ操作の playwright）は、この端末には入っていない。\n"
+           "- Discord/Slack とつなぐのは設定画面か設定係の窓から（skill-triggers の 27）。鍵は資格情報マネージャー、常駐はタスク スケジューラ。\n"
+           "- キットの道具は `~/Tools` ではなく `~/Tools/fox-kit/tools/` にある。\n")
 text += ("\n## この端末は Windows\n\n"
          "- コマンドは Git Bash（Bash ツール）か PowerShell で動く。パスは `C:/Users/...` の形で書けば両方で通る。\n"
-         "- フォルダやファイルを見せるときは `explorer` で開く（`open` は無い）。\n"
-         "- Discord/Slack との常駐連携・Mac の設定・キーチェーンは、この端末には入っていない。\n")
+         "- フォルダやファイルを見せるときは `explorer` で開く（`open` は無い）。\n" + NEW_WIN)
 cm = CLAUDE / "CLAUDE.md"
 CLAUDE.mkdir(parents=True, exist_ok=True)
+OLD_WIN = "- Discord/Slack との常駐連携・Mac の設定・キーチェーンは、この端末には入っていない。\n"
+if cm.exists() and OLD_WIN in cm.read_text(encoding="utf-8"):   # 0.5.0 より前にキットが書いた1行だけ新しくする（持ち主の文は触らない）
+    cm.write_text(cm.read_text(encoding="utf-8").replace(OLD_WIN, NEW_WIN), encoding="utf-8")
+    print("  人格の Windows の注意書きを新しくしました")
 if cm.exists():
     side = CLAUDE / "CLAUDE.md.fox-kit-draft"
     side.write_text(text, encoding="utf-8")

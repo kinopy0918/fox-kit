@@ -236,6 +236,7 @@ NOWIN = {"creationflags": 0x08000000} if c.WIN else {}
 
 
 def _ps(cmd: str):
+    cmd = "[Console]::OutputEncoding = [Text.Encoding]::UTF8\n" + cmd   # 日本語の Windows でも文字化けさせない
     return subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd],
                           capture_output=True, text=True, encoding="utf-8", errors="replace", **NOWIN)
 
@@ -248,6 +249,8 @@ def install_task():
     exe = pyw if pyw.exists() else py      # pythonw＝黒い窓を出さない
     q = lambda x: str(x).replace("'", "''")
     r = _ps(f"""$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+trap {{ [Console]::Error.WriteLine($_.Exception.Message); exit 1 }}
 $a = New-ScheduledTaskAction -Execute '{q(exe)}' -Argument '"{q(HERE / "bridge.py")}"' -WorkingDirectory '{q(Path.home())}'
 $t = @((New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\\$env:USERNAME"),
        (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration (New-TimeSpan -Days 3650)))
@@ -275,6 +278,8 @@ def stop():
     if c.WIN:
         _ps(f"Stop-ScheduledTask -TaskName '{TASK}' -ErrorAction SilentlyContinue; "
             f"Unregister-ScheduledTask -TaskName '{TASK}' -Confirm:$false -ErrorAction SilentlyContinue")
+        if _ps(f"[bool](Get-ScheduledTask -TaskName '{TASK}' -ErrorAction SilentlyContinue)").stdout.strip() == "True":
+            raise SystemExit("止められませんでした。タスク スケジューラで「fox-bridge」を手で無効にしてください。")
     else:
         subprocess.run(["launchctl", "bootout", f"gui/{os.getuid()}/{LABEL}"], capture_output=True)
 
@@ -356,8 +361,16 @@ def main():
     say(t(f"  ※ {'パソコン' if c.WIN else 'Mac'}のふたを閉じたり、電源を切ったりすると返事が止まります。", "  ※ スリープ中は応答しません。"))
 
 
+
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
         say("\n" + t("中断しました。もう一度「つなぐ」を開くと、最初からやり直せます。", "中断"))
+    except (Exception, SystemExit) as e:
+        if not c.WIN:
+            raise
+        say("\n" + t(f"うまくいきませんでした：{e}", f"失敗: {e!r}"))   # Windows は窓がすぐ閉じるので、理由を見せてから
+    finally:
+        if c.WIN and sys.stdin and sys.stdin.isatty() and not ({"--status", "--stop"} & set(sys.argv)):
+            input(t("\n  Enter を押すと、この窓を閉じます。", "\n  Enter で閉じる"))

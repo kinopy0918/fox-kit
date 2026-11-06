@@ -54,8 +54,9 @@ def system_prompt(platform: str) -> str:
         "相手が送ったファイルは、本文の最後に『添付:』として置き場所が書いてある。",
     ]
     if platform == "discord":
-        base.append("Discord は表（| 区切り）を描画しない。表を書かず、ラベル付きの箇条書きにする。")
-    return "\n".join(base)
+        base.append("Discord は表（縦棒で区切る表）を描画しない。表を書かず、ラベル付きの箇条書きにする。")
+    # Windows で npm 版の claude.cmd を使うと cmd.exe を通る＝改行で命令が切れ、| & < > ^ % を記号として読む。1行にして記号を避ける
+    return " ".join(base) if c.WIN else "\n".join(base)
 
 
 MODEL = os.getenv("FOX_BRIDGE_MODEL", "opus")          # 常駐が勝手に軽いモデルへ落ちないよう固定
@@ -84,7 +85,9 @@ def run_claude(prompt: str, sid: str | None, platform: str, model: str | None = 
 
 
 def _run_claude(prompt: str, sid: str | None, platform: str, model: str | None):
-    cmd = [str(CLAUDE), "-p", prompt, "--output-format", "json", "--permission-mode", "bypassPermissions",
+    # 頼みごとは標準入力で渡す：Windows のコマンドの長さの上限（約3.2万字）と、
+    # npm 版 claude.cmd が cmd.exe を通るときに本文の " & | を命令として読む危険を、両方避ける
+    cmd = [str(CLAUDE), "-p", "--output-format", "json", "--permission-mode", "bypassPermissions",
            "--append-system-prompt", system_prompt(platform)]
     if model:
         cmd += ["--model", model]
@@ -99,7 +102,7 @@ def _run_claude(prompt: str, sid: str | None, platform: str, model: str | None):
     tok_file = Path.home() / ".config" / "claude" / "token"
     if tok_file.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
         env["CLAUDE_CODE_OAUTH_TOKEN"] = tok_file.read_text().strip()   # 常駐でログインが切れないように
-    r = subprocess.run(cmd, cwd=str(Path.home()), capture_output=True, text=True, encoding="utf-8", errors="replace",
+    r = subprocess.run(cmd, input=prompt, cwd=str(Path.home()), capture_output=True, text=True, encoding="utf-8", errors="replace",
                        timeout=TIMEOUT, env=env, **({"creationflags": 0x08000000} if c.WIN else {}))
     try:
         j = json.loads(r.stdout or "{}")
@@ -184,9 +187,10 @@ def handle(api, platform: str, channel: str, msgs: list[dict], st: dict, cfg: di
         j, err = run_claude(prompt, sid, platform)
     except subprocess.TimeoutExpired:
         j, err = None, "時間がかかりすぎたので止めました。もう少し小さく分けて頼んでください。"
-    except OSError as e:   # Windows はコマンドの長さが約3.2万字まで（長文を何通も貼ったとき）
+    except OSError as e:
         c.log("claude を起動できませんでした:", repr(e))
-        j, err = None, "送られた文が長すぎて読み込めませんでした。ファイルにして送るか、何回かに分けてください。"
+        j, err = None, ("AIを起動できませんでした。パソコンで AI のアプリ（Antigravity か黒い画面の claude）が"
+                        "動くか確かめてください。直らなければ「新しい版に更新して」と頼んでください。")
     finally:
         ind.set()
     placeholder = getattr(ind, "placeholder", None)

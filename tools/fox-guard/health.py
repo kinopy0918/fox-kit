@@ -45,6 +45,12 @@ def main():
         plist = HOME / "Library/LaunchAgents" / f"{label}.plist"
         if not plist.exists():
             continue
+        if label == "com.fox-bridge":
+            try:   # 持ち主が「止めて」と言った常駐は起こさない（connect.py --stop が paused を書く）
+                if json.loads((HOME / ".config/fox-bridge/config.json").read_text()).get("paused"):
+                    continue
+            except (OSError, ValueError):
+                pass
         st = job(label)
         if not st["loaded"]:
             subprocess.run(["launchctl", "bootstrap", f"gui/{UID}", str(plist)], capture_output=True)
@@ -63,7 +69,11 @@ def main():
 
     # 2) ログイン
     c = shutil.which("claude") or str(HOME / ".local/bin/claude")
-    r = subprocess.run([c, "auth", "status"], capture_output=True, text=True)
+    env = dict(os.environ)
+    tok = HOME / ".config/claude/token"   # 常駐は長寿命トークンで動く。それで通るならログイン切れではない
+    if tok.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok.read_text().strip()
+    r = subprocess.run([c, "auth", "status"], capture_output=True, text=True, env=env)
     if '"loggedIn": true' not in r.stdout.replace(" ", "").replace('"loggedIn":true', '"loggedIn": true'):
         if not re.search(r'"loggedIn":\s*true', r.stdout):
             issues.append(("AIのログインが切れています", "自分では直せません（本人の承認が要るため）",

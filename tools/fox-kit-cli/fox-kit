@@ -49,6 +49,10 @@ case "$cmd" in
   settings)
     kit="$HOME/Tools/portable-fox"
     [[ -f "$kit/wizard/server.py" ]] || { echo "設定画面が見つかりません。fox-kit update で入れ直してください。"; exit 1; }
+    [[ -f "$HOME/.config/fox-kit/wizard.json" ]] || {
+      echo "このMacは設定画面を使わずに入れたので、続きはコマンドで進めます："
+      echo "  fox-kit setup（初期設定）／fox-kit connect（Discord・Slack）／fox-kit mac（パソコンの設定）／fox-kit packs key（画像づくりの鍵）"
+      exit 0; }
     pkill -f "$kit/wizard/server.py" 2>/dev/null || true
     nohup /usr/bin/python3 "$kit/wizard/server.py" > "$HOME/Library/Logs/fox-wizard.log" 2>&1 &
     echo "ブラウザで設定画面を開きました。左の一覧の「↩」が、あとでやる にした段です。"

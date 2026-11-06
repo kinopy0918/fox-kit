@@ -179,13 +179,14 @@ else
   fi
 fi
 
-if [[ -f "$HOME/Tools/fox-home/home.py" ]]; then
-  /usr/bin/python3 "$HOME/Tools/fox-home/home.py" install "$FOX_MAC_USE" >/dev/null 2>&1 \
-    && if [[ "$FOX_MAC_USE" == office ]]; then
-         ok "$(t "見張り番を入れました（返事の仕組みが止まったら起こし直す・空きやログイン切れを知らせる・一時ファイルの掃除・新しいスキルの点検）" "fox-home: watch 30min / clean 4:40 / skills 7:20")"
-       else
-         ok "$(t "新しく入ったスキルを毎朝点検する仕組みを入れました" "fox-home: skills 7:20")"
-       fi
+if [[ -f "$HOME/Tools/fox-home/home.py" && "$FOX_MAC_USE" == mobile ]]; then
+  /usr/bin/python3 "$HOME/Tools/fox-home/home.py" install mobile >/dev/null 2>&1 || true   # 0.5.0 で入れた分を外す（持ち歩きは毎朝の点検だけ）
+elif [[ -f "$HOME/Tools/fox-home/home.py" ]]; then
+  if __out="$(/usr/bin/python3 "$HOME/Tools/fox-home/home.py" install office 2>&1)"; then
+    ok "$(t "置きっぱなし用の掃除を入れました（AIが作り置いた一時ファイルを毎日消す）。返事の仕組み・ログイン・空き・新しいスキルは、毎朝7:20の点検が見ます" "fox-home: clean 4:40（watch/skills は fox-guard 7:20）")"
+  else
+    warn "$(t "一時ファイルの掃除を予定に入れられませんでした（あとで AI に「見張り番を入れて」と頼めます）" "fox-home install 失敗: $__out")"
+  fi
 fi
 
 choose FOX_CHROME "$(t "Chrome を入れて、いつも使うブラウザにしますか？（AIがブラウザを操作する公式の機能「Claude in Chrome」は Chrome で動きます。拡張も一緒に案内します）" "Google Chrome＋Claude in Chrome 拡張（既定ブラウザ化）")" 1 \

@@ -9,7 +9,7 @@
 #            → スキル → パソコンの設定 → 初期設定の聞き取り まで進む。
 # 途中で止まっても、同じ1行をもう一度貼れば続きから（答えと進み具合は ~/.config/fox-kit/state-win.json）。
 #
-# Mac 版との違い: ブラウザで進める設定画面・Discord/Slack の常駐連携・Homebrew の道具・画像づくりの鍵は、まだ入らない。
+# Mac 版との違い: Homebrew の道具（動画を見る・意味で探す・ブラウザ操作）・画像づくりの鍵は、まだ入らない。
 #
 # 聞かずに進めたいときは先に環境変数で渡す: FOX_LEVEL FOX_OWNER FOX_AGENT FOX_MACHINE FOX_ROLE
 #   FOX_VERSION=0.3.0（この版を入れる） FOX_RESET=1（最初から） FOX_KIT_URL=<zipのURLかフォルダ>（検証用）

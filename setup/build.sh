@@ -59,6 +59,11 @@ if [[ -n "$__kept" ]]; then
 fi
 # 毎朝の点検（スキルの見張り・健康診断）を登録
 [[ -f "$HOME/Tools/fox-guard/install.py" ]] && quiet /usr/bin/python3 "$HOME/Tools/fox-guard/install.py" ${FOX_UPDATE:+--no-reset}
+# 置きっぱなしの Mac には一時ファイルの掃除を入れる（更新のときは「パソコンの設定」を飛ばすので、ここで拾う）
+__use="$(sed -n 's/^FOX_MAC_USE=//p' "$HOME/.config/fox-kit/state.env" 2>/dev/null | tail -1)"
+if [[ ( "$__use" == office || "$__use" == mobile ) && -f "$HOME/Tools/fox-home/home.py" ]]; then
+  quiet /usr/bin/python3 "$HOME/Tools/fox-home/home.py" install "$__use" || true   # mobile は 0.5.0 で入れた分を外すだけ
+fi
 # fox-kit コマンドを使えるようにする
 mkdir -p "$HOME/.local/bin"
 ln -sf "$HOME/Tools/fox-kit-cli/fox-kit" "$HOME/.local/bin/fox-kit"

@@ -35,6 +35,25 @@ SETTINGS = HOME / ".claude/settings.json"
 # 中身を読むファイルだけ。画像やバイナリは数えるだけにする
 TEXT = {".md", ".py", ".sh", ".js", ".mjs", ".ts", ".json", ".yaml", ".yml", ".toml"}
 MAX_BYTES = 400_000
+NOISE = {"known_marketplaces.json", "installed_plugins.json", "blocklist.json"}
+
+
+def noise(p: Path) -> bool:
+    """Claude Code が自分で日々書き換えるファイルか（点検で「変わった」と数えない）。"""
+    if p.suffix.lower() in (".sh", ".py", ".js", ".mjs", ".ts", ".ps1", ".zsh"):
+        return False   # スクリプトは名前がどうでも必ず見る
+    if p.name == ".DS_Store" or p.name.startswith(".last"):      # .last_inuse_sweep・.last-complete-round など
+        return True
+    if p.name in NOISE or p.name.endswith(".meta.json"):
+        return True
+    parts = p.parts
+    for i in range(1, len(parts) - 1):
+        if parts[i - 1] == ".claude" and parts[i] == "plugins" and parts[i + 1] == "store":   # ~/.claude/plugins/store/ だけ
+            return True
+        if parts[i] == "synced" and parts[i + 1] == "manifest.json":
+            return True
+    return False   # ほかの隠しファイル（.mcp.json・.hidden.sh など）は見る
+
 
 # ── 見つけたいもの ────────────────────────────────────────────────────────
 # 検知したい文字列そのものをここに書くので、このファイルは自分自身を対象から外す。
@@ -78,7 +97,9 @@ def files() -> dict[str, str]:
                 continue
             if p.suffix.lower() not in TEXT or p.stat().st_size > MAX_BYTES:
                 continue
-            if "/node_modules/" in str(p) or "/.git/" in str(p):
+            if any(x in p.parts for x in ("node_modules", ".git", ".venv", "__pycache__")):
+                continue
+            if noise(p):   # Claude Code が自分で日々書き換えるもの（.mcp.json は起動時に動く MCP なので見る）
                 continue
             if p.resolve() == SELF:
                 continue

@@ -156,7 +156,7 @@
       title: t("パソコンの設定", "Mac 設定（電源・Chrome・Antigravity）"),
       lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Chrome（既定ブラウザ）/ Antigravity IDE"),
       html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。", "実行中（既定ブラウザの確認ダイアログあり）")) : `
-             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動・見張り番（返事の仕組みが止まったら起こし直す／空きやログイン切れを知らせる／一時ファイルの掃除／新しいスキルの点検）（おすすめ）</small></label>
+             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動・AIが作り置いた一時ファイルを毎日掃除（おすすめ）</small></label>
              <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて、使うときだけ動けばよい</b><small>作業中だけ眠らない仕組みを入れます（CapsLockのランプが点いている間）</small></label>
              <label class="choice"><input type="checkbox" id="lid"><b>ふたを閉じたまま置いておく</b><small>ノートのMacを閉じたまま使う場合だけ。電源につなぎ、熱がこもらない場所に置いてください</small></label>
              <label class="choice"><input type="checkbox" id="chrome" checked><b>Chrome を入れて、いつも使うブラウザにする</b><small>AIがブラウザを操作する公式の機能（Claude in Chrome）は Chrome で動きます。途中で「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。最後に Chrome に「Claude」の拡張の画面が開くので、「Chrome に追加」を押し、AIと同じアカウントでログインしてください</small></label>
@@ -177,14 +177,14 @@
       const g = S.data.gemini;
       const reg = g && !g.skipped, pj = job("packs")?.state;
       const status = pj === "error" ? failNote("packs")
-        : pj === "ok" || S.steps.find((x) => x.id === "packs")?.done
+        : pj === "ok" || S.packs_installed || S.steps.find((x) => x.id === "packs")?.done
           ? `<p class="okmsg">✓ スキルと道具はそろいました</p>${reg ? "" : `<p><b>あとは下の鍵だけです。</b>「登録」か「あとでやる」を押すと次へ進みます。</p>`}`
           : running("packs", t(`入れています…この画面はそのままで大丈夫です。${W() ? "" : "途中でMacのパスワードを聞かれることがあります。"}`, "実行中"));
       if (W()) return {
         title: t("スキルをそろえています", "packs（plugins / upstream skills）"),
         lead: t("SEO・ノート・文書づくり・マーケティングなどのスキルを入れます（5〜10分）。", "install-win"),
         html: status,
-        bind: (el) => { if (!job("packs")) act("packs"); const retry = $("#retry", el); if (retry) retry.onclick = async () => { await act("packs"); refresh(true); }; },
+        bind: (el) => { if (!job("packs") && !S.packs_installed) act("packs"); const retry = $("#retry", el); if (retry) retry.onclick = async () => { await act("packs"); refresh(true); }; },
       };
       return {
         title: t("スキルと道具をそろえています", "packs"),
@@ -205,7 +205,7 @@
                  <div class="row"><button class="btn" id="greg">登録</button><button class="btn sub" id="gskip">あとでやる</button></div>
                  <p class="hint">「あとでやる」にしても、あとで AI に「画像づくりの鍵を登録したい」と言えば、鍵を入れる小さな窓が開きます。</p>`}</div>`,
         bind: (el) => {
-          if (!job("packs")) act("packs");
+          if (!job("packs") && !S.packs_installed) act("packs");
           const reg = $("#greg", el);
           if (reg) {
             reg.onclick = async () => { const r = await act("gemini", { key: $("#gkey").value }); r.ok ? refresh(true) : ($("#gerr").textContent = r.error); };
@@ -220,7 +220,7 @@
       lead: t("AIが作ったもの・受け取ったものを置く場所です。Google ドライブにすると、パソコンが壊れても残り、スマホからも見られます。", "storage.py apply（FOX型11フォルダ・目次・記憶の移動）"),
       html: `<div id="places"><span class="spin"></span>このパソコンの保存先を調べています…</div>
              <div class="sub-card"><b>フォルダの形</b>
-               <p>案件・議事録・記録・手順・テンプレート・タスク・メモ・AIの記憶・目標・保管庫の<b>11フォルダ</b>に分けて置きます。細かく分けておくと、AIが探す範囲がしぼれて、速く正確に見つけられます。</p>
+               <p>仕組み・案件・議事録・記録・手順・テンプレート・タスク・メモと調査・AIの記憶・目標・保管庫の<b>11フォルダ</b>に分けて置きます。細かく分けておくと、AIが探す範囲がしぼれて、速く正確に見つけられます。</p>
                <p class="hint">Google ドライブを選んだときは、ファイルは開いたものだけパソコンに取ってくる設定（ストリーミング）のままにしてください。大きな動画のフォルダを「オフラインで使用可能」にすると、パソコンの空きが減って重くなります。</p>
                <label class="choice"><input type="checkbox" id="idx" checked><b>作業が終わるたびに目次を自動で作り直す</b><small>AIは目次を見て、関係のある所だけを読みに行きます（速く正確）</small></label></div>
              <div class="err" id="err"></div><div class="row"><button class="btn" id="go">ここに決める</button></div>`,
@@ -245,7 +245,7 @@
     channel: () => channelView(),
     talk: () => ({
       title: t("AIと最初のお話", "初期設定の聞き取り（fox-setup）"),
-      lead: t("AIがあなたの仕事について、1つずつ質問します（全部で7つ・10〜15分）。AIが「初期設定が終わりました」と言ったら、下の「ここで終える」を押してください。", "claude -p --resume（この画面のチャット）。fox-setup が完了を告げたら終える"),
+      lead: t("AIがあなたの仕事について、1つずつ質問します（20分ほど）。AIが「初期設定が終わりました」と言ったら、下の「ここで終える」を押してください。", "claude -p --resume（この画面のチャット）。fox-setup が完了を告げたら終える"),
       html: `<div class="chat" id="chat"></div><div class="err" id="err"></div>
              <textarea class="t" id="msg" rows="2" placeholder="ここに入力して「送る」（Shift＋Enterで改行）"></textarea>
              <div class="row"><button class="btn" id="send">送る</button><button class="btn sub" id="fin">ここで終える</button></div>
@@ -470,7 +470,7 @@
     const cur = S.current;
     const steps = S.steps.filter((s) => s.id !== "done");
     const n = steps.filter((s) => s.done).length;
-    $("#progText").textContent = cur === "done" ? "すべて完了しました" : `全${steps.length}ステップの ${n + 1}番目：${steps.find((s) => s.id === cur)?.title || ""}`;
+    $("#progText").textContent = cur === "done" ? "すべて完了しました" : `全${steps.length}ステップの ${steps.findIndex((s) => s.id === cur) + 1}番目：${steps.find((s) => s.id === cur)?.title || ""}`;
     $("#progBar").style.width = Math.round((n / steps.length) * 100) + "%";
     $("#steps").innerHTML = S.steps.map((s, i) => s.done && s.skipped
       ? `<button class="st done later" data-reopen="${s.id}" title="押すと、この段に戻ってやり直せます"><i>↩</i>${esc(s.title)}<small>あとでやる → 押すと戻れます</small></button>`

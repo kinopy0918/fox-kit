@@ -483,8 +483,11 @@ def channel(body: dict, st: dict) -> dict:
                             "notify_channel": chans["お知らせ"], "log_channel": chans["記録"], "allowed_users": []})
         d.update(guild=g["name"], link=f"https://discord.com/channels/{g['id']}/{chans['相談']}")
         save(st)
-        api.send(chans["相談"], f"こんにちは、{agent}です。ここに書くと、私が返事をします。試しに「はじめまして」と送ってみてください。")
-        cn.install_launchd()
+        cn.install_launchd()   # 失敗したらここで止まる（あいさつを先に送ると、押し直すたびに増える）
+        if d.get("greeted") != g["id"]:   # 同じサーバーには1回だけ（別のサーバーにつなぎ直したら、そこでもう一度）
+            api.send(chans["相談"], f"こんにちは、{agent}です。ここに書くと、私が返事をします。試しに「はじめまして」と送ってみてください。")
+            d["greeted"] = g["id"]
+            save(st)
         return {"ok": True, "guild": g["name"], "link": d["link"]}
     if what == "check":  # 常駐が返事をしたら完了
         cfg = bc.load(bc.CONFIG, {})
@@ -508,11 +511,11 @@ def talk(body: dict, st: dict) -> dict:
     if not msg:
         msg = ("/fox-setup 初期設定をお願いします。保存先（3）とやり取りの場所（5）は設定画面で済ませました。"
                "残りの段を、この画面のチャットで1問ずつ進めてください。")
-    cmd = [claude_bin(), "-p", msg, "--output-format", "json", "--permission-mode", "bypassPermissions"]
+    cmd = [claude_bin(), "-p", "--output-format", "json", "--permission-mode", "bypassPermissions"]   # 本文は標準入力で（下）
     sid = st["data"].get("talk", {}).get("sid")
     if sid:
         cmd += ["--resume", sid]
-    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HOME),
+    r = subprocess.run(cmd, input=msg, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(HOME),
                        env=env_for(st), timeout=600, **NOWIN)
     try:
         j = json.loads(r.stdout or "{}")
@@ -534,6 +537,7 @@ def state() -> dict:
     cur = next((s for s, _, _ in STEPS if s not in done), "done")
     return {
         "answers": st["answers"], "data": st["data"], "current": cur,
+        "packs_installed": "packs" in st["done"],   # 鍵だけ戻したときに、入れ直しを始めないため
         "steps": [{"id": s, "title": t_, "who": w, "done": s in done,
                    "skipped": not (WIN and s == "packs")   # Windows は画像づくりの鍵を聞かない＝戻る意味がない
                               and bool(st["data"].get("gemini" if s == "packs" else s, {}).get("skipped"))} for s, t_, w in STEPS],

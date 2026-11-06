@@ -7,7 +7,7 @@
 
 ## 常に守る作法
 
-fox-kit が配る、実運用の指摘から一般化した33項目。**すべての仕事に適用する。**（キットの更新で新しくなる。会社ごとの決まりは `~/.claude/rules/` に書く）
+fox-kit が配る、実運用の指摘から一般化した34項目。**すべての仕事に適用する。**（キットの更新で新しくなる。会社ごとの決まりは `~/.claude/rules/` に書く）
 
 @~/.claude/fox-kit/rules/craft.md
 @~/.claude/fox-kit/rules/skill-triggers.md

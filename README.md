@@ -24,7 +24,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager
 ```
 
 Windows 版に入るのは基本セット（人格・作法・資料のチェック役・安全ガード・記憶・保存先の整理・初期設定の聞き取り・スキル・Antigravity・Discord/Slack から話しかける仕組み）。
-画像づくりの鍵・動画を見る道具・意味で探す仕組みは、いまは Mac 版だけです。
+画像づくりの鍵・動画を見る道具・意味で探す仕組み・ブラウザ操作（playwright）・ウェブ取り込み（defuddle）・`fox-kit` コマンドは、いまは Mac 版だけです。Windows ではキットの道具は `~\Tools\fox-kit\tools\` に入ります（下の表の `~/Tools/…` は Mac の場所）。
 
 最初に「はじめて／慣れている」を選びます。「はじめて」を選ぶと、案内も、入れたあとのAIの話し方も、専門用語を使わなくなります。
 途中で止まっても、同じ1行を貼り直せば続きから始まります。
@@ -34,21 +34,25 @@ Windows 版に入るのは基本セット（人格・作法・資料のチェッ
 | 何 | どこ | 更新のとき |
 |---|---|---|
 | 人格（名前・持ち主・役割） | `~/.claude/CLAUDE.md` | さわらない（持ち主のもの） |
-| 仕事の作法 33項目 | `~/.claude/fox-kit/rules/craft.md` | 手を入れていなければ新しくする |
+| 仕事の作法 34項目 | `~/.claude/fox-kit/rules/craft.md` | 手を入れていなければ新しくする |
 | 初期設定の聞き取り・資料の品質ループ | `~/.claude/skills/fox-setup` ・ `shiryo-review-loop` | 同上（差し戻し一覧 `checklist.md` は育つのでさわらない） |
-| 資料のチェック役 | `~/.claude/agents/shiryo-reviewer.md` | 同上 |
+| 資料のチェック役・お金の監査役 | `~/.claude/agents/shiryo-reviewer.md`・`money-auditor.md` | 同上 |
 | Discord / Slack とつなぐ部品 | `~/Tools/fox-bridge` | 同上 |
+| 毎朝の点検（返事の仕組み・ログイン・空き・スキル）／置きっぱなし用の掃除 | `~/Tools/fox-guard`（Mac）・`~/Tools/fox-home`（Windows は点検もこちら） | 同上 |
 | デザイン・動画を見る スキル／画像生成・意味検索 | `~/.claude/skills/*`・`~/Tools/nanobanana`・`~/Tools/vault-rag` | 同上 |
 | 第三者のスキル（SEO・動画づくり・Obsidian ほか） | プラグイン・`~/.claude/skills/*` | `fox-kit packs` で配布元から取り直す（fox-kit は再配布しない） |
 | 会社ごとの決まり・話し方・保存先 | `~/.claude/rules/*.md` | さわらない（持ち主のもの） |
 | AIの記憶 | 選んだ保存先の `08_AIの記憶/` | さわらない |
 
-## 入れたあと
+## 入れたあと（Mac）
+
+Windows には `fox-kit` コマンドはありません。AIに「調子を見て」「設定画面を開いて」「新しい版に更新して」と頼めば、AIが代わりに進めます（更新は入れ方の1行を貼り直す）。
 
 ```sh
 fox-kit            # いまの状態（版・ログイン・保存先・Discord/Slack・新しい版があるか）
 fox-kit update     # 新しい版に更新（手を入れたファイルは上書きせず、横に .new-版 を置く）
 fox-kit setup      # 初期設定の聞き取りをもう一度
+fox-kit settings   # 設定画面を開き直す（あとでやる にした段へ戻れる）
 fox-kit connect    # Discord / Slack とつなぐ
 fox-kit mac        # パソコンの設定（眠る・眠らない／Antigravity）
 fox-kit packs      # スキルと道具をそろえる（key で Gemini の鍵を登録）

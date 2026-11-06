@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """据え置き機（家・事務所に置きっぱなしのパソコン）の見張り・掃除・点検。標準ライブラリだけ。
 
-  python3 home.py install office|mobile   … 予定に登録する（office＝3つ全部／mobile＝スキルの点検だけ）
+  python3 home.py install office|mobile   … 予定に登録する
+      Windows：office＝3つ全部／mobile＝スキルの点検だけ
+      Mac：office＝掃除だけ（見張りとスキルの点検は fox-guard＝毎朝7:20の点検がやる）／mobile＝なし
   python3 home.py uninstall               … 予定から外す
   python3 home.py watch    … 30分ごと：返事の常駐が止まっていたら起こし直す・空き容量・ログイン切れ
   python3 home.py clean    … 毎日4:40：AIが作り置いた一時ファイルを消す（撮った画面・受け取った添付など）
@@ -77,7 +79,7 @@ def notify(text: str):
         pf.make(cfg["platform"]).send(ch, text)
     except ImportError:
         return   # Discord/Slack を入れていない＝記録だけ
-    except Exception as e:   # 知らせられなくても見張り自体は止めない（記録に残す）
+    except (Exception, SystemExit) as e:   # 鍵が消えていると SystemExit が来る。見張り自体は続ける   # 知らせられなくても見張り自体は止めない（記録に残す）
         log("知らせられませんでした:", repr(e))
 
 
@@ -107,13 +109,21 @@ def watch():
                 notify("返事の仕組みが止まっていて、起こし直せませんでした。パソコンを再起動してみてください。")
     except ImportError:
         pass   # Discord/Slack を入れていない
+    except Exception as e:   # 起こし直しに失敗しても、空き・ログインの確認は続ける
+        log("返事の常駐を起こし直せませんでした:", repr(e))
+        if once_a_day(st, "bridge"):
+            notify("返事の仕組みが止まっていて、起こし直せませんでした。パソコンを再起動してみてください。")
     free = shutil.disk_usage(HOME).free / 1e9
     if free < 10 and once_a_day(st, "disk"):
         notify(f"パソコンの空きが残り {free:.0f}GB です。大きな動画やダウンロードを整理すると、動きが重くなるのを防げます。"
                "「パソコンの空きを作って」と頼めば、消してよいものの候補を出します。")
     claude = shutil.which("claude") or str(HOME / ".local/bin" / ("claude.exe" if WIN else "claude"))
     try:
-        r = subprocess.run([claude, "auth", "status"], capture_output=True, text=True, timeout=60, **NOWIN)
+        env = dict(os.environ)
+        tok = HOME / ".config/claude/token"   # 常駐は長寿命トークンで動く（fox-bridge と同じ）
+        if tok.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
+            env["CLAUDE_CODE_OAUTH_TOKEN"] = tok.read_text().strip()
+        r = subprocess.run([claude, "auth", "status"], capture_output=True, text=True, timeout=60, env=env, **NOWIN)
         try:
             logged = json.loads(r.stdout).get("loggedIn") is True
         except ValueError:
@@ -122,7 +132,9 @@ def watch():
             notify("AIのログインが切れています。このパソコンで Antigravity か黒い画面を開いて、ログインし直してください（返事が止まります）。")
     except (OSError, subprocess.TimeoutExpired) as e:
         log("ログインの確認ができませんでした:", repr(e))
-    save(st)
+    cur = load()   # 待っている間に skills が基準を書き換えているかもしれない
+    cur["told"] = {**cur.get("told", {}), **st.get("told", {})}
+    save(cur)
 
 
 # ------------------------------------------------------------------ 掃除
@@ -132,8 +144,15 @@ TMP_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".pdf", ".html", ".mp4", ".
 def clean():
     """作り置きの一時ファイルを消す。消すのは自分のもの・古いもの・決まった場所だけ。"""
     now, n, size = time.time(), 0, 0
-    tmp = Path(os.getenv("FOX_HOME_TMP") or tempfile.gettempdir())   # FOX_HOME_TMP は試験用
-    places = [(tmp / "fox-shot", 1), (tmp / "fox-kit", 3)]
+    tmps = {Path(os.getenv("FOX_HOME_TMP") or tempfile.gettempdir())}   # FOX_HOME_TMP は試験用
+    if not WIN and not os.getenv("FOX_HOME_TMP"):
+        try:   # launchd の中では TMPDIR が無いことがあるので、本人用の一時フォルダを直接聞く（confstr では取れない）
+            d = subprocess.run(["/usr/bin/getconf", "DARWIN_USER_TEMP_DIR"], capture_output=True, text=True, timeout=10).stdout.strip()
+            if d:
+                tmps.add(Path(d))
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    places = [(t / "fox-shot", 1) for t in tmps] + [(t / "fox-kit", 3) for t in tmps]
     try:
         c, _, _ = bridge()
         places.append((c.INBOX, 14))      # Discord/Slack で受け取った添付
@@ -143,7 +162,8 @@ def clean():
         if d.is_dir():
             for p in d.rglob("*"):
                 try:
-                    if p.is_file() and now - p.stat().st_mtime > days * 86400:
+                    st_ = p.stat()
+                    if p.is_file() and now - max(st_.st_mtime, st_.st_ctime) > days * 86400:   # ctime＝置いた時刻
                         sz = p.stat().st_size; p.unlink(missing_ok=True); size += sz; n += 1
                 except OSError:
                     continue   # 使用中（Windows）などは次の回に
@@ -152,7 +172,7 @@ def clean():
             try:
                 s = p.lstat()
                 if (p.is_file() and not p.is_symlink() and s.st_uid == os.getuid() and p.suffix.lower() in TMP_EXT
-                        and now - s.st_mtime > 3 * 86400):
+                        and now - max(s.st_mtime, s.st_ctime) > 3 * 86400):   # ctime＝置いた時刻
                     size += s.st_size; p.unlink(); n += 1
             except OSError:
                 continue
@@ -161,8 +181,28 @@ def clean():
 
 # ------------------------------------------------------------------ スキルの点検
 ROOTS = [HOME / ".claude/skills", HOME / ".claude/plugins", HOME / ".agents/skills", HOME / ".claude/hooks"]
-TEXT = {".md", ".py", ".js", ".mjs", ".ts", ".sh", ".zsh", ".ps1", ".json", ".yaml", ".yml", ".toml", ""}
-SKIP = {"node_modules", ".git", "__pycache__", ".venv", "cache"}
+TEXT = {".md", ".py", ".js", ".mjs", ".ts", ".sh", ".zsh", ".ps1", ".json", ".yaml", ".yml", ".toml", ""}   # "" ＝ bin/ やフックの実行ファイル
+SKIP = {"node_modules", ".git", "__pycache__", ".venv"}   # plugins/cache はプラグインの本体なので見る
+NOISE = {"known_marketplaces.json", "installed_plugins.json", "blocklist.json"}   # Claude Code が自分で日々書き換える
+
+
+def noise(p: Path) -> bool:
+    """Claude Code が自分で日々書き換えるファイルか（点検で「変わった」と数えない）。"""
+    if p.suffix.lower() in (".sh", ".py", ".js", ".mjs", ".ts", ".ps1", ".zsh"):
+        return False   # スクリプトは名前がどうでも必ず見る
+    if p.name == ".DS_Store" or p.name.startswith(".last"):      # .last_inuse_sweep・.last-complete-round など
+        return True
+    if p.name in NOISE or p.name.endswith(".meta.json"):
+        return True
+    parts = p.parts
+    for i in range(1, len(parts) - 1):
+        if parts[i - 1] == ".claude" and parts[i] == "plugins" and parts[i + 1] == "store":   # ~/.claude/plugins/store/ だけ
+            return True
+        if parts[i] == "synced" and parts[i + 1] == "manifest.json":
+            return True
+    return False   # ほかの隠しファイル（.mcp.json・.hidden.sh など）は見る
+
+
 RULES = {   # 作法33の5つ（外部送信・秘密・難読化・隠す指示・決まりの上書き）
     "外への送信": r"curl\s[^\n|]*(?:-d\b|--data|-F\b|--upload-file|-T\b)|requests\.post|method:\s*['\"]POST|Invoke-RestMethod[^\n]*-Method\s+Post",
     "秘密の読み取り": r"find-generic-password|find-internet-password|\.ssh/id_|Login Data|Cookies\.binarycookies|\.aws/credentials|CredRead",
@@ -179,12 +219,16 @@ def snapshot() -> dict:
         if not root.is_dir():
             continue
         for p in root.rglob("*"):
-            if any(x in SKIP for x in p.parts) or not p.is_file() or p.suffix.lower() not in TEXT or p.resolve() in SELF:
+            if (any(x in SKIP for x in p.parts) or noise(p) or not p.is_file()
+                    or p.suffix.lower() not in TEXT or p.resolve() in SELF):
                 continue
             try:
                 if p.stat().st_size > 1_000_000:
                     continue
-                files[str(p)] = hashlib.sha1(p.read_bytes()).hexdigest()
+                b = p.read_bytes()
+                if not p.suffix and b"\0" in b[:4096]:
+                    continue   # 拡張子の無い中身が文字でないもの（本物のプログラム）は読めないので数えない
+                files[str(p)] = hashlib.sha1(b).hexdigest()
             except OSError:
                 continue
     sj = HOME / ".claude/settings.json"
@@ -214,14 +258,25 @@ def name_of(path: str) -> str:
     return path
 
 
+def kit_version() -> str:
+    try:
+        return json.loads((HOME / ".config/fox-kit/install.json").read_text(encoding="utf-8")).get("version", "")
+    except (OSError, ValueError):
+        return ""
+
+
 def skills():
     st = load()
     now = snapshot()
     before = st.get("skills")
+    ver, prev_ver = kit_version(), st.get("skills_kit")
     st["skills"] = now
+    st["skills_kit"] = ver
     save(st)
     if before is None:
         return log(f"スキルの点検：はじめてなので今の状態（{len(now)}ファイル）を基準として覚えました")
+    if prev_ver != ver:   # キットを更新した＝キットが入れたものが変わるのは当たり前。基準を取り直して知らせない
+        return log(f"スキルの点検：キットが {prev_ver or '?'} → {ver} になったので、今の状態を基準として覚え直しました")
     added = [p for p in now if p not in before]
     changed = [p for p in now if p in before and now[p] != before[p]]
     removed = [p for p in before if p not in now]
@@ -235,7 +290,11 @@ def skills():
             txt = Path(p).read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
+        q = p.replace("\\", "/")
+        in_cache = "/plugins/cache/" in q or "/plugins/marketplaces/" in q   # 公開プラグインの本体と写し
         for label, rx in RULES.items():
+            if in_cache and label in ("外への送信", "秘密の読み取り"):
+                continue   # 公開プラグインは API を呼ぶのが普通。ここで鳴らすと毎回の版上げで誤報になる
             m = re.search(rx, txt, re.I | re.M)
             if m:
                 line = txt.count("\n", 0, m.start()) + 1
@@ -265,14 +324,20 @@ def py() -> str:
 
 
 def install(use: str):
-    names = ["watch", "clean", "skills"] if use == "office" else ["skills"]
+    if WIN:   # Windows には fox-guard（Mac の毎朝の点検）が無いので、ここで全部やる
+        names = ["watch", "clean", "skills"] if use == "office" else ["skills"]
+    else:     # Mac は fox-guard が 7:20 に常駐の起こし直し・ログイン・空き・スキルの点検をする。重ねない
+        names = ["clean"] if use == "office" else []
     uninstall(quiet=True)
+    done, failed = [], []
     for n in names:
         if WIN:
             trig = ("$t = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2) -RepetitionInterval (New-TimeSpan -Minutes 30) -RepetitionDuration (New-TimeSpan -Days 3650)"
                     if n == "watch" else f"$t = New-ScheduledTaskTrigger -Daily -At {'4:40' if n == 'clean' else '7:20'}")
             q = lambda x: str(x).replace("'", "''")
             ps = f"""$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+trap {{ [Console]::Error.WriteLine($_.Exception.Message); exit 1 }}
 $a = New-ScheduledTaskAction -Execute '{q(py())}' -Argument '"{q(HERE / "home.py")}" {n}' -WorkingDirectory '{q(HOME)}'
 {trig}
 $s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 20)
@@ -281,7 +346,8 @@ Register-ScheduledTask -TaskName 'fox-home-{n}' -Action $a -Trigger $t -Settings
                                capture_output=True, text=True, encoding="utf-8", errors="replace", **NOWIN)
             if r.returncode != 0:
                 log("予定に登録できませんでした:", n, r.stderr[-300:])
-                raise SystemExit(f"予定に登録できませんでした（{n}）: {r.stderr.strip()[-200:]}")
+                failed.append(n)
+                continue
         else:
             import plistlib
             label = f"com.fox-kit.home.{n}"
@@ -297,14 +363,28 @@ Register-ScheduledTask -TaskName 'fox-home-{n}' -Action $a -Trigger $t -Settings
             f.parent.mkdir(parents=True, exist_ok=True)
             with open(f, "wb") as fh:
                 plistlib.dump(pl, fh)
-            r = subprocess.run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(f)], capture_output=True, text=True)
+            for _ in range(2):   # bootout の直後は「5: Input/output error」になることがあるので1回だけ待ってやり直す
+                r = subprocess.run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(f)], capture_output=True, text=True)
+                if r.returncode == 0:
+                    break
+                time.sleep(2)
             if r.returncode != 0:
                 log("予定に登録できませんでした:", n, r.stderr[-300:])
-                raise SystemExit(f"予定に登録できませんでした（{n}）: {r.stderr.strip()[-200:]}")
-    if "skills" in names and "skills" not in load():
+                failed.append(n)
+                continue
+        done.append(n)
+    if WIN:
+        done = [n for n in names if n not in failed]
+    if "skills" in done and "skills" not in load():
         skills()   # 今の状態を基準として覚える（知らせない）
-    st = load(); st["installed"] = names; st["use"] = use; save(st)
-    print("登録しました：" + "・".join(f"{JOBS[n][0]}の{ {'watch': '見張り', 'clean': '掃除', 'skills': 'スキルの点検'}[n] }" for n in names))
+    st = load(); st["installed"] = done; st["use"] = use; save(st)
+    label = {"watch": "見張り", "clean": "掃除", "skills": "スキルの点検"}
+    if done:
+        print("登録しました：" + "・".join(f"{JOBS[n][0]}の{label[n]}" for n in done))
+    elif not names:
+        print("このパソコンでは追加で入れるものはありません（毎朝の点検が受け持ちます）")
+    if failed:
+        raise SystemExit("予定に登録できませんでした：" + "・".join(label[n] for n in failed))
 
 
 def uninstall(quiet=False):
