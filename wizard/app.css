@@ -79,3 +79,5 @@ details.sub-card summary{cursor:pointer}
 .st.redo{width:100%;border:0;background:none;text-align:left;cursor:pointer;flex-wrap:wrap;font:inherit;font-size:14px}
 .st.redo small{flex-basis:100%;padding-left:34px;color:var(--ink2);font-size:12px;display:none}
 .st.redo:hover{background:var(--soft)}.st.redo:hover small{display:block}
+.sub-card.auto{border:2px solid var(--accent)}
+.autonote{margin:0 0 12px;padding:10px 14px;border-radius:10px;background:var(--soft);color:var(--ink);font-size:14px}

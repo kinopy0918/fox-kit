@@ -82,7 +82,8 @@ def local_docs() -> Path:
         except OSError:
             pass
     d = HOME / "Documents"
-    return d if d.is_dir() else HOME
+    d.mkdir(exist_ok=True)      # 無ければ作る（ホーム全体を「パソコンの中だけ」扱いにしない）
+    return d
 
 
 def detect_win():

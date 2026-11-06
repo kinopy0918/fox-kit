@@ -78,7 +78,7 @@ def main():
     except (OSError, subprocess.TimeoutExpired) as e:
         out = ""
         issues.append(("AIの本体を動かせませんでした", f"{e.__class__.__name__}", "AIに「調子を見て」と頼むか、新しい版に更新してください"))
-    if out and not re.search(r'"loggedIn":\s*true', out):
+    if not re.search(r'"loggedIn":\s*true', out or ""):
         issues.append(("AIのログインが切れています", "自分では直せません（本人の承認が要るため）",
                        "ターミナルで  claude auth login  を実行してください"))
 

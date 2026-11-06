@@ -245,6 +245,21 @@ def act(step: str, body: dict) -> dict:
         save(st); mark("level")
         return {"ok": True}
 
+    if step == "auto":   # おまかせ：最初の1画面の答えだけで、あとは画面が代わりに押して最後まで進める
+        for k in ("owner", "agent"):
+            v = (body.get(k) or "").strip()
+            if not v:
+                return {"ok": False, "error": "お名前とAIの名前は必ず入れてください"}
+            if len(v) > 30 or re.search(r'["$`\\|]', v):
+                return {"ok": False, "error": "30文字以内で、記号（\" $ ` \\ |）は使わないでください"}
+            a[k] = v
+        a["level"] = "beginner"; a["auto"] = True
+        a.setdefault("machine", "このパソコン" if WIN else "このMac"); a.setdefault("role", "作業機")
+        st["data"]["auto"] = {"use": "mobile" if body.get("use") == "mobile" else "office",
+                              "storage": "local" if body.get("storage") == "local" else "drive"}
+        save(st); mark("level"); mark("names")
+        return {"ok": True}
+
     if step == "names":
         old = dict(a)
         for k in ("owner", "agent", "machine", "role"):
@@ -435,16 +450,26 @@ def act(step: str, body: dict) -> dict:
 
     if step == "skip":
         target = body.get("target", "")
-        if target not in {s for s, _, _ in STEPS} | {"gemini"} or target in ("claude", "login", "build", "talk", "done"):
+        if target not in {s for s, _, _ in STEPS} | {"gemini"} or target in ("claude", "login", "build", "done") \
+                or (target == "talk" and not st["answers"].get("auto")):
             return {"ok": False, "error": "この段は「あとでやる」にできません"}
         mark(target, skipped=True)
-        if target == "packs":
+        if target == "packs" and "gemini" not in load()["done"]:   # 登録済みの鍵は「未登録」にしない
             mark("gemini", skipped=True)
         return {"ok": True}
 
     if step == "reopen":   # 「あとでやる」にした段へ戻る（左の一覧から押す）
         target = body.get("target", "")
         if target == "packs":
+            with LOCK:
+                st = load()
+                if st["data"].get("packs", {}).get("skipped"):     # スキルそのものを飛ばしていた → 入れ直しから
+                    st["data"]["packs"].pop("skipped", None)
+                    st["done"] = [x for x in st["done"] if x != "packs" and not (x == "gemini" and st["data"].get("gemini", {}).get("skipped"))]
+                    if st["data"].get("gemini", {}).get("skipped"):
+                        st["data"].pop("gemini", None)
+                    JOBS.pop("packs", None); save(st)
+                    return {"ok": True}
             target = "gemini"
         with LOCK:
             st = load()
@@ -457,6 +482,8 @@ def act(step: str, body: dict) -> dict:
                         d.pop(k, None)
                 if target == "gemini":       # 「登録できました」の表示で止まらないように、鍵の記録ごと消す
                     st["data"].pop("gemini", None)
+                if target == "talk":         # 本人が「AIと話す」を押した → おまかせでも、あとへ回さない
+                    d["manual"] = True
                 if target == "mac":          # Windows：入れ直せるように
                     d.pop("installed", None)
                 if target in ("level", "names") and "build" in st["done"]:   # 話し方・名前を AI に反映するため組み立て直す
@@ -597,11 +624,11 @@ def state() -> dict:
     cur = next((s for s, _, _ in STEPS if s not in done), "done")
     return {
         "answers": st["answers"], "data": st["data"], "current": cur,
-        "packs_installed": "packs" in st["done"],   # 鍵だけ戻したときに、入れ直しを始めないため
+        "packs_installed": "packs" in st["done"] and not st["data"].get("packs", {}).get("skipped"),   # 鍵だけ戻したときに、入れ直しを始めないため
         "steps": [{"id": s, "title": t_, "who": w, "done": s in done,
                    "redo": s in done and ("gemini" if s == "packs" and not WIN else s) in REDO,
-                   "skipped": not (WIN and s == "packs")   # Windows は画像づくりの鍵を聞かない＝戻る意味がない
-                              and bool(st["data"].get("gemini" if s == "packs" else s, {}).get("skipped"))} for s, t_, w in STEPS],
+                   "skipped": bool(st["data"].get(s, {}).get("skipped"))     # スキルそのものを「あとでやる」にした
+                              or (s == "packs" and not WIN and bool(st["data"].get("gemini", {}).get("skipped")))} for s, t_, w in STEPS],
         "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k)} for k, v in JOBS.items()},
         "home": str(HOME),
         "platform": "win" if WIN else "mac",

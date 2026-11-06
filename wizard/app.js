@@ -32,11 +32,36 @@
   // ---------------------------------------------------------------- 各段
   const V = {
     level: () => ({
-      title: "はじめに1つだけ教えてください",
-      lead: "答えに合わせて、この先の案内と、入れたあとのAIの話し方を変えます。",
-      html: `<button class="choice" data-lv="beginner" style="width:100%;text-align:left"><b>はじめて・よくわからない</b><small>むずかしい言葉を使わずに案内します（おすすめ）</small></button>
-             <button class="choice" data-lv="expert" style="width:100%;text-align:left"><b>AIやパソコンの設定に慣れている</b><small>短く、専門用語のまま案内します</small></button>`,
-      bind: (el) => el.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = async () => { await act("level", { level: b.dataset.lv }); refresh(true); })),
+      title: "はじめましょう",
+      lead: "4つだけ答えれば、あとは最後まで自動で進みます。パスワードやログインなど、あなたが押すしかない所だけ、そのとき画面でお知らせします。",
+      html: `<div class="sub-card auto"><b>おまかせで全部進める（おすすめ）</b>
+               <label class="f">あなたのお名前</label><input class="t" id="a_owner" placeholder="例：山田さん">
+               <label class="f">AIの名前</label><input class="t" id="a_agent" placeholder="例：ヤマダAI">
+               <div class="names"><div class="ng">${["__own__", "フォックス", "ミライ", "はやと", "ジャービス", "ココ"].map((x) => `<button type="button" class="nm" data-n="${esc(x)}">${x === "__own__" ? "（お名前から）" : esc(x)}</button>`).join("")}</div></div>
+               <label class="f">この${PC()}の置き方</label>
+               <label class="choice"><input type="radio" name="a_use" value="office" checked><b>事務所などに置きっぱなし</b><small>いつでもスマホから頼めるように、眠らない設定にします</small></label>
+               <label class="choice"><input type="radio" name="a_use" value="mobile"><b>持ち歩く</b><small>眠る設定はそのまま。使うときだけ動けばよい</small></label>
+               <label class="f">資料の保存先</label>
+               <label class="choice"><input type="radio" name="a_sto" value="drive" checked><b>Google ドライブ（あれば）</b><small>パソコンが壊れても残り、スマホからも見られます。無ければこの${PC()}の中に置きます</small></label>
+               <label class="choice"><input type="radio" name="a_sto" value="local"><b>この${PC()}の中だけ</b><small>${PC()}が壊れると消えます</small></label>
+               <div class="err" id="aerr"></div>
+               <div class="row"><button class="btn" id="autoGo">この内容で、最後まで進める</button></div>
+               <p class="hint">スマホとつなぐ（Discord・Slack）と、AIと最初のお話は、最後に「あとでやること」としてまとめます。</p></div>
+             <details class="sub-card"><summary><b>1つずつ確かめながら進める</b></summary>
+               <button class="choice" data-lv="beginner" style="width:100%;text-align:left"><b>はじめて・よくわからない</b><small>むずかしい言葉を使わずに案内します</small></button>
+               <button class="choice" data-lv="expert" style="width:100%;text-align:left"><b>AIやパソコンの設定に慣れている</b><small>短く、専門用語のまま案内します</small></button></details>`,
+      bind: (el) => {
+        el.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = async () => { await act("level", { level: b.dataset.lv }); refresh(true); }));
+        const own = $('.nm[data-n="__own__"]', el);
+        const sync = () => { const base = $("#a_owner").value.trim().replace(/(さん|様|さま|くん|ちゃん)$/, ""); own.dataset.v = base ? base + "AI" : ""; own.textContent = base ? base + "AI" : "（お名前から）"; };
+        $("#a_owner", el).addEventListener("input", sync);
+        el.querySelectorAll(".nm").forEach((b) => (b.onclick = () => { const v = b.dataset.n === "__own__" ? b.dataset.v : b.dataset.n; if (v) $("#a_agent").value = v; }));
+        $("#autoGo", el).onclick = async () => {
+          const r = await act("auto", { owner: $("#a_owner").value, agent: $("#a_agent").value,
+            use: $("input[name=a_use]:checked").value, storage: $("input[name=a_sto]:checked").value });
+          r.ok ? refresh(true) : ($("#aerr").textContent = r.error);
+        };
+      },
     }),
     update: () => {
       const d = S.data.update || {};
@@ -326,7 +351,11 @@
         const laterCard = later.length ? `<div class="sub-card"><b>あとでやる、にした設定（${later.length}つ）</b>
                <p>押すと、その段に戻って続きができます。いまやらなくても、この画面はあとから開き直せます（${W() ? "デスクトップの「AIの設定画面」か、AI に「設定画面を開いて」と言う" : "AI に「設定画面を開いて」と言う"}）。</p>
                <div class="row">${later.map((x) => `<button class="btn sub" data-reopen="${x.id}">${esc(x.title)}</button>`).join("")}</div></div>` : "";
-        return `${laterCard}<div class="sub-card"><b>これからの使い方</b>
+        const talkLater = S.steps.find((x) => x.id === "talk")?.skipped;
+        const talkCard = talkLater ? `<div class="sub-card auto"><b>最後に1つ：AIと最初のお話（20分ほど）</b>
+               <p>AIがあなたの仕事について聞きます。ここで話しておくと、AIがあなた専用に動けるようになります（ChatGPT などを使っていたなら、その記録から下書きを作って「こうですか？」と確かめる形でも進められます）。</p>
+               <div class="row"><button class="btn" data-reopen="talk">AIと話す</button></div></div>` : "";
+        return `${talkCard}${laterCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
@@ -505,8 +534,38 @@
   }
 
   // ---------------------------------------------------------------- 描画
+  // ---------------------------------------------------------------- おまかせ：本人が押すしかない所以外は、画面が代わりに押す
+  const AUTO = {};
+  async function autoDrive(cur) {
+    if (!S.answers.auto) return;
+    const o = S.data.auto || {}, once = (k) => (AUTO[k] ? false : (AUTO[k] = true));
+    const go = async (k, step, body) => { if (once(k)) { await act(step, body); refresh(true); } };
+    const d = S.data[cur] || {};
+    if (cur === "update") {
+      if (W() ? d.state === "done" : d.state && d.state !== "checking") {
+        if (!d.too_old) await go("update", "update", { next: true, later: !!((d.items || []).length || d.state === "error") });
+      }
+    } else if (cur === "mac") {
+      if (!job("mac") && !d.installed) await go("mac", "mac", W() ? { use: o.use, chrome: true, antigravity: true } : { use: o.use, lid: false, chrome: true, antigravity: true });
+    } else if (cur === "packs") {
+      if (!W() && (S.packs_installed || job("packs")?.state === "ok") && !S.data.gemini) await go("gemini", "skip", { target: "gemini" });
+    } else if (cur === "storage") {
+      if (once("storage")) {
+        const r = await act("storage", { detect: true }); const fs = r.folders || [];
+        const pick = (o.storage === "drive" && fs.find((f) => /マイドライブ|My Drive/.test(f.kind))) || fs.find((f) => /中だけ/.test(f.kind)) || fs[0];
+        if (pick) { await act("storage", { root: pick.path, layout: "fox", auto_index: true }); refresh(true); } else AUTO.storage = false;
+      }
+    } else if (cur === "channel") {
+      if (!d.platform) await go("channel", "channel", { do: "choose", platform: "none" });
+    } else if (cur === "talk" && !(S.data.talk || {}).manual) {   // 本人が「AIと話す」を押したときは、あとへ回さない
+      await go("talk", "skip", { target: "talk" });
+    }
+  }
+
   function draw(force) {
     const cur = S.current;
+    autoDrive(cur);
+    if (S.answers.auto && cur === "talk" && !(S.data.talk || {}).manual) return;   // おまかせ：お話の画面は描かずにあとへ回す（AIを呼ばない）
     const steps = S.steps.filter((s) => s.id !== "done");
     const n = steps.filter((s) => s.done).length;
     $("#progText").textContent = cur === "done" ? "すべて完了しました" : `全${steps.length}ステップの ${steps.findIndex((s) => s.id === cur) + 1}番目：${steps.find((s) => s.id === cur)?.title || ""}`;
@@ -529,7 +588,8 @@
     view = sig;
     const def = (V[cur] || V.done)();
     const who = cur === "done" ? "" : S.steps.find((s) => s.id === cur)?.who;
-    $("#main").innerHTML = `<div class="card"><div class="kicker">いまやること${who ? `<span class="who ${who}">${who === "you" ? "あなたの操作" : "自動で進みます"}</span>` : ""}</div><h1>${esc(def.title)}</h1><p class="lead">${esc(def.lead)}</p><div id="body">${def.html}</div></div>`;
+    const autoNote = S.answers.auto && cur !== "done" ? `<div class="autonote">おまかせで進めています。あなたが押す必要のある所だけ、この画面でお知らせします。</div>` : "";
+    $("#main").innerHTML = autoNote + `<div class="card"><div class="kicker">いまやること${who ? `<span class="who ${who}">${who === "you" ? "あなたの操作" : "自動で進みます"}</span>` : ""}</div><h1>${esc(def.title)}</h1><p class="lead">${esc(def.lead)}</p><div id="body">${def.html}</div></div>`;
     def.bind($("#body"));
   }
   async function refresh(force) {

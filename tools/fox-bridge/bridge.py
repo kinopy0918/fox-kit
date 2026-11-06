@@ -102,7 +102,7 @@ def _run_claude(prompt: str, sid: str | None, platform: str, model: str | None):
         env.setdefault("PYTHONUTF8", "1")
     tok_file = Path.home() / ".config" / "claude" / "token"
     if tok_file.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
-        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok_file.read_text(encoding="utf-8").strip()   # 常駐でログインが切れないように
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = tok_file.read_text(encoding="utf-8-sig").strip()   # 常駐でログインが切れないように
     r = subprocess.run(cmd, input=prompt, cwd=str(Path.home()), capture_output=True, text=True, encoding="utf-8", errors="replace",
                        timeout=TIMEOUT, env=env, **({"creationflags": 0x08000000} if c.WIN else {}))
     try:
