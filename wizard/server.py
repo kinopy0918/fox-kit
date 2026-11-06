@@ -25,6 +25,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+# Windows：UTF-8 の決まり（PYTHONUTF8=1）が届いていない起動（デスクトップのショートカットなど）なら、UTF-8 で起動し直す。
+# そうしないと、文字コードを書いていない読み書きが cp932 になり、日本語の場所やファイルが壊れる
+if os.name == "nt" and not sys.flags.utf8_mode and not os.getenv("FOX_WIZARD_REEXEC"):
+    os.environ["PYTHONUTF8"] = "1"; os.environ["FOX_WIZARD_REEXEC"] = "1"
+    subprocess.Popen([sys.executable, "-X", "utf8", *sys.argv], creationflags=0x08000000)
+    sys.exit(0)
 HERE = Path(__file__).resolve().parent
 KIT = HERE.parent
 HOME = Path.home()
@@ -375,7 +381,15 @@ def act(step: str, body: dict) -> dict:
         root = body.get("root")
         if not root or not Path(root).is_dir():
             return {"ok": False, "error": "保存先を選んでください"}
-        cmd = [PY, str(HOME / ".claude/skills/fox-setup/storage.py"), "apply", "--root", root,
+        # 配った写しが古いまま（組み立て直しの前）でも直した版で動くように、キット本体の道具で写しを新しくしてから動かす
+        # （作業のたびに目次を作り直す仕組みが写しの場所を指すので、場所は変えない）
+        dst = HOME / ".claude/skills/fox-setup/storage.py"
+        try:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(KIT / "claude/skills/fox-setup/storage.py", dst)
+        except OSError:
+            dst = KIT / "claude/skills/fox-setup/storage.py"
+        cmd = [PY, str(dst), "apply", "--root", root,
                "--agent", a.get("agent", "FOX"), "--layout", body.get("layout", "fox")]
         if not root.startswith(str(HOME / "Documents")):
             cmd.append("--memory-in-root")
