@@ -31,7 +31,25 @@ New-Item -ItemType Directory -Force -Path $Conf | Out-Null
 # ------------------------------------------------------------------ 表示の道具
 $script:B = $true
 function T([string]$b, [string]$e) { if ($script:B) { $b } else { $e } }
-function Step($n, $s) { Write-Host ''; Write-Host "━━ $n/$Total  $s" -ForegroundColor Cyan }
+function Step($n, $s) {
+  if ($script:Wizard) { $script:WStep++; $n = $script:WStep; $t = 3 } else { $t = $Total }   # 設定画面で進めるときは、黒い画面の段は3つだけ
+  Write-Host ''; Write-Host "━━ [$n/$t]  $s" -ForegroundColor Cyan
+}
+$script:WStep = 0
+function Elapsed($sec) { if ($sec -ge 60) { "{0}分{1:00}秒" -f [int][math]::Floor($sec / 60), ($sec % 60) } else { "${sec}秒" } }
+# 時間のかかる処理の間、止まっていないことが分かるように「経過」を書き換え続ける
+function Wait-Proc($p, $what) {
+  $null = $p.Handle   # ExitCode を後で読めるように（PowerShell の決まり）
+  $t0 = Get-Date
+  while (-not $p.HasExited) {
+    $sec = [int]((Get-Date) - $t0).TotalSeconds
+    $hint = if ($sec -ge 60) { '（「許可しますか？」が後ろに隠れていないか、画面下のタスクバーも見てください）' } else { '' }
+    Write-Host -NoNewline ("`r    $what … 経過 $(Elapsed $sec) $hint      ")
+    Start-Sleep -Seconds 2
+  }
+  Write-Host ("`r    $what … 終わりました（$(Elapsed ([int]((Get-Date) - $t0).TotalSeconds))）" + (' ' * 60))
+  return $p.ExitCode
+}
 function Ok($s)   { Write-Host "  ✓ $s" -ForegroundColor Green }
 function Warn($s) { Write-Host "  ! $s" -ForegroundColor Yellow }
 function Die($s)  {
@@ -98,10 +116,33 @@ function Refresh-Path {
 function Has-Winget { return [bool](Get-Command winget -ErrorAction SilentlyContinue) }
 function Winget-Install($id) {
   LogLine "winget install $id"
-  & winget install --id $id -e --silent --accept-package-agreements --accept-source-agreements *>> $Log
-  return ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq -1978335189)   # 後者＝もう入っている
+  $out = Join-Path $env:TEMP ("winget-" + [guid]::NewGuid().ToString('N').Substring(0, 8) + ".log")
+  $p = Start-Process -FilePath 'winget' -WindowStyle Hidden -PassThru -RedirectStandardOutput $out `
+    -ArgumentList @('install', '--id', $id, '-e', '--silent', '--accept-package-agreements', '--accept-source-agreements')
+  $code = Wait-Proc $p (T 'インストール中' "winget install $id")
+  if (Test-Path $out) { Get-Content $out -ErrorAction SilentlyContinue | Add-Content -Path $Log -Encoding UTF8; Remove-Item $out -ErrorAction SilentlyContinue }
+  return ($code -eq 0 -or $code -eq -1978335189)   # 後者＝もう入っている
 }
-function Download($url, $dest) { LogLine "GET $url"; (New-Object Net.WebClient).DownloadFile($url, $dest) }
+# 取ってきながら、％（大きさが分からないときは MB）を書き換える
+function Download($url, $dest) {
+  LogLine "GET $url"
+  $res = [Net.WebRequest]::Create($url).GetResponse()
+  try {
+    $total = $res.ContentLength; $in = $res.GetResponseStream(); $out = [IO.File]::Create($dest)
+    try {
+      $buf = New-Object byte[] 262144; $sum = 0; $last = [DateTime]::MinValue
+      while (($n = $in.Read($buf, 0, $buf.Length)) -gt 0) {
+        $out.Write($buf, 0, $n); $sum += $n
+        if (((Get-Date) - $last).TotalMilliseconds -ge 500) {
+          $mb = '{0:N1}MB' -f ($sum / 1MB)
+          $msg = if ($total -gt 0) { '{0}% （{1} / {2:N1}MB）' -f [int](100 * $sum / $total), $mb, ($total / 1MB) } else { $mb }
+          Write-Host -NoNewline ("`r    取ってきています … $msg      "); $last = Get-Date
+        }
+      }
+      Write-Host ("`r    取ってきました（{0:N1}MB）" -f ($sum / 1MB) + (' ' * 40))
+    } finally { $out.Close(); $in.Close() }
+  } finally { $res.Close() }
+}
 
 function Find-Python {
   foreach ($c in @(Get-Command python -All -ErrorAction SilentlyContinue)) {
@@ -184,7 +225,7 @@ if (-not (IsDone 'update')) {
 }  # ブラウザの設定画面で進めるとき、ここまで（質問・更新）は画面で行う
 
 # ------------------------------------------------------------------ 2. 準備（Git と Python）
-Step 2 (T 'AIが使う部品を入れる（Git・Python）' 'Git for Windows / Python')
+Step 2 (T 'AIが使う部品を入れる（Git・Python・5〜10分）' 'Git for Windows / Python')
 Refresh-Path
 if (Find-GitBash) { Ok (T '部品1（Git）はもう入っています' 'Git: installed') }
 else {
@@ -197,7 +238,7 @@ else {
     if ($asset) {
       $exe = Join-Path $env:TEMP $asset.name
       Download $asset.browser_download_url $exe
-      Start-Process -FilePath $exe -ArgumentList '/VERYSILENT', '/NORESTART', '/SP-' -Wait
+      $null = Wait-Proc (Start-Process -FilePath $exe -ArgumentList '/VERYSILENT', '/NORESTART', '/SP-' -PassThru) (T 'インストール中' 'Git installer')
     }
   }
   Refresh-Path
@@ -214,7 +255,7 @@ else {
   if (-not $py) {
     $exe = Join-Path $env:TEMP 'python-3.12.10-amd64.exe'
     Download 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe' $exe
-    Start-Process -FilePath $exe -ArgumentList '/quiet', 'InstallAllUsers=0', 'PrependPath=1', 'Include_launcher=1' -Wait
+    $null = Wait-Proc (Start-Process -FilePath $exe -ArgumentList '/quiet', 'InstallAllUsers=0', 'PrependPath=1', 'Include_launcher=1' -PassThru) (T 'インストール中' 'Python installer')
     Refresh-Path; $py = Find-Python
   }
   if ($py) { Ok (T '部品2（Python）を入れました' "Python: $py") }
@@ -246,7 +287,9 @@ else {
   Write-Host ('  ' + (T '入れています…（数分かかります）' 'claude.ai/install.ps1'))
   $inst = Join-Path $env:TEMP 'claude-install.ps1'
   Download 'https://claude.ai/install.ps1' $inst
-  & powershell -NoProfile -ExecutionPolicy Bypass -File $inst *>> $Log
+  $o = Join-Path $env:TEMP 'claude-install.log'
+  $null = Wait-Proc (Start-Process -FilePath 'powershell' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$inst`"") -WindowStyle Hidden -PassThru -RedirectStandardOutput $o) (T 'インストール中' 'claude install.ps1')
+  if (Test-Path $o) { Get-Content $o -ErrorAction SilentlyContinue | Add-Content -Path $Log -Encoding UTF8 }
   $lb = Join-Path $HOME '.local\bin'
   $up = [Environment]::GetEnvironmentVariable('Path', 'User')
   if ($up -notlike "*$lb*") { [Environment]::SetEnvironmentVariable('Path', "$lb;$up", 'User') }
@@ -262,7 +305,7 @@ Mark 'claude'
 }
 
 # ------------------------------------------------------------------ 4. キット
-Step 4 (T 'AI秘書の部品を取ってくる' 'キットを取得')
+Step 4 (T 'AI秘書の部品を取ってくる（1〜2分）' 'キットを取得')
 if ((IsDone 'kit') -and (Test-Path "$KitDir\setup\build_win.py") -and -not $env:FOX_UPDATE) { Ok (T 'もう取ってあります' "取得済み: $KitDir（取り直しは `$env:FOX_UPDATE=1）") } else {
 $tmp = Join-Path $env:TEMP ("fox-kit-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
@@ -291,6 +334,7 @@ Mark 'kit'
 }
 
 if ($Wizard) {
+  Step 0 '設定画面を開く'
   $pyw = Join-Path (Split-Path $py) 'pythonw.exe'
   if (-not (Test-Path $pyw)) { $pyw = $py }
   $urlFile = Join-Path $Conf 'wizard.url'
