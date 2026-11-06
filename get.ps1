@@ -299,6 +299,13 @@ if ($Wizard) {
     Where-Object { $_.CommandLine -like '*wizard*server.py*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
   $env:PYTHONUTF8 = '1'
   Start-Process -FilePath $pyw -ArgumentList "`"$KitDir\wizard\server.py`"" -WindowStyle Hidden
+  # あとから開き直す入口：デスクトップに「設定画面」のショートカット（「あとでやる」にした段へ戻れる）
+  try {
+    $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'AIの設定画面.lnk'
+    $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+    $sc.TargetPath = $pyw; $sc.Arguments = "`"$KitDir\wizard\server.py`""; $sc.WorkingDirectory = $HOME
+    $sc.Description = 'AI秘書の設定画面（あとでやる、にした設定の続き）'; $sc.Save()
+  } catch {}
   for ($i = 0; $i -lt 40 -and -not (Test-Path $urlFile); $i++) { Start-Sleep -Milliseconds 500 }
   Write-Host ''
   if (Test-Path $urlFile) {

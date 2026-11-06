@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -13,8 +14,10 @@ HOME = Path.home()
 CONF_DIR = HOME / ".config" / "fox-bridge"
 CONFIG = CONF_DIR / "config.json"       # どこにつなぐか（秘密は入れない）
 STATE = CONF_DIR / "state.json"         # 読んだ位置・会話のID
-LOG = HOME / "Library" / "Logs" / "fox-bridge.log"
-INBOX = HOME / "Library" / "Caches" / "fox-bridge" / "inbox"   # 受け取った添付
+WIN = sys.platform == "win32"
+LOG = (CONF_DIR / "logs" / "fox-bridge.log") if WIN else (HOME / "Library" / "Logs" / "fox-bridge.log")
+INBOX = ((HOME / "AppData" / "Local" / "fox-bridge" / "inbox") if WIN
+         else (HOME / "Library" / "Caches" / "fox-bridge" / "inbox"))   # 受け取った添付
 KC_SERVICE = "fox-bridge"
 
 
@@ -37,17 +40,49 @@ def save(p: Path, data):
     p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    os.chmod(tmp, 0o600)
+    if not WIN:
+        os.chmod(tmp, 0o600)
     tmp.replace(p)
 
 
-# ------------------------------------------------------------------ 秘密はキーチェーンに
+# ------------------------------------------------------------------ 秘密は Mac のキーチェーン／Windows の資格情報マネージャーに
+def _wincred():
+    import ctypes
+    from ctypes import wintypes
+
+    class CRED(ctypes.Structure):
+        _fields_ = [("Flags", wintypes.DWORD), ("Type", wintypes.DWORD), ("TargetName", wintypes.LPWSTR),
+                    ("Comment", wintypes.LPWSTR), ("LastWritten", wintypes.FILETIME),
+                    ("CredentialBlobSize", wintypes.DWORD), ("CredentialBlob", ctypes.POINTER(ctypes.c_char)),
+                    ("Persist", wintypes.DWORD), ("AttributeCount", wintypes.DWORD), ("Attributes", ctypes.c_void_p),
+                    ("TargetAlias", wintypes.LPWSTR), ("UserName", wintypes.LPWSTR)]
+    return ctypes, CRED, ctypes.WinDLL("advapi32", use_last_error=True)
+
+
 def secret_set(name: str, value: str):
+    if WIN:
+        ctypes, CRED, adv = _wincred()
+        blob = value.encode("utf-8")
+        cr = CRED(Type=1, TargetName=f"{KC_SERVICE}:{name}", UserName=name, Persist=2,   # GENERIC・このユーザーに保存
+                  CredentialBlobSize=len(blob), CredentialBlob=ctypes.cast(ctypes.create_string_buffer(blob, len(blob)),
+                                                                           ctypes.POINTER(ctypes.c_char)))
+        if not adv.CredWriteW(ctypes.byref(cr), 0):
+            raise OSError(f"資格情報マネージャーに保存できませんでした（{ctypes.get_last_error()}）")
+        return
     subprocess.run(["security", "add-generic-password", "-U", "-s", KC_SERVICE, "-a", name, "-w", value],
                    check=True, capture_output=True)
 
 
 def secret_get(name: str) -> str:
+    if WIN:
+        ctypes, CRED, adv = _wincred()
+        p = ctypes.POINTER(CRED)()
+        if not adv.CredReadW(f"{KC_SERVICE}:{name}", 1, 0, ctypes.byref(p)):
+            return ""
+        try:
+            return ctypes.string_at(p.contents.CredentialBlob, p.contents.CredentialBlobSize).decode("utf-8")
+        finally:
+            adv.CredFree(p)
     r = subprocess.run(["security", "find-generic-password", "-s", KC_SERVICE, "-a", name, "-w"],
                        capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else ""

@@ -2,6 +2,7 @@
 //  1) 起動時：右側の帯（Gemini の Agent。設定では止められない）を閉じ、左を Claude の会話一覧にする
 //  2) ⌘⇧2（Windows は Ctrl+Shift+2）：範囲を選んで画面を撮る → Claude の入力欄に画像と「この画面を見て」を貼って送る
 //     外からも呼べる：open "antigravity-ide://fox-kit.claude-first/shot"（Stream Deck などのボタン用）
+//     撮った画像を渡すだけなら …/shot?file=<png のパス>（Mac 全体の ⌘⇧2＝tools/shot-hotkey が使う。撮影は飛ばす）
 const vscode = require("vscode");
 const cp = require("child_process");
 const fs = require("fs");
@@ -43,13 +44,16 @@ function shotDir() {
   return d;
 }
 
-async function shotToClaude() {
+async function shotToClaude(given) {
   const cfg = vscode.workspace.getConfiguration("foxKit.shot");
   const msg = cfg.get("message", "この画面を見て");
   const send = cfg.get("autoSend", true);
   if (process.platform === "darwin") {
-    const file = path.join(shotDir(), `shot-${Date.now()}.png`);
-    await exec("/usr/sbin/screencapture", ["-i", file]);           // 範囲を選ぶ（スペースで窓ごと・Esc でやめる）
+    let file = typeof given === "string" && given.endsWith(".png") ? given : "";
+    if (!file) {
+      file = path.join(shotDir(), `shot-${Date.now()}.png`);
+      await exec("/usr/sbin/screencapture", ["-i", file]);         // 範囲を選ぶ（スペースで窓ごと・Esc でやめる）
+    }
     if (!fs.existsSync(file)) return;                                // やめたときは何もしない
     await exec("/usr/bin/osascript", ["-e", `set the clipboard to (read (POSIX file "${file}") as «class PNGf»)`]);
     await run(["claude-vscode.focus"]);
@@ -88,8 +92,8 @@ ${send ? "[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')" : ""}`;
 }
 
 function activate(context) {
-  context.subscriptions.push(vscode.commands.registerCommand("foxKit.shotToClaude", shotToClaude));
-  context.subscriptions.push(vscode.window.registerUriHandler({ handleUri(uri) { if (uri.path === "/shot") shotToClaude(); } }));
+  context.subscriptions.push(vscode.commands.registerCommand("foxKit.shotToClaude", () => shotToClaude()));
+  context.subscriptions.push(vscode.window.registerUriHandler({ handleUri(uri) { if (uri.path === "/shot") shotToClaude(new URLSearchParams(uri.query).get("file") || undefined); } }));
   // Agent やエクスプローラーは起動処理の後半で開き直されることがあるので、少し間をおいてもう一度
   setTimeout(claudeFirst, 800);
   setTimeout(claudeFirst, 4000);

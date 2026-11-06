@@ -58,3 +58,9 @@ code{font:13px "Roboto Mono",monospace;background:var(--bg);border:1px solid var
 .note ul{margin:6px 0 0;padding-left:1.2em}.note li{margin:4px 0}
 details.sub-card summary{cursor:pointer}
 .choice small{color:var(--ink2)}
+
+.st.later{width:100%;border:1px dashed var(--line);background:none;text-align:left;cursor:pointer;flex-wrap:wrap;font:inherit;font-size:14px}
+.st.later i{background:none;border-color:var(--accent);color:var(--accent)}
+.st.later small{flex-basis:100%;padding-left:34px;color:var(--accent);font-size:12px}
+.st.later:hover{background:var(--soft)}
+.nowline{color:var(--ink2);font-size:14px;margin:4px 0 0}

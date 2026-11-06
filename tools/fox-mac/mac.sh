@@ -179,6 +179,15 @@ else
   fi
 fi
 
+if [[ -f "$HOME/Tools/fox-home/home.py" ]]; then
+  /usr/bin/python3 "$HOME/Tools/fox-home/home.py" install "$FOX_MAC_USE" >/dev/null 2>&1 \
+    && if [[ "$FOX_MAC_USE" == office ]]; then
+         ok "$(t "見張り番を入れました（返事の仕組みが止まったら起こし直す・空きやログイン切れを知らせる・一時ファイルの掃除・新しいスキルの点検）" "fox-home: watch 30min / clean 4:40 / skills 7:20")"
+       else
+         ok "$(t "新しく入ったスキルを毎朝点検する仕組みを入れました" "fox-home: skills 7:20")"
+       fi
+fi
+
 choose FOX_CHROME "$(t "Chrome を入れて、いつも使うブラウザにしますか？（AIがブラウザを操作する公式の機能「Claude in Chrome」は Chrome で動きます。拡張も一緒に案内します）" "Google Chrome＋Claude in Chrome 拡張（既定ブラウザ化）")" 1 \
   "1:$(t "する（おすすめ）" "する")" "2:$(t "しない" "しない")"
 [[ "$FOX_CHROME" == 1 || "$FOX_CHROME" == yes ]] && { chrome; claude_chrome; }

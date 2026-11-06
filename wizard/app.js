@@ -156,7 +156,7 @@
       title: t("パソコンの設定", "Mac 設定（電源・Chrome・Antigravity）"),
       lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Chrome（既定ブラウザ）/ Antigravity IDE"),
       html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。", "実行中（既定ブラウザの確認ダイアログあり）")) : `
-             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動（おすすめ）</small></label>
+             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動・見張り番（返事の仕組みが止まったら起こし直す／空きやログイン切れを知らせる／一時ファイルの掃除／新しいスキルの点検）（おすすめ）</small></label>
              <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて、使うときだけ動けばよい</b><small>作業中だけ眠らない仕組みを入れます（CapsLockのランプが点いている間）</small></label>
              <label class="choice"><input type="checkbox" id="lid"><b>ふたを閉じたまま置いておく</b><small>ノートのMacを閉じたまま使う場合だけ。電源につなぎ、熱がこもらない場所に置いてください</small></label>
              <label class="choice"><input type="checkbox" id="chrome" checked><b>Chrome を入れて、いつも使うブラウザにする</b><small>AIがブラウザを操作する公式の機能（Claude in Chrome）は Chrome で動きます。途中で「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。最後に Chrome に「Claude」の拡張の画面が開くので、「Chrome に追加」を押し、AIと同じアカウントでログインしてください</small></label>
@@ -195,7 +195,9 @@
                ${reg || g?.skipped ? "" : `<ol class="do">
                  <li>${k("鍵を作る画面を開く")} を押す</li>
                  <li>Google アカウントでログイン（会社で使うなら会社のアカウント）</li>
-                 <li>${k("Create API key", "APIキーを作成")} → できた長い文字列の横のコピーを押す（前に作った鍵が一覧にあれば、それを開いてコピーしても大丈夫）</li>
+                 <li>${k("Create API key", "APIキーを作成")} を押す</li>
+                 <li><b>プロジェクトを選ぶ画面が出たら</b>、${k("Create API key in new project", "新しいプロジェクトで作成")}（または「Default Gemini Project」）を選ぶ。<b>会社で既に使っている・お金の設定（請求先）がついたプロジェクトは選ばない</b>でください。無料の枠で使う鍵なので、間違えて有料の請求が来ないようにするためです</li>
+                 <li>できた長い文字列の横のコピーを押す（一覧の「プラン」が「Free（無料）」になっていればOK。前に作った無料の鍵があれば、それをコピーしても大丈夫）</li>
                  <li>下の欄に貼って ${k("登録")}</li></ol>
                  ${shot("gemini-1", "Google AI Studio の鍵の画面")}
                  <div class="row"><a class="btn sub" href="https://aistudio.google.com/apikey" target="_blank">鍵を作る画面を開く</a></div>
@@ -218,8 +220,8 @@
       lead: t("AIが作ったもの・受け取ったものを置く場所です。Google ドライブにすると、パソコンが壊れても残り、スマホからも見られます。", "storage.py apply（FOX型11フォルダ・目次・記憶の移動）"),
       html: `<div id="places"><span class="spin"></span>このパソコンの保存先を調べています…</div>
              <div class="sub-card"><b>フォルダの形</b>
-               <label class="choice"><input type="radio" name="layout" value="fox" checked><b>しっかり整理する形（おすすめ）</b><small>案件・議事録・記録・手順・テンプレート・タスク・メモ・AIの記憶・目標・保管庫の11フォルダ</small></label>
-               <label class="choice"><input type="radio" name="layout" value="simple"><b>簡単な形</b><small>5フォルダだけ。まずは小さく始めたい方に</small></label>
+               <p>案件・議事録・記録・手順・テンプレート・タスク・メモ・AIの記憶・目標・保管庫の<b>11フォルダ</b>に分けて置きます。細かく分けておくと、AIが探す範囲がしぼれて、速く正確に見つけられます。</p>
+               <p class="hint">Google ドライブを選んだときは、ファイルは開いたものだけパソコンに取ってくる設定（ストリーミング）のままにしてください。大きな動画のフォルダを「オフラインで使用可能」にすると、パソコンの空きが減って重くなります。</p>
                <label class="choice"><input type="checkbox" id="idx" checked><b>作業が終わるたびに目次を自動で作り直す</b><small>AIは目次を見て、関係のある所だけを読みに行きます（速く正確）</small></label></div>
              <div class="err" id="err"></div><div class="row"><button class="btn" id="go">ここに決める</button></div>`,
       bind: async (el) => {
@@ -228,14 +230,14 @@
         const hasG = list.some((f) => f.kind.startsWith("Google"));
         $("#places", el).innerHTML = list.map((f, i) => `<label class="choice"><input type="radio" name="root" value="${esc(f.path)}" ${i === 0 ? "checked" : ""}><b>${esc(f.kind)}</b><small>${esc(f.account || "")}${/この(Mac|パソコン)/.test(f.kind) ? "　※パソコンが壊れると消えます" : ""}</small></label>`).join("")
           + (list.some((f) => f.name) ? `<p class="hint">AI専用の共有ドライブを新しく作りたいときは、<a href="https://drive.google.com/drive/shared-drives" target="_blank">Google ドライブの共有ドライブの画面</a>で「＋新規」→ 名前（例：${esc(S.answers.agent || "AI")}）→「作成」を押してから、下の ${k("もう一度調べる")} を押してください。</p><div class="row"><button class="btn sub" id="again">もう一度調べる</button></div>` : "")
-          + (hasG ? "" : `<div class="sub-card"><b>Google ドライブを使うなら（おすすめ）</b><ol class="do"><li>${k("Google ドライブのアプリを入れる")} を押す（${W() ? "「変更を許可しますか？」と出たら「はい」" : "Macのパスワードを聞かれます"}）</li><li>開いたアプリで<b>会社の Google アカウント</b>でログイン</li><li>ログインできたら ${k("もう一度調べる")}</li></ol>${shot("drive-1", "Google ドライブのアプリのログイン画面")}
+          + (hasG ? "" : `<div class="sub-card"><b>Google ドライブを使うなら（おすすめ）</b><ol class="do"><li>${k("Google ドライブのアプリを入れる")} を押す（${W() ? "「変更を許可しますか？」と出たら「はい」" : "Macのパスワードを聞かれます"}）</li><li>開いたアプリで<b>会社の Google アカウント</b>でログイン</li><li>途中で「ストリーミング」か「ミラーリング」かを聞かれたら、<b>${k("ストリーミング")}</b>を選ぶ（ファイルをパソコンに丸ごと置かず、開いたものだけ取ってくる＝パソコンが重くならない）</li><li>ログインできたら ${k("もう一度調べる")}</li></ol>${shot("drive-1", "Google ドライブのアプリのログイン画面")}
              <div class="row"><button class="btn sub" id="drive">Google ドライブのアプリを入れる</button><button class="btn sub" id="again">もう一度調べる</button></div>${running("drive", "")}</div>`);
         const d = $("#drive", el); if (d) d.onclick = async () => { await act("storage", { install_drive: true }); refresh(true); };
         el.querySelectorAll("#again").forEach((ag) => (ag.onclick = () => { view = null; refresh(true); }));
         $("#go", el).onclick = async () => {
           const root = $("input[name=root]:checked")?.value;
           $("#err").innerHTML = '<span class="spin"></span>作っています…';
-          const x = await act("storage", { root, layout: $("input[name=layout]:checked").value, auto_index: $("#idx").checked });
+          const x = await act("storage", { root, layout: "fox", auto_index: $("#idx").checked });
           x.ok ? refresh(true) : ($("#err").textContent = x.error);
         };
       },
@@ -282,11 +284,15 @@
         const base = S.data.storage?.base || "", folder = base.split(/[\\/]/).pop();
         const drive = /[\\/]共有ドライブ[\\/]|Shared drives/.test(base) ? "Google ドライブの共有ドライブ" : /GoogleDrive-|マイドライブ|My Drive/.test(base) ? "Google ドライブ" : `この${PC()}`;
         const g = S.data.gemini;
-        return `<div class="sub-card"><b>これからの使い方</b>
+        const later = S.steps.filter((x) => x.skipped);
+        const laterCard = later.length ? `<div class="sub-card"><b>あとでやる、にした設定（${later.length}つ）</b>
+               <p>押すと、その段に戻って続きができます。いまやらなくても、この画面はあとから開き直せます（${W() ? "デスクトップの「AIの設定画面」か、AI に「設定画面を開いて」と言う" : "AI に「設定画面を開いて」と言う"}）。</p>
+               <div class="row">${later.map((x) => `<button class="btn sub" data-reopen="${x.id}">${esc(x.title)}</button>`).join("")}</div></div>` : "";
+        return `${laterCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
-                 : W() ? `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話す仕組みは、いまは Mac 版だけです。</li>
+                 : W() ? `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話したくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>
                <li>見せたい画面があれば ${k("Ctrl")} + ${k("Shift")} + ${k("2")}。範囲を選ぶと、その画像が AI に届きます。</li>`
                  : `<li>いまは Slack・Discord につないでいません。つなぎたくなったら、担当者に連絡してください。</li>`}
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」フォルダに整理して置きます。<div class="row"><button class="btn sub" id="openBase">フォルダを開く</button></div></li>` : ""}
@@ -300,7 +306,10 @@
                <p class="hint">入っていない・使い方を詳しく知りたいときは、${where || "AI"} で「Antigravity の使い方を教えて」と聞いてください。</p></details>
              <p class="hint">この画面は閉じて大丈夫です。</p>`;
       })(),
-      bind: (el) => { const o = $("#openBase", el); if (o) o.onclick = () => act("storage", { open_base: true }); },
+      bind: (el) => {
+        const o = $("#openBase", el); if (o) o.onclick = () => act("storage", { open_base: true });
+        el.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => { await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
+      },
     }),
   };
 
@@ -308,9 +317,12 @@
     const j = job(name);
     if (!j) return "";
     const lg = B() ? "" : `<pre class="log">${esc(j.tail)}</pre>`;
-    if (j.state === "running") return `<p><span class="spin"></span>${esc(msg)}</p>${lg}`;
+    if (j.state === "running") return `<p><span class="spin"></span>${esc(msg)}</p><p class="nowline">${esc(nowLine(j))}</p>${lg}`;
     if (j.state === "ok") return `<p class="okmsg">✓ 終わりました</p>`;
     return failNote(name);
+  }
+  function nowLine(j) {   // packs.py などが出す「▶ いま入れているもの（3/18）」
+    return j && j.now ? "いま：" + j.now : "";
   }
   function failNote(name) {
     const j = job(name);
@@ -354,7 +366,7 @@
       title: t("パソコンの設定", "電源・Chrome・Antigravity"),
       lead: t("このパソコンの使い方に合わせて設定し、AIと画面で話すためのアプリを入れます。途中で「変更を許可しますか？」と出たら「はい」を押してください。", "powercfg / winget Google.Chrome / Antigravity IDE＋拡張"),
       html: j?.state === "running" ? running("mac", t("設定しています（Antigravity は約230MBあるので、10分以上かかることがあります）。「変更を許可しますか？」と出たら「はい」。Antigravity の画面が開いても、そのままで大丈夫です。", "実行中")) : `
-             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて使う</b><small>電源につないでいる間は眠らないようにします（画面だけは消えます）</small></label>
+             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて使う</b><small>電源につないでいる間は眠らない・見張り番（返事の仕組みが止まったら起こし直す／空きやログイン切れを知らせる／一時ファイルの掃除／新しいスキルの点検）</small></label>
              <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて使う</b><small>眠る設定はそのままにします</small></label>
              <label class="choice"><input type="checkbox" id="chrome" checked><b>Chrome を入れる</b><small>AIがブラウザを操作する公式の機能（Claude in Chrome）は Chrome で動きます</small></label>
              <label class="choice"><input type="checkbox" id="ag" checked><b>Antigravity（AIと画面で話すアプリ）を入れる（おすすめ）</b><small>AI に話しかけるいちばんの入口になります。画面は日本語にします</small></label>
@@ -381,7 +393,7 @@
       lead: t("ふだん使っているチャットアプリにAIを呼びます。つなぐと、スマホからでも話しかけられます。", "fox-bridge"),
       html: `<button class="choice" data-p="discord" style="width:100%;text-align:left"><b>Discord（無料・スマホでも使いやすい。おすすめ）</b><small>AI専用の部屋を作ります（10分ほど）</small></button>
              <button class="choice" data-p="slack" style="width:100%;text-align:left"><b>Slack（会社で既に使っているなら）</b><small>会社のワークスペースにAI用のチャンネルを作ります</small></button>
-             <button class="choice" data-p="none" style="width:100%;text-align:left"><b>いまはつながない</b><small>あとから <code>fox-kit connect</code> でつなげます</small></button>`,
+             <button class="choice" data-p="none" style="width:100%;text-align:left"><b>いまはつながない</b><small>${W() ? "あとから AI に「スマホから頼めるようにしたい」と言えばつなげます" : "あとから <code>fox-kit connect</code> でつなげます"}</small></button>`,
       bind: (el) => el.querySelectorAll("[data-p]").forEach((b) => (b.onclick = async () => { await act("channel", { do: "choose", platform: b.dataset.p }); refresh(true); })),
     };
     if (p === "discord") {
@@ -460,10 +472,14 @@
     const n = steps.filter((s) => s.done).length;
     $("#progText").textContent = cur === "done" ? "すべて完了しました" : `全${steps.length}ステップの ${n + 1}番目：${steps.find((s) => s.id === cur)?.title || ""}`;
     $("#progBar").style.width = Math.round((n / steps.length) * 100) + "%";
-    $("#steps").innerHTML = S.steps.map((s, i) => `<div class="st ${s.done ? "done" : s.id === cur ? "now" : ""}"><i>${s.done ? "✓" : s.id === "done" ? "★" : i + 1}</i>${esc(s.title)}</div>`).join("");
+    $("#steps").innerHTML = S.steps.map((s, i) => s.done && s.skipped
+      ? `<button class="st done later" data-reopen="${s.id}" title="押すと、この段に戻ってやり直せます"><i>↩</i>${esc(s.title)}<small>あとでやる → 押すと戻れます</small></button>`
+      : `<div class="st ${s.done ? "done" : s.id === cur ? "now" : ""}"><i>${s.done ? "✓" : s.id === "done" ? "★" : i + 1}</i>${esc(s.title)}</div>`).join("");
+    document.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => { await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
     const sig = cur + "|" + JSON.stringify(S.jobs[cur] ? S.jobs[cur].state : "") + "|" + JSON.stringify(S.data[cur] || {}) + "|" + (cur === "packs" ? JSON.stringify(S.data.gemini || {}) : "");
     if (!force && view === sig) {           // 同じ段なら、動いている作業の表示だけ更新（入力中を消さない）
       document.querySelectorAll("pre.log").forEach((pre) => { const j = S.jobs[cur]; if (j) pre.textContent = j.tail; });
+      document.querySelectorAll("p.nowline").forEach((p) => { const j = S.jobs[cur]; if (j) p.textContent = nowLine(j); });
       return;
     }
     if (local.poll) { clearInterval(local.poll); local.poll = null; }

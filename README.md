@@ -23,8 +23,8 @@ Claude Code を「その人・その会社専用の秘書」として組み立�
 powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12';iex ([Text.Encoding]::UTF8.GetString((New-Object Net.WebClient).DownloadData('https://kinopy0918.github.io/fox-kit/get.ps1')))"
 ```
 
-Windows 版に入るのは基本セット（人格・作法・資料のチェック役・安全ガード・記憶・保存先の整理・初期設定の聞き取り・スキル・Antigravity）。
-Discord/Slack の常駐連携・ブラウザの設定画面・画像づくりの鍵は、いまは Mac 版だけです。
+Windows 版に入るのは基本セット（人格・作法・資料のチェック役・安全ガード・記憶・保存先の整理・初期設定の聞き取り・スキル・Antigravity・Discord/Slack から話しかける仕組み）。
+画像づくりの鍵・動画を見る道具・意味で探す仕組みは、いまは Mac 版だけです。
 
 最初に「はじめて／慣れている」を選びます。「はじめて」を選ぶと、案内も、入れたあとのAIの話し方も、専門用語を使わなくなります。
 途中で止まっても、同じ1行を貼り直せば続きから始まります。
@@ -34,7 +34,7 @@ Discord/Slack の常駐連携・ブラウザの設定画面・画像づくりの
 | 何 | どこ | 更新のとき |
 |---|---|---|
 | 人格（名前・持ち主・役割） | `~/.claude/CLAUDE.md` | さわらない（持ち主のもの） |
-| 仕事の作法 32項目 | `~/.claude/fox-kit/rules/craft.md` | 手を入れていなければ新しくする |
+| 仕事の作法 33項目 | `~/.claude/fox-kit/rules/craft.md` | 手を入れていなければ新しくする |
 | 初期設定の聞き取り・資料の品質ループ | `~/.claude/skills/fox-setup` ・ `shiryo-review-loop` | 同上（差し戻し一覧 `checklist.md` は育つのでさわらない） |
 | 資料のチェック役 | `~/.claude/agents/shiryo-reviewer.md` | 同上 |
 | Discord / Slack とつなぐ部品 | `~/Tools/fox-bridge` | 同上 |

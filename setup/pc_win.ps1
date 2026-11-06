@@ -30,6 +30,22 @@ if ($env:FOX_PC_USE -eq 'office') {
   & powercfg /change standby-timeout-ac 0 | Out-Null
   & powercfg /change hibernate-timeout-ac 0 | Out-Null
   Say '電源につないでいる間は眠らないようにしました（画面だけは消えます）'
+  if (Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue) {   # ノートPC：電源につないでいる間は、ふたを閉じても眠らない
+    & powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0 | Out-Null
+    & powercfg /setactive SCHEME_CURRENT | Out-Null
+    Say '電源につないでいる間は、ふたを閉じても眠らないようにしました（熱がこもらない場所に置いてください）'
+  }
+  Say '! Windows の更新や停電で再起動すると、サインインするまでAIは返事をしません。再起動のあとは一度サインインしてください（「設定」→「アカウント」→「サインイン オプション」で、更新のあと自動でサインインし直す設定もできます）'
+}
+
+# ---------------------------------------------------------------- 見張り番（据え置き＝全部／持ち歩き＝スキルの点検だけ）
+$home_py = Join-Path $KitDir 'tools\fox-home\home.py'   # Windows は ~/Tools に配らない＝キットの中のものを使う
+if ($py -and (Test-Path $home_py)) {
+  $use = if ($env:FOX_PC_USE -eq 'office') { 'office' } else { 'mobile' }
+  & $py $home_py install $use *> $null
+  if ($LASTEXITCODE -ne 0) { Say '! 見張り番を予定に登録できませんでした（あとで AI に「見張り番を入れて」と頼めます）' }
+  elseif ($use -eq 'office') { Say '見張り番を入れました（返事の仕組みが止まったら起こし直す・空きやログイン切れを知らせる・一時ファイルの掃除・新しいスキルの点検）' }
+  else { Say '新しく入ったスキルを毎朝点検する仕組みを入れました' }
 }
 
 # ---------------------------------------------------------------- Chrome

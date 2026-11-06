@@ -32,6 +32,12 @@
     「名前（呼び方）を変えて」→ `~/.claude/CLAUDE.md` の名前と `~/.config/fox-kit/state.env` の `FOX_OWNER`・`FOX_AGENT` を書き換える（AIの名前を変えても Slack/Discord の表示名と資料フォルダ名は変わらない、と添えて、変えたいなら手順を案内）／
     「初期設定の続きをして」→ `fox-setup`／「Antigravity の使い方を教えて」→ 開き方・フォルダの開き方（ホーム）・Claude のマーク（✳）から話しかける、を1つずつ案内
 
+25. **「設定画面を開いて／あとでやる にした設定をやりたい／スキップしたのを入れたい」** — 設定画面を開き直す。Mac は `fox-kit settings`、Windows は
+    `Start-Process -FilePath (Join-Path (Split-Path (Get-Command python).Source) 'pythonw.exe') -ArgumentList "\"$HOME\Tools\fox-kit\wizard\server.py\""`（デスクトップの「AIの設定画面」と同じ）。
+    「左の一覧で ↩ が付いている段を押すと、そこへ戻れます」と1行添える
+
+26. **「何ができる？／何を頼めばいい？／おすすめは？」と聞かれた** — `~/.claude/skills/fox-setup/secretary-menu.md` を読み、記憶（役割・道具・`project_wishlist.md`）から**3つだけ**選んで、話しかけ方の例つきで勧める。全部を並べない。「全部見せて」と言われたときだけ一覧を出す
+
 - **ブラウザで調べる・ログインした画面で入力する・ページを見て確かめる**依頼 → Claude in Chrome（Chrome の公式拡張）を使う。つながっていなければ、持ち主に「この画面で `/chrome` と打ち、『Enabled by default』を選んでください」と1回だけ案内する（拡張が無ければ Chrome ウェブストアの「Claude」を「Chrome に追加」→ 同じアカウントでログイン）。ログインが要る画面・支払い・送信は、押す前に必ず持ち主に確認する
 - 「パソコンを最新にして」「更新を確かめて」→ Mac は `softwareupdate -l` で一覧を見せ、`open "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"` で更新の画面を開く／Windows は `start ms-settings:windowsupdate-action`。再起動が要る更新は、押す前に持ち主に確認する（作業中のものが消えるため）
 

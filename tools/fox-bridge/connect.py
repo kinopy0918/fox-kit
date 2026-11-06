@@ -30,6 +30,7 @@ LABEL = "com.fox-bridge"
 PLIST = Path.home() / "Library" / "LaunchAgents" / f"{LABEL}.plist"
 B = c.level() == "beginner"
 AGENT = c.agent_name()
+KEYSAFE = "Windows の資格情報マネージャー" if c.WIN else "Macの金庫＝キーチェーン"
 GUIDE = os.getenv("FOX_GUIDE_URL", "https://kinopy0918.github.io/fox-kit")
 
 
@@ -74,7 +75,10 @@ def choose(q, opts):
 
 
 def open_url(u):
-    subprocess.run(["open", u])
+    if c.WIN:
+        os.startfile(u)
+    else:
+        subprocess.run(["open", u])
 
 
 def ask_secret(q, check, tries=3):
@@ -127,7 +131,7 @@ def discord_flow():
     tok = ask_secret(t("コピーした文字列を貼り付けて Enter", "Bot トークン"), check)
     c.secret_set("discord", tok)
     api = pf.Discord(tok)
-    ok(t(f"ボット「{api.me()['username']}」とつながりました（鍵はMacの金庫＝キーチェーンに保管）", f"bot: {api.me()['username']}（Keychain 保存）"))
+    ok(t(f"ボット「{api.me()['username']}」とつながりました（鍵は{KEYSAFE}に保管）", f"bot: {api.me()['username']}（{KEYSAFE}）"))
 
     head(4, T, t("AIが文章を読めるようにする", "Message Content Intent"))
     if api.enable_message_content():
@@ -208,7 +212,7 @@ def slack_flow():
     c.secret_set("slack", tok)
     api = pf.Slack(tok)
     me = api.me()
-    ok(t(f"「{me['team']}」とつながりました（鍵はMacの金庫＝キーチェーンに保管）", f"team: {me['team']}（Keychain 保存）"))
+    ok(t(f"「{me['team']}」とつながりました（鍵は{KEYSAFE}に保管）", f"team: {me['team']}（{KEYSAFE}）"))
 
     head(3, T, t("AI用のチャンネルを作る", "チャンネル作成"))
     ch = None
@@ -227,7 +231,61 @@ def slack_flow():
 
 
 # ================================================================== 共通の仕上げ
+TASK = "fox-bridge"   # Windows のタスク スケジューラでの名前
+NOWIN = {"creationflags": 0x08000000} if c.WIN else {}
+
+
+def _ps(cmd: str):
+    return subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", cmd],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace", **NOWIN)
+
+
+def install_task():
+    """Windows：サインインしたら起動＋5分ごとに「止まっていたら起動」（同時に2つは動かさない）。Mac の launchd KeepAlive に相当。
+    タスク スケジューラの「失敗したら再起動」は起動の失敗にしか効かないので、繰り返しの起動で拾う。"""
+    py = Path(sys.executable)
+    pyw = py.with_name("pythonw.exe")
+    exe = pyw if pyw.exists() else py      # pythonw＝黒い窓を出さない
+    q = lambda x: str(x).replace("'", "''")
+    r = _ps(f"""$ErrorActionPreference = 'Stop'
+$a = New-ScheduledTaskAction -Execute '{q(exe)}' -Argument '"{q(HERE / "bridge.py")}"' -WorkingDirectory '{q(Path.home())}'
+$t = @((New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\\$env:USERNAME"),
+       (New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5) -RepetitionDuration (New-TimeSpan -Days 3650)))
+$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
+     -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew -Priority 4
+Stop-ScheduledTask -TaskName '{TASK}' -ErrorAction SilentlyContinue
+Register-ScheduledTask -TaskName '{TASK}' -Action $a -Trigger $t -Settings $s -Force | Out-Null
+Start-ScheduledTask -TaskName '{TASK}'""")
+    if r.returncode != 0:
+        raise RuntimeError("返事の常駐を登録できませんでした：" + (r.stderr or r.stdout).strip()[-200:])
+
+
+def running() -> bool:
+    if c.WIN:
+        return _ps(f"(Get-ScheduledTask -TaskName '{TASK}' -ErrorAction SilentlyContinue).State").stdout.strip() == "Running"
+    r = subprocess.run(["launchctl", "print", f"gui/{os.getuid()}/{LABEL}"], capture_output=True, text=True)
+    return "state = running" in r.stdout
+
+
+def stop():
+    cfg = c.load(c.CONFIG, {})
+    if cfg:
+        cfg["paused"] = True     # 見張り番（fox-home）が起こし直さない目印。つなぎ直すと消える
+        c.save(c.CONFIG, cfg)
+    if c.WIN:
+        _ps(f"Stop-ScheduledTask -TaskName '{TASK}' -ErrorAction SilentlyContinue; "
+            f"Unregister-ScheduledTask -TaskName '{TASK}' -Confirm:$false -ErrorAction SilentlyContinue")
+    else:
+        subprocess.run(["launchctl", "bootout", f"gui/{os.getuid()}/{LABEL}"], capture_output=True)
+
+
 def install_launchd():
+    """常駐を入れる（名前は昔のまま。Windows ではタスク スケジューラに登録する）。"""
+    cfg = c.load(c.CONFIG, {})
+    if cfg.pop("paused", None):
+        c.save(c.CONFIG, cfg)
+    if c.WIN:
+        return install_task()
     PLIST.parent.mkdir(parents=True, exist_ok=True)
     home = str(Path.home())
     pl = {"Label": LABEL, "ProgramArguments": ["/usr/bin/python3", str(HERE / "bridge.py")],
@@ -273,15 +331,14 @@ def roundtrip(api, cfg, link, n, T):
 def status():
     cfg = c.load(c.CONFIG, {})
     say(json.dumps({k: v for k, v in cfg.items()}, ensure_ascii=False, indent=2) if cfg else "未接続")
-    r = subprocess.run(["launchctl", "print", f"gui/{os.getuid()}/{LABEL}"], capture_output=True, text=True)
-    say("常駐: " + ("動いています" if "state = running" in r.stdout else "止まっています"))
+    say("常駐: " + ("動いています" if running() else "止まっています"))
 
 
 def main():
     if "--status" in sys.argv:
         return status()
     if "--stop" in sys.argv:
-        subprocess.run(["launchctl", "bootout", f"gui/{os.getuid()}/{LABEL}"], capture_output=True)
+        stop()
         return say("止めました")
     say(f"\033[1m{AGENT} を Discord / Slack とつなぐ\033[0m")
     say(t("  スマホからでもAIと話せるようにします（10分ほど）。画面が開いたら、書いてある順に押していくだけです。",
@@ -293,10 +350,10 @@ def main():
     head(T - 1 if p == "discord" else T - 1, T, t("いつでも返事ができるようにする", "常駐（launchd）"))
     install_launchd()
     time.sleep(3)
-    ok(t("このMacが起きている間は、いつでも返事をします", f"launchd {LABEL} 起動"))
+    ok(t(f"この{'パソコン' if c.WIN else 'Mac'}が起きている間は、いつでも返事をします", f"常駐 {TASK if c.WIN else LABEL} 起動"))
     roundtrip(api, cfg, link, T, T)
     say("\n\033[1;32m" + t("つながりました。", "完了。") + "\033[0m")
-    say(t("  ※ Macのふたを閉じたり、電源を切ったりすると返事が止まります。", "  ※ スリープ中は応答しません。"))
+    say(t(f"  ※ {'パソコン' if c.WIN else 'Mac'}のふたを閉じたり、電源を切ったりすると返事が止まります。", "  ※ スリープ中は応答しません。"))
 
 
 if __name__ == "__main__":

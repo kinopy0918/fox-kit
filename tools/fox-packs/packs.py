@@ -82,6 +82,11 @@ def ok(s):
     say(f"\033[32m  ✓ {s}\033[0m")
 
 
+def now(label, i=None, n=None):
+    """設定画面が拾う「いま何を入れているか」の1行（▶ で始める）。"""
+    say(f"▶ {label}" + (f"（{i}/{n}）" if i and n else ""))
+
+
 def warn(s):
     say(f"\033[33m  ! {s}\033[0m")
 
@@ -125,12 +130,15 @@ def tools():
     os.environ["PATH"] = f"{Path(brew).parent}:{os.environ['PATH']}"
     have = subprocess.run([brew, "list", "--formula", "-1"], capture_output=True, text=True).stdout.split()
     need = [f for f in BREW if f not in have]
-    if need:
-        sh([brew, "install", *need])
+    for i, f in enumerate(need, 1):
+        now(t(f"道具：{f}", f"brew {f}"), i, len(need))
+        sh([brew, "install", f])
     for cask, app in CASKS:
         if not Path(app).exists():
+            now(t(f"アプリ：{Path(app).stem}", f"cask {cask}"))
             sh([brew, "install", "--cask", cask])
     if not shutil.which("defuddle"):
+        now(t("道具：defuddle（ウェブページの取り込み）", "npm defuddle"))
         sh(["npm", "install", "-g", "defuddle"])
     ok(t("道具を入れました（動画・PDF・音声の処理、ブラウザ、ノートアプリ）", f"brew: {', '.join(BREW)} / casks / defuddle"))
     return True
@@ -140,7 +148,8 @@ def tools():
 def plugins():
     c = claude_bin()
     done = 0
-    for repo, plugin in PLUGINS:
+    for i, (repo, plugin) in enumerate(PLUGINS, 1):
+        now(t(f"スキルのまとまり：{plugin.split('@')[0]}", f"plugin {plugin}"), i, len(PLUGINS))
         sh([c, "plugin", "marketplace", "add", repo])
         if sh([c, "plugin", "install", plugin, "--scope", "user"]) or sh([c, "plugin", "install", plugin]):
             done += 1
@@ -161,7 +170,8 @@ def upstream():
     rec = {}
     cache = {}
     n = 0
-    for repo, path, name in UPSTREAM:
+    for i, (repo, path, name) in enumerate(UPSTREAM, 1):
+        now(t(f"スキル：{name or repo.split('/')[0]}", f"upstream {repo}/{path}"), i, len(UPSTREAM))
         try:
             tf = cache.get(repo) or fetch_repo(repo)
             cache[repo] = tf
@@ -280,7 +290,10 @@ def key():
         return True
     subprocess.run(["open", "https://aistudio.google.com/apikey"])
     for i, s in enumerate([t("開いた画面で Google アカウントにログイン（会社で使うなら会社のアカウント）", "ログイン"),
-                           t("「APIキーを作成」→ できた長い文字列の横のコピーを押す", "Create API key → コピー")], 1):
+                           t("「APIキーを作成」を押す。プロジェクトを選ぶ画面が出たら「新しいプロジェクトで作成」を選ぶ"
+                             "（会社で使っている・お金の設定がついたプロジェクトは選ばない＝間違えて有料の請求が来ないように）",
+                             "Create API key → new project（課金付きプロジェクトは避ける）"),
+                           t("できた長い文字列の横のコピーを押す（「プラン」が Free＝無料 ならOK）", "コピー（Free tier を確認）")], 1):
         say(f"    {i}. {s}")
     for _ in range(3):
         v = ask_key() if ("--dialog" in sys.argv or not sys.stdin.isatty()) else \

@@ -27,19 +27,30 @@ import session_guard as sg   # noqa: E402
 
 POLL = float(os.getenv("FOX_BRIDGE_POLL", "4"))
 MERGE_WAIT = float(os.getenv("FOX_BRIDGE_MERGE_WAIT", "3"))
-CLAUDE = os.getenv("CLAUDE_BIN") or next((p for p in (Path.home() / ".local/bin/claude", Path("/usr/local/bin/claude"),
+CLAUDE = os.getenv("CLAUDE_BIN") or next((p for p in (Path.home() / ".local/bin/claude.exe", Path.home() / ".local/bin/claude",
+                                                    Path("/usr/local/bin/claude"),
                                                     Path("/opt/homebrew/bin/claude")) if p.exists()), None) \
     or shutil.which("claude") or "claude"
 TIMEOUT = int(os.getenv("FOX_BRIDGE_TIMEOUT", "1500"))
-FILE_RE = re.compile(r"\[\[(?:FILE|IMG|VID):(/[^\]]+)\]\]")
+FILE_RE = re.compile(r"\[\[(?:FILE|IMG|VID):((?:/|[A-Za-z]:[\\/])[^\]]+)\]\]")   # Windows の C:/… も
 NUDGE_RE = re.compile(r"^(まだ[?？]*|どう[?？]*|ありがとう(ございます)?|了解|うん|はい|OK|ok)[\s\W]*$")
+
+
+def local_path(p: str) -> Path:
+    """Windows で AI が書きがちな /C:/… や /c/Users/…（Git Bash 形式）を C:/… に直す。"""
+    if c.WIN:
+        m = re.match(r"^/([A-Za-z])(?::)?/(.*)$", p)
+        if m:
+            return Path(f"{m.group(1).upper()}:/{m.group(2)}")
+    return Path(p)
 
 
 def system_prompt(platform: str) -> str:
     base = [
         f"いまの会話は {'Discord' if platform == 'discord' else 'Slack'} のチャンネル経由。相手はスマホで読んでいることが多い。",
         "返事は結論から短く。見出しと短い箇条書き。",
-        "ファイルや画像を相手に届けたいときは、本文に [[FILE:/絶対パス]]（画像は [[IMG:/絶対パス]]）と書く。そう書けば添付して送られる。",
+        "ファイルや画像を相手に届けたいときは、本文に [[FILE:/絶対パス]]（画像は [[IMG:/絶対パス]]）と書く。そう書けば添付して送られる。"
+        + ("このパソコンは Windows なので、絶対パスは C:/Users/… の形で書く。" if c.WIN else ""),
         "相手が送ったファイルは、本文の最後に『添付:』として置き場所が書いてある。",
     ]
     if platform == "discord":
@@ -80,11 +91,16 @@ def _run_claude(prompt: str, sid: str | None, platform: str, model: str | None):
     if sid:
         cmd += ["--resume", sid]
     env = dict(os.environ)
-    env["PATH"] = f"{Path.home()}/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    if not c.WIN:
+        env["PATH"] = f"{Path.home()}/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    else:
+        env["PATH"] = str(Path.home() / ".local" / "bin") + os.pathsep + env.get("PATH", "")
+        env.setdefault("PYTHONUTF8", "1")
     tok_file = Path.home() / ".config" / "claude" / "token"
     if tok_file.exists() and not env.get("CLAUDE_CODE_OAUTH_TOKEN"):
         env["CLAUDE_CODE_OAUTH_TOKEN"] = tok_file.read_text().strip()   # 常駐でログインが切れないように
-    r = subprocess.run(cmd, cwd=str(Path.home()), capture_output=True, text=True, timeout=TIMEOUT, env=env)
+    r = subprocess.run(cmd, cwd=str(Path.home()), capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       timeout=TIMEOUT, env=env, **({"creationflags": 0x08000000} if c.WIN else {}))
     try:
         j = json.loads(r.stdout or "{}")
     except json.JSONDecodeError:
@@ -101,7 +117,7 @@ AUDIO = {".m4a", ".mp3", ".wav", ".aac", ".caf"}
 def readable(p: Path) -> list:
     """AIが読める形にして返す。HEIC→jpg、動画→最大8枚のコマ画像（元の動画も残す）。"""
     ext = p.suffix.lower()
-    if ext in (".heic", ".heif"):
+    if ext in (".heic", ".heif") and not c.WIN:
         jpg = p.with_suffix(".jpg")
         if subprocess.run(["sips", "-s", "format", "jpeg", str(p), "--out", str(jpg)], capture_output=True).returncode == 0:
             return [jpg]
@@ -168,6 +184,9 @@ def handle(api, platform: str, channel: str, msgs: list[dict], st: dict, cfg: di
         j, err = run_claude(prompt, sid, platform)
     except subprocess.TimeoutExpired:
         j, err = None, "時間がかかりすぎたので止めました。もう少し小さく分けて頼んでください。"
+    except OSError as e:   # Windows はコマンドの長さが約3.2万字まで（長文を何通も貼ったとき）
+        c.log("claude を起動できませんでした:", repr(e))
+        j, err = None, "送られた文が長すぎて読み込めませんでした。ファイルにして送るか、何回かに分けてください。"
     finally:
         ind.set()
     placeholder = getattr(ind, "placeholder", None)
@@ -181,7 +200,7 @@ def handle(api, platform: str, channel: str, msgs: list[dict], st: dict, cfg: di
         return
 
     reply = (j.get("result") or "").strip() or "（返事が空でした）"
-    attach = [Path(p) for p in FILE_RE.findall(reply) if Path(p).is_file()]
+    attach = [q for q in (local_path(p) for p in FILE_RE.findall(reply)) if q.is_file()]
     reply = FILE_RE.sub("", reply).strip()
     if placeholder:
         api.send(channel, reply, attach, placeholder=placeholder)

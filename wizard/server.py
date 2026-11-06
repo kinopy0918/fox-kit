@@ -54,8 +54,6 @@ STEPS = [  # (id, 題名, 誰がやるか)
     ("talk", "AIと最初のお話", "you"),
     ("done", "完了", "auto"),
 ]
-if WIN:   # Windows：スマホから話す仕組みはまだ Mac だけ
-    STEPS = [s for s in STEPS if s[0] != "channel"]
 NOWIN = {"creationflags": 0x08000000} if os.name == "nt" else {}   # Windows：裏の作業で黒い窓を出さない
 PY = sys.executable                     # 設定画面を動かしている Python（Windows は /usr/bin/python3 が無い）
 
@@ -200,6 +198,16 @@ def run_job(name: str, cmd, env=None, on_ok=None, cwd=None):
         with LOCK:
             JOBS[name].update(state="ok" if ok else "error", ended=time.time())
     threading.Thread(target=work, daemon=True).start()
+
+
+def now_line(name: str) -> str:
+    """ログの中の最後の「▶ …」（いま何をしているか）。"""
+    j = JOBS.get(name)
+    try:
+        lines = [l for l in Path(j["log"]).read_text(encoding="utf-8", errors="ignore").splitlines() if l.startswith("▶ ")]
+        return lines[-1][2:] if lines else ""
+    except (OSError, TypeError, KeyError):
+        return ""
 
 
 def tail(name: str, n=12) -> str:
@@ -378,6 +386,9 @@ def act(step: str, body: dict) -> dict:
         base = str(Path(root) / a.get("agent", "FOX"))
         open_path(base)
         mark("storage", base=base)
+        rag = HOME / ".local/bin/vault-rag"
+        if rag.exists():   # 意味で探す索引をすぐ作る（毎朝の更新を待つと、その日は「まだ使えません」になる）
+            run_job("rag-index", [str(rag), "index"], env=env_for(st))
         return {"ok": True, "base": base}
 
     if step == "channel":
@@ -389,6 +400,21 @@ def act(step: str, body: dict) -> dict:
     if step == "skip":
         mark(body.get("target", ""), skipped=True)
         return {"ok": True}
+
+    if step == "reopen":   # 「あとでやる」にした段へ戻る（左の一覧から押す）
+        target = body.get("target", "")
+        if target == "packs":
+            target = "gemini"
+        with LOCK:
+            st = load()
+            if target in st["done"] and st["data"].get(target, {}).get("skipped"):
+                st["done"].remove(target)
+                st["data"][target].pop("skipped", None)
+                if target == "channel":
+                    st["data"][target].pop("platform", None)
+                save(st)
+                return {"ok": True}
+        return {"ok": False, "error": "この段には戻れません"}
 
     return {"ok": False, "error": f"知らない段です: {step}"}
 
@@ -508,8 +534,10 @@ def state() -> dict:
     cur = next((s for s, _, _ in STEPS if s not in done), "done")
     return {
         "answers": st["answers"], "data": st["data"], "current": cur,
-        "steps": [{"id": s, "title": t_, "who": w, "done": s in done} for s, t_, w in STEPS],
-        "jobs": {k: {"state": v["state"], "tail": tail(k)} for k, v in JOBS.items()},
+        "steps": [{"id": s, "title": t_, "who": w, "done": s in done,
+                   "skipped": not (WIN and s == "packs")   # Windows は画像づくりの鍵を聞かない＝戻る意味がない
+                              and bool(st["data"].get("gemini" if s == "packs" else s, {}).get("skipped"))} for s, t_, w in STEPS],
+        "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k)} for k, v in JOBS.items()},
         "home": str(HOME),
         "platform": "win" if WIN else "mac",
     }
