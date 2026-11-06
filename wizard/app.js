@@ -156,7 +156,7 @@
       title: t("パソコンの設定", "Mac 設定（電源・Chrome・Antigravity）"),
       lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Chrome（既定ブラウザ）/ Antigravity IDE"),
       html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。", "実行中（既定ブラウザの確認ダイアログあり）")) : `
-             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動・AIが作り置いた一時ファイルを毎日掃除（おすすめ）</small></label>
+             <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動・AIが作り置いた一時ファイルを毎日片付け（おすすめ）</small></label>
              <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて、使うときだけ動けばよい</b><small>作業中だけ眠らない仕組みを入れます（CapsLockのランプが点いている間）</small></label>
              <label class="choice"><input type="checkbox" id="lid"><b>ふたを閉じたまま置いておく</b><small>ノートのMacを閉じたまま使う場合だけ。電源につなぎ、熱がこもらない場所に置いてください</small></label>
              <label class="choice"><input type="checkbox" id="chrome" checked><b>Chrome を入れて、いつも使うブラウザにする</b><small>AIがブラウザを操作する公式の機能（Claude in Chrome）は Chrome で動きます。途中で「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。最後に Chrome に「Claude」の拡張の画面が開くので、「Chrome に追加」を押し、AIと同じアカウントでログインしてください</small></label>
@@ -245,7 +245,7 @@
     channel: () => channelView(),
     talk: () => ({
       title: t("AIと最初のお話", "初期設定の聞き取り（fox-setup）"),
-      lead: t("AIがあなたの仕事について、1つずつ質問します（20分ほど）。AIが「初期設定が終わりました」と言ったら、下の「ここで終える」を押してください。", "claude -p --resume（この画面のチャット）。fox-setup が完了を告げたら終える"),
+      lead: t("AIがあなたの仕事について聞きます（20分ほど）。前に ChatGPT・Gemini・Claude を使っていたなら、その記録から下書きを作って確かめる形にもできます。AIが「初期設定が終わりました」と言ったら、下の「ここで終える」を押してください。", "claude -p --resume（この画面のチャット）。fox-setup が完了を告げたら終える"),
       html: `<div class="chat" id="chat"></div><div class="err" id="err"></div>
              <textarea class="t" id="msg" rows="2" placeholder="ここに入力して「送る」（Shift＋Enterで改行）"></textarea>
              <div class="row"><button class="btn" id="send">送る</button><button class="btn sub" id="fin">ここで終える</button></div>
@@ -294,7 +294,7 @@
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
                  : W() ? `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話したくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>
                <li>見せたい画面があれば ${k("Ctrl")} + ${k("Shift")} + ${k("2")}。範囲を選ぶと、その画像が AI に届きます。</li>`
-                 : `<li>いまは Slack・Discord につないでいません。つなぎたくなったら、担当者に連絡してください。</li>`}
+                 : `<li>いまは Slack・Discord につないでいません。つなぎたくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>`}
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」フォルダに整理して置きます。<div class="row"><button class="btn sub" id="openBase">フォルダを開く</button></div></li>` : ""}
                ${(g && !g.skipped) || W() ? "" : `<li>あとでできること：画像づくりの鍵の登録（${where || "AI"} に「画像づくりの鍵を登録したい」と言うだけ）</li>`}
                </ul></div>
@@ -393,7 +393,7 @@
       lead: t("ふだん使っているチャットアプリにAIを呼びます。つなぐと、スマホからでも話しかけられます。", "fox-bridge"),
       html: `<button class="choice" data-p="discord" style="width:100%;text-align:left"><b>Discord（無料・スマホでも使いやすい。おすすめ）</b><small>AI専用の部屋を作ります（10分ほど）</small></button>
              <button class="choice" data-p="slack" style="width:100%;text-align:left"><b>Slack（会社で既に使っているなら）</b><small>会社のワークスペースにAI用のチャンネルを作ります</small></button>
-             <button class="choice" data-p="none" style="width:100%;text-align:left"><b>いまはつながない</b><small>${W() ? "あとから AI に「スマホから頼めるようにしたい」と言えばつなげます" : "あとから <code>fox-kit connect</code> でつなげます"}</small></button>`,
+             <button class="choice" data-p="none" style="width:100%;text-align:left"><b>いまはつながない</b><small>あとから AI に「スマホから頼めるようにしたい」と言えばつなげます</small></button>`,
       bind: (el) => el.querySelectorAll("[data-p]").forEach((b) => (b.onclick = async () => { await act("channel", { do: "choose", platform: b.dataset.p }); refresh(true); })),
     };
     if (p === "discord") {
