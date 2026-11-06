@@ -64,6 +64,8 @@ done_() {  # ターミナル版の記録か、ブラウザの設定画面の記�
   case "$id" in interview) id=talk ;; hello) id=login ;; esac
   /usr/bin/python3 -c 'import json,sys;sys.exit(0 if sys.argv[2] in json.load(open(sys.argv[1])).get("done",[]) else 1)' "$w" "$id" 2>/dev/null
 }
+# 設定画面で進めるかどうかは「この1行に環境変数で渡されたか」で決める（前回の答えを読む前に控える）
+__ENV_OWNER="${FOX_OWNER:-}"; __ENV_UPDATE="${FOX_UPDATE:-}"
 [[ -n "${FOX_RESET:-}" ]] && rm -f "$STATE"
 RESUMED=""
 if [[ -s "$STATE" ]]; then
@@ -145,12 +147,13 @@ c "1" "fox-kit（AI秘書のセットアップ）"; echo
 
 
 # ------------------------------------------------------------------ ブラウザの設定画面で進める（既定）
-if [[ -z "${FOX_TERMINAL:-}" && -z "${FOX_OWNER:-}" && -z "${FOX_UPDATE:-}" && -z "${SSH_CONNECTION:-}" ]]; then
+if [[ -z "${FOX_TERMINAL:-}" && -z "$__ENV_OWNER" && -z "$__ENV_UPDATE" && -z "${SSH_CONNECTION:-}" ]]; then
   B=1
   echo "  このあとは、ブラウザに出る設定画面で進めます。まず最低限の準備をします（数分）。"
   ensure_clt
   fetch_kit
   pkill -f "$KIT_DIR/wizard/server.py" 2>/dev/null || true
+  rm -f "$HOME/.config/fox-kit/wizard.url"   # 前回の古いURLを出さないように
   nohup /usr/bin/python3 "$KIT_DIR/wizard/server.py" > "$HOME/Library/Logs/fox-wizard.log" 2>&1 &
   for __i in {1..30}; do [[ -s "$HOME/.config/fox-kit/wizard.url" ]] && break; sleep 0.5; done
   echo

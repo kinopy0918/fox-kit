@@ -318,31 +318,56 @@ def apply(root: Path, agent: str, layout: str, memory_in_root: bool, auto_index:
              "デスクトップやダウンロードには置きません。"]
         guide.write_text("\n".join(g) + "\n", encoding="utf-8")
 
-    # 記憶をこのフォルダへ
+    # 記憶をこのフォルダへ（どの道でも、記憶のファイルを消さない）
     mem = memory_dir()
+
+    def merge(src: Path, dst: Path, move: bool):
+        """src の中身を dst へ。同じ名前で中身が違えば、消さずに「名前.local-日時」として並べて置く"""
+        dst.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        for f in src.iterdir():
+            t = dst / f.name
+            if t.exists():
+                if f.is_file() and t.is_file() and f.read_bytes() == t.read_bytes():
+                    if move:
+                        f.unlink()
+                    continue
+                t = dst / f"{f.stem}.local-{stamp}{f.suffix}"
+            (shutil.move if move else (shutil.copytree if f.is_dir() else shutil.copy2))(str(f), str(t))
+
     if memory_in_root:
         dest = base / MEMORY_FOLDER[layout]
         if mem.is_symlink():
-            print(f"記憶は既に移してあります: {os.readlink(mem)}")
+            old = Path(os.readlink(mem))
+            if old.resolve() == dest.resolve():
+                print(f"記憶は既に移してあります: {dest}")
+            else:   # 保存先をやり直した：前の保存先の記憶を写して、つなぎ先を付け替える（前の保存先の分は消さない）
+                if old.is_dir():
+                    merge(old, dest, move=False)
+                mem.unlink(); mem.symlink_to(dest, target_is_directory=True)
+                print(f"記憶のつなぎ先を新しい保存先に付け替えました: {dest}（前の保存先の記憶はそのまま残しています）")
         else:
-            dest.mkdir(parents=True, exist_ok=True)
-            if mem.is_dir():
-                for f in mem.iterdir():
-                    if not (dest / f.name).exists():
-                        shutil.move(str(f), str(dest / f.name))
-                shutil.rmtree(mem)
-            mem.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                mem.symlink_to(dest, target_is_directory=True)
-                print(f"記憶を移しました: {dest}")
+            can_link = True
+            probe = mem.parent / ".fox-linktest"
+            try:   # Windows は「開発者モード」でないとリンクが作れない。作れないなら、記憶は動かさない
+                mem.parent.mkdir(parents=True, exist_ok=True); dest.mkdir(parents=True, exist_ok=True)
+                if probe.is_symlink() or probe.exists():
+                    probe.unlink()
+                probe.symlink_to(dest, target_is_directory=True); probe.unlink()
             except OSError:
-                # Windows は「開発者モード」でないとリンクが作れない → 記憶はこのパソコンに戻し、保存先へは写しを置かない
-                mem.mkdir(parents=True, exist_ok=True)
-                for f in dest.iterdir():            # 移した記憶を元へ戻す（2か所に分かれて食い違わないように）
-                    if not (mem / f.name).exists():
-                        shutil.move(str(f), str(mem / f.name))
+                can_link = False
+            if not can_link:
                 memory_in_root = False
                 print("記憶はこのパソコンの中に置きました（Windows の設定で、保存先へのつなぎ込みが作れなかったため）")
+            else:
+                if mem.is_dir():
+                    merge(mem, dest, move=True)
+                    try:
+                        mem.rmdir()
+                    except OSError:    # 移せなかったものが残っていたら、消さずに脇へよける
+                        mem.rename(mem.with_name(f"memory.before-move-{time.strftime('%Y%m%d-%H%M%S')}"))
+                mem.symlink_to(dest, target_is_directory=True)
+                print(f"記憶を移しました: {dest}")
 
     # 目次
     n = index(base, all_=True, descs=descs)
@@ -350,7 +375,7 @@ def apply(root: Path, agent: str, layout: str, memory_in_root: bool, auto_index:
 
     # 設定の控え（index の既定の場所）
     CONF.parent.mkdir(parents=True, exist_ok=True)
-    CONF.write_text(json.dumps({"base": str(base), "layout": layout, "agent": agent}, ensure_ascii=False, indent=2))
+    CONF.write_text(json.dumps({"base": str(base), "layout": layout, "agent": agent}, ensure_ascii=False, indent=2), encoding="utf-8")
 
     # 作業が終わるたびに目次を更新
     here = Path(__file__).resolve()

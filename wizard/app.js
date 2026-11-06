@@ -17,7 +17,13 @@
     } : {});
     return r.json();
   }
-  const act = (step, body) => api("/api/act/" + step, body || {});
+  const BUSY = new Set();   // 同じ操作が終わる前に、もう一度送らない（二重送信で同じものが2つ作られないように）
+  const act = async (step, body) => {
+    const key = step + JSON.stringify(body || {});
+    if (BUSY.has(key)) return { ok: false, error: "いま進めています。少し待ってください" };
+    BUSY.add(key);
+    try { return await api("/api/act/" + step, body || {}); } finally { BUSY.delete(key); }
+  };
   const shot = (name, cap) => `<figure class="shot" data-shot="${name}"><img src="/static/img/${name}.png" alt="${esc(cap)}" onerror="this.closest('figure').remove()"><figcaption>${esc(cap)}</figcaption></figure>`;
   const k = (en, ja) => `<span class="k">${esc(en)}${ja ? `<i>（${esc(ja)}）</i>` : ""}</span>`;
   const job = (name) => S?.jobs?.[name];
@@ -284,7 +290,7 @@
              <div id="finNote" class="note" hidden><b>✓ 初期設定が終わりました。</b>下の「ここで終える」を押してください。この先は Slack・Discord のチャンネルで話しかければ続きができます。</div>
              <p class="hint">途中でやめても大丈夫です。続きは、あとで AI に「初期設定の続きをして」と言えば、終わったところから再開します。</p>`,
       bind: (el) => {
-        local.chat = local.chat || [];
+        local.chat = local.chat || (S.data.talk?.log || []).map((m) => ({ ...m }));   // 開き直しても、前の会話を出す
         const draw = () => { $("#chat").innerHTML = local.chat.map((m) => `<div class="msg ${m.who}">${m.who === "ai" ? md(m.text) : esc(m.text)}</div>`).join(""); $("#chat").scrollTop = 1e9; };
         const send = async (text) => {
           if (text) local.chat.push({ who: "me", text });
@@ -302,7 +308,7 @@
           }
         };
         draw(); finCheck();
-        if (!local.chat.length) send("");
+        if (!local.chat.length && !S.data.talk?.sid) send("");   // 前の会話があるときは、最初の依頼を送り直さない
         $("#send", el).onclick = () => { const v = $("#msg").value.trim(); if (!v) return; $("#msg").value = ""; send(v); };
         $("#msg", el).onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#send").click(); } };
         $("#fin", el).onclick = async () => { await act("talk", { finish: true }); refresh(true); };
@@ -512,7 +518,7 @@
     document.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => {
       if (b.dataset.ask && !confirm(`「${b.dataset.ask}」をやり直しますか？\n（ほかの段で入れたものは、そのまま残ります）`)) return;
       await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
-    const sig = cur + "|" + JSON.stringify(S.jobs[cur] ? S.jobs[cur].state : "") + "|" + JSON.stringify(S.data[cur] || {}) + "|" + (cur === "packs" ? JSON.stringify(S.data.gemini || {}) : "");
+    const sig = cur + "|" + JSON.stringify(S.jobs[cur] ? S.jobs[cur].state : "") + "|" + (cur === "talk" ? "" : JSON.stringify(S.data[cur] || {})) + "|" + (cur === "packs" ? JSON.stringify(S.data.gemini || {}) : "");
     if (!force && view === sig) {           // 同じ段なら、動いている作業の表示だけ更新（入力中を消さない）
       document.querySelectorAll("pre.log").forEach((pre) => { const j = S.jobs[cur]; if (j) pre.textContent = j.tail; });
       document.querySelectorAll("p.nowline").forEach((p) => { const j = S.jobs[cur]; if (j) p.textContent = nowLine(j); });

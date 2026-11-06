@@ -240,6 +240,7 @@ def act(step: str, body: dict) -> dict:
         return {"ok": True}
 
     if step == "names":
+        old = dict(a)
         for k in ("owner", "agent", "machine", "role"):
             v = (body.get(k) or "").strip()
             if k in ("owner", "agent") and not v:
@@ -248,6 +249,18 @@ def act(step: str, body: dict) -> dict:
                 return {"ok": False, "error": "30文字以内で、記号（\" $ ` \\ |）は使わないでください"}
             a[k] = v or {"machine": "このMac", "role": "作業機"}.get(k, "")
         save(st); mark("names")
+        # やり直しで名前が変わったら、AIの人格のファイル（CLAUDE.md）の名前も書き換える（組み立ては既存の CLAUDE.md を上書きしないため）
+        cm = HOME / ".claude" / "CLAUDE.md"
+        try:
+            if cm.exists():
+                t = cm.read_text(encoding="utf-8"); t0 = t
+                for k in ("agent", "owner"):
+                    if old.get(k) and old[k] != a.get(k) and len(old[k]) >= 2:
+                        t = t.replace(old[k], a[k])
+                if t != t0:
+                    cm.write_text(t, encoding="utf-8")
+        except OSError:
+            pass
         return {"ok": True}
 
     if step == "update":
@@ -282,7 +295,9 @@ def act(step: str, body: dict) -> dict:
                     LOGIN["proc"].kill()
                 mark("login"); return {"ok": True}
             return {"ok": False, "error": "まだログインできていません"}
-        if body.get("code"):
+        if "code" in body:
+            if not (body.get("code") or "").strip():
+                return {"ok": False, "error": "表示されたコードを貼り付けてから「送る」を押してください"}
             p = LOGIN["proc"]
             if not p or p.poll() is not None:
                 return {"ok": False, "error": "ログインの受け付けが切れました。「ログイン画面を開く」からやり直してください"}
@@ -424,9 +439,17 @@ def act(step: str, body: dict) -> dict:
             st = load()
             if target in st["done"] and (st["data"].get(target, {}).get("skipped") or target in REDO):
                 st["done"].remove(target)
-                st["data"].setdefault(target, {}).pop("skipped", None)
-                if target == "channel":
-                    st["data"][target].pop("platform", None)
+                d = st["data"].setdefault(target, {})
+                d.pop("skipped", None)
+                if target == "channel":      # 前のボット・サーバーの記録も消して、最初から選び直す
+                    for k in ("platform", "bot", "app_id", "guild", "team", "link", "greeted", "invite", "channel"):
+                        d.pop(k, None)
+                if target == "gemini":       # 「登録できました」の表示で止まらないように、鍵の記録ごと消す
+                    st["data"].pop("gemini", None)
+                if target == "mac":          # Windows：入れ直せるように
+                    d.pop("installed", None)
+                if target in ("level", "names") and "build" in st["done"]:   # 話し方・名前を AI に反映するため組み立て直す
+                    st["done"].remove("build")
                 save(st)
                 return {"ok": True}
         return {"ok": False, "error": "この段には戻れません"}
@@ -539,7 +562,12 @@ def talk(body: dict, st: dict) -> dict:
     if not j.get("result"):
         return {"ok": False, "error": "AIから返事がありませんでした。もう一度送ってください"}
     with LOCK:
-        s2 = load(); s2["data"].setdefault("talk", {})["sid"] = j.get("session_id"); save(s2)
+        s2 = load(); t2 = s2["data"].setdefault("talk", {}); t2["sid"] = j.get("session_id")
+        lg = t2.setdefault("log", [])
+        if body.get("message"):
+            lg.append({"who": "me", "text": body["message"]})
+        lg.append({"who": "ai", "text": j["result"]}); t2["log"] = lg[-60:]
+        save(s2)
     return {"ok": True, "reply": j["result"]}
 
 
