@@ -38,95 +38,51 @@ function Step($n, $s) {
 $script:WStep = 0
 function Elapsed($sec) { if ($sec -ge 60) { "{0}分{1:00}秒" -f [int][math]::Floor($sec / 60), ($sec % 60) } else { "${sec}秒" } }
 # 時間のかかる処理の間、止まっていないことが分かるように「経過」を書き換え続ける
+# 画面の幅に収めて、余りを空白で埋める（全角は2マスで数える。はみ出すと `r で書き換えられず行が増えるため）
+function Fit($t) {
+  try { $w = [Console]::WindowWidth - 2 } catch { $w = 78 }; if ($w -lt 20) { $w = 78 }
+  $sb = New-Object Text.StringBuilder; $n = 0
+  foreach ($ch in $t.ToCharArray()) { $cw = if ([int]$ch -ge 0x1100) { 2 } else { 1 }; if ($n + $cw -gt $w) { break }; [void]$sb.Append($ch); $n += $cw }
+  return $sb.ToString() + (' ' * ($w - $n))
+}
 function Wait-Proc($p, $what) {
-  $null = $p.Handle   # ExitCode を後で読めるように（PowerShell の決まり）
-  $t0 = Get-Date
+  if (-not $p) { LogLine "start failed: $what"; return -1 }   # 起動できなかったら待たない（永久に待たない）
+  try { $null = $p.Handle } catch {}                          # ExitCode を後で読めるように（PowerShell の決まり）
+  $t0 = Get-Date; $hinted = $false
   while (-not $p.HasExited) {
     $sec = [int]((Get-Date) - $t0).TotalSeconds
-    $hint = if ($sec -ge 60) { '（「許可しますか？」が後ろに隠れていないか、画面下のタスクバーも見てください）' } else { '' }
-    Write-Host -NoNewline ("`r    $what … 経過 $(Elapsed $sec) $hint      ")
+    if ($sec -ge 15 -and -not $hinted) {
+      Write-Host ("`r" + (Fit ''))
+      Write-Host (T '    「このアプリがデバイスに変更を加えることを許可しますか？」が後ろに隠れていないか、画面下のタスクバーも見てください' '    (UAC prompt may be behind this window — check the taskbar)') -ForegroundColor Yellow
+      $hinted = $true
+    }
+    Write-Host -NoNewline ("`r" + (Fit "    $what … 経過 $(Elapsed $sec)"))
     Start-Sleep -Seconds 2
   }
-  Write-Host ("`r    $what … 終わりました（$(Elapsed ([int]((Get-Date) - $t0).TotalSeconds))）" + (' ' * 60))
+  Write-Host ("`r" + (Fit "    $what … 終わりました（$(Elapsed ([int]((Get-Date) - $t0).TotalSeconds))）"))
   return $p.ExitCode
 }
-function Ok($s)   { Write-Host "  ✓ $s" -ForegroundColor Green }
-function Warn($s) { Write-Host "  ! $s" -ForegroundColor Yellow }
-function Die($s)  {
-  Write-Host ''; Write-Host "  ✕ $s" -ForegroundColor Red
-  Write-Host ('  ' + (T 'もう一度、同じ1行を貼り付けると続きから始まります。' '再実行で続きから再開します。'))
-  Write-Host "  （記録: $Log）"
-  exit 1
-}
-function LogLine($s) { Add-Content -Path $Log -Value "$(Get-Date -Format s) $s" -Encoding UTF8 }
-
-# ------------------------------------------------------------------ 覚えておく（続きから再開）
-if ($env:FOX_RESET) { Remove-Item -Force $State -ErrorAction SilentlyContinue }
-$S = @{ done = @() }
-$Resumed = $false
-if (Test-Path $State) {
-  try {
-    $j = Get-Content $State -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($p in $j.PSObject.Properties) { $S[$p.Name] = $p.Value }
-    if (-not $S.done) { $S.done = @() }
-    $Resumed = $true
-  } catch { $S = @{ done = @() } }
-}
-function Save { ($S | ConvertTo-Json -Depth 4) | Set-Content -Path $State -Encoding UTF8 }
-function Mark($id) { if ($S.done -notcontains $id) { $S.done = @($S.done) + $id }; Save }
-function IsDone($id) { return ($S.done -contains $id) }
-
-function Ask-YesNo($q, $default = $true) {
-  $hint = if ($default) { '（空欄なら はい）' } else { '（空欄なら いいえ）' }
-  for ($i = 0; $i -lt 3; $i++) {
-    $a = (Read-Host "  $q [はい=y / いいえ=n]$hint").Trim().ToLower()
-    if ($a -eq '') { return $default }
-    if ($a -in @('y', 'yes', 'はい', '1')) { return $true }
-    if ($a -in @('n', 'no', 'いいえ', '2')) { return $false }
-    Warn 'y か n で答えてください'
-  }
-  return $default
-}
-function Valid-Name($v) {
-  if (-not $v) { return '空欄はできません' }
-  if ($v.Length -gt 30) { return "30文字以内にしてください（いま$($v.Length)文字）" }
-  if ($v -match '["$`\\|]') { return '記号（" $ ` \ |）は使えません' }
-  return $null
-}
-function Ask-Name($key, $q, $default) {
-  $envv = [Environment]::GetEnvironmentVariable($key)
-  if ($envv) { $S[$key] = $envv }
-  if ($S[$key]) { $err = Valid-Name $S[$key]; if (-not $err) { Save; return } }
-  for ($i = 0; $i -lt 3; $i++) {
-    $hint = if ($default) { "（空欄なら「$default」）" } else { '' }
-    $a = (Read-Host "  $q$hint").Trim()
-    if (-not $a) { $a = $default }
-    $err = Valid-Name $a
-    if (-not $err) { $S[$key] = $a; Save; return }
-    Warn $err
-  }
-  Die "「$q」を受け取れませんでした"
-}
-
-function Refresh-Path {
-  $m = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-  $u = [Environment]::GetEnvironmentVariable('Path', 'User')
-  $env:Path = "$HOME\.local\bin;$u;$m"
+# 隠れて動かしたものの出力（標準出力・エラー）をログへ足して消す
+function Run-Logged($file, $argList, $what) {
+  $o = Join-Path $env:TEMP ("fox-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
+  $p = $null
+  try { $p = Start-Process -FilePath $file -ArgumentList $argList -WindowStyle Hidden -PassThru -RedirectStandardOutput "$o.out" -RedirectStandardError "$o.err" }
+  catch { LogLine "start failed: $file $($_.Exception.Message)" }
+  $code = Wait-Proc $p $what
+  foreach ($f in "$o.out", "$o.err") { if (Test-Path $f) { Get-Content $f -Encoding UTF8 -ErrorAction SilentlyContinue | Add-Content -Path $Log -Encoding UTF8; Remove-Item $f -ErrorAction SilentlyContinue } }
+  return $code
 }
 function Has-Winget { return [bool](Get-Command winget -ErrorAction SilentlyContinue) }
 function Winget-Install($id) {
   LogLine "winget install $id"
-  $out = Join-Path $env:TEMP ("winget-" + [guid]::NewGuid().ToString('N').Substring(0, 8) + ".log")
-  $p = Start-Process -FilePath 'winget' -WindowStyle Hidden -PassThru -RedirectStandardOutput $out `
-    -ArgumentList @('install', '--id', $id, '-e', '--silent', '--accept-package-agreements', '--accept-source-agreements')
-  $code = Wait-Proc $p (T 'インストール中' "winget install $id")
-  if (Test-Path $out) { Get-Content $out -ErrorAction SilentlyContinue | Add-Content -Path $Log -Encoding UTF8; Remove-Item $out -ErrorAction SilentlyContinue }
+  $code = Run-Logged 'winget' @('install', '--id', $id, '-e', '--silent', '--accept-package-agreements', '--accept-source-agreements') (T 'インストール中' "winget $id")
   return ($code -eq 0 -or $code -eq -1978335189)   # 後者＝もう入っている
 }
-# 取ってきながら、％（大きさが分からないときは MB）を書き換える
+# 取ってきながら、％（大きさが分からないときは MB）を書き換える。失敗したら途中のファイルを消して例外を投げる
 function Download($url, $dest) {
   LogLine "GET $url"
   $res = [Net.WebRequest]::Create($url).GetResponse()
+  $ok = $false
   try {
     $total = $res.ContentLength; $in = $res.GetResponseStream(); $out = [IO.File]::Create($dest)
     try {
@@ -136,12 +92,17 @@ function Download($url, $dest) {
         if (((Get-Date) - $last).TotalMilliseconds -ge 500) {
           $mb = '{0:N1}MB' -f ($sum / 1MB)
           $msg = if ($total -gt 0) { '{0}% （{1} / {2:N1}MB）' -f [int](100 * $sum / $total), $mb, ($total / 1MB) } else { $mb }
-          Write-Host -NoNewline ("`r    取ってきています … $msg      "); $last = Get-Date
+          Write-Host -NoNewline ("`r" + (Fit "    取ってきています … $msg")); $last = Get-Date
         }
       }
-      Write-Host ("`r    取ってきました（{0:N1}MB）" -f ($sum / 1MB) + (' ' * 40))
+      if ($total -gt 0 -and $sum -ne $total) { throw "途中で切れました（$sum / $total バイト）" }
+      Write-Host ("`r" + (Fit ("    取ってきました（{0:N1}MB）" -f ($sum / 1MB))))
+      $ok = $true
     } finally { $out.Close(); $in.Close() }
-  } finally { $res.Close() }
+  } finally {
+    $res.Close()
+    if (-not $ok) { Write-Host ''; Remove-Item $dest -ErrorAction SilentlyContinue }
+  }
 }
 
 function Find-Python {
@@ -237,8 +198,10 @@ else {
     $asset = $rel.assets | Where-Object { $_.name -match '^Git-[\d.]+-64-bit\.exe$' } | Select-Object -First 1
     if ($asset) {
       $exe = Join-Path $env:TEMP $asset.name
-      Download $asset.browser_download_url $exe
-      $null = Wait-Proc (Start-Process -FilePath $exe -ArgumentList '/VERYSILENT', '/NORESTART', '/SP-' -PassThru) (T 'インストール中' 'Git installer')
+      try {
+        Download $asset.browser_download_url $exe
+        $null = Wait-Proc (Start-Process -FilePath $exe -ArgumentList '/VERYSILENT', '/NORESTART', '/SP-' -PassThru) (T 'インストール中' 'Git installer')
+      } catch { LogLine "Git fallback failed: $($_.Exception.Message)" }
     }
   }
   Refresh-Path
@@ -254,8 +217,10 @@ else {
   Refresh-Path; $py = Find-Python
   if (-not $py) {
     $exe = Join-Path $env:TEMP 'python-3.12.10-amd64.exe'
-    Download 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe' $exe
-    $null = Wait-Proc (Start-Process -FilePath $exe -ArgumentList '/quiet', 'InstallAllUsers=0', 'PrependPath=1', 'Include_launcher=1' -PassThru) (T 'インストール中' 'Python installer')
+    try {
+      Download 'https://www.python.org/ftp/python/3.12.10/python-3.12.10-amd64.exe' $exe
+      $null = Wait-Proc (Start-Process -FilePath $exe -ArgumentList '/quiet', 'InstallAllUsers=0', 'PrependPath=1', 'Include_launcher=1' -PassThru) (T 'インストール中' 'Python installer')
+    } catch { LogLine "Python fallback failed: $($_.Exception.Message)" }
     Refresh-Path; $py = Find-Python
   }
   if ($py) { Ok (T '部品2（Python）を入れました' "Python: $py") }
@@ -286,10 +251,10 @@ if (Get-Command claude -ErrorAction SilentlyContinue) { Ok (T 'もう入って�
 else {
   Write-Host ('  ' + (T '入れています…（数分かかります）' 'claude.ai/install.ps1'))
   $inst = Join-Path $env:TEMP 'claude-install.ps1'
-  Download 'https://claude.ai/install.ps1' $inst
-  $o = Join-Path $env:TEMP 'claude-install.log'
-  $null = Wait-Proc (Start-Process -FilePath 'powershell' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$inst`"") -WindowStyle Hidden -PassThru -RedirectStandardOutput $o) (T 'インストール中' 'claude install.ps1')
-  if (Test-Path $o) { Get-Content $o -ErrorAction SilentlyContinue | Add-Content -Path $Log -Encoding UTF8 }
+  try {
+    Download 'https://claude.ai/install.ps1' $inst
+    $null = Run-Logged 'powershell' @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$inst`"") (T 'インストール中' 'claude install.ps1')
+  } catch { LogLine "claude install failed: $($_.Exception.Message)" }
   $lb = Join-Path $HOME '.local\bin'
   $up = [Environment]::GetEnvironmentVariable('Path', 'User')
   if ($up -notlike "*$lb*") { [Environment]::SetEnvironmentVariable('Path', "$lb;$up", 'User') }
