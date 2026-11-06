@@ -386,8 +386,8 @@ def apply(root: Path, agent: str, layout: str, memory_in_root: bool, auto_index:
     cm = HOME / ".claude" / "CLAUDE.md"
     if cm.exists():
         text = cm.read_text(encoding="utf-8")
-        text = re.sub(r"^- ノート / 議事録 / 調査・資料・成果物 … .*$",
-                      f"- ノート / 議事録 / 調査・資料・成果物 … `{base}`（探し方・置き方は rules/storage.md）", text, flags=re.M)
+        line = f"- ノート / 議事録 / 調査・資料・成果物 … `{base}`（探し方・置き方は rules/storage.md）"
+        text = re.sub(r"^- ノート / 議事録 / 調査・資料・成果物 … .*$", lambda _m: line, text, flags=re.M)   # 関数で渡す（Windows の場所の \ を記号として読ませない）
         if "@~/.claude/rules/storage.md" not in text:
             text += "\n@~/.claude/rules/storage.md\n"
         cm.write_text(text, encoding="utf-8")
