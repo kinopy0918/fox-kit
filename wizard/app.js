@@ -108,7 +108,8 @@
                     ["愛称", ["ミライ", "ココ", "モモ", "ハル", "ひしょっち"]],
                     ["人の名前", ["はやと", "さくら", "ゆうき", "あおい", "けんた"]],
                     ["執事・相棒", ["ジャービス", "セバスチャン", "アルフレッド", "バディ"]]]
-                   .map(([g, xs]) => `<div class="ng"><span>${g}</span>${xs.map((x) => `<button type="button" class="nm" data-n="${esc(x)}">${x === "__own__" ? "（お名前を入れると出ます）" : esc(x)}</button>`).join("")}</div>`).join("")}</div>
+                   .map(([g, xs]) => `<div class="ng"><span>${g}</span>${xs.map((x) => `<button type="button" class="nm" data-n="${esc(x)}">${x === "__own__" ? "（お名前を入れると出ます）" : esc(x)}</button>`).join("")}</div>`).join("")}
+                 <div class="ng" id="more"></div><button type="button" class="nmore" id="moreBtn">ほかの候補を出す</button></div>
                <label class="f">この${PC()}の呼び方 <span class="hint">（空欄でも大丈夫）</span></label><input class="t" id="machine" placeholder="例：事務所の${PC()}" value="${esc(a.machine)}">
                <label class="f">この${PC()}で主にすること <span class="hint">（空欄でも大丈夫）</span></label><input class="t" id="role" placeholder="例：経理の仕事" value="${esc(a.role)}">
                <div class="note"><b>あとから変えられますか？</b>
@@ -122,8 +123,20 @@
             b.classList.add("own"); b.dataset.n = base ? base + "AI" : ""; b.textContent = base ? base + "AI" : "（お名前を入れると出ます）"; b.disabled = !base; };
           own(); $("#owner", el).addEventListener("input", own);
           $("#agent", el).addEventListener("input", () => el.querySelectorAll(".nm.on").forEach((x) => x.classList.remove("on")));
-          el.querySelectorAll(".nm").forEach((b) => (b.onclick = () => { if (!b.dataset.n) return; $("#agent").value = b.dataset.n;
-            el.querySelectorAll(".nm").forEach((x) => x.classList.toggle("on", x === b)); }));
+          const pick = (b) => { if (!b.dataset.n) return; $("#agent").value = b.dataset.n;
+            el.querySelectorAll(".nm").forEach((x) => x.classList.toggle("on", x === b)); };
+          el.querySelectorAll(".nm").forEach((b) => (b.onclick = () => pick(b)));
+          // 押すたびに、まだ出していない候補を8つずつ出す（一巡したら最初から）
+          const POOL = ["ルナ", "ソラ", "リク", "ノア", "レオ", "アオ", "ユメ", "ヒカリ", "カイ", "ミナト", "そうた", "はると", "ゆい", "めい", "こはる", "たいが",
+            "クロ", "シロ", "モカ", "きなこ", "あんこ", "おもち", "ぽんず", "こむぎ", "タヌキ", "パンダ", "ペンギン", "カワウソ", "フクロウ", "イルカ", "クジラ", "ハヤブサ",
+            "アトム", "ロビン", "マックス", "ジェイ", "エマ", "リリー", "サム", "ベン", "ケン", "ジョージ", "ナビ", "コンパス", "カナメ", "ツクモ", "ミコト", "ハジメ"];
+          let pos = 0;
+          $("#moreBtn", el).onclick = () => {
+            const xs = []; for (let i = 0; i < 8; i++) { xs.push(POOL[pos % POOL.length]); pos++; }
+            $("#more", el).innerHTML = `<span>ほかにも</span>` + xs.map((x) => `<button type="button" class="nm" data-n="${esc(x)}">${esc(x)}</button>`).join("");
+            $("#more", el).querySelectorAll(".nm").forEach((b) => (b.onclick = () => pick(b)));
+            $("#moreBtn", el).textContent = "もっと出す";
+          };
           $("#go", el).onclick = async () => {
             const r = await act("names", { owner: $("#owner").value, agent: $("#agent").value, machine: $("#machine").value, role: $("#role").value });
             if (!r.ok) return ($("#err").textContent = r.error);
@@ -153,11 +166,13 @@
              <div class="row"><button class="btn" id="send">送る</button></div>`,
       bind: (el) => {
         $("#open", el).onclick = async () => {
-          const w = window.open("about:blank", "_blank");
+          const w = W() ? null : window.open("about:blank", "_blank");   // Windows はログインの道具が自分でブラウザを開く（2つ開かないように）
           $("#err").textContent = "";
           const r = await act("login", {});
-          if (r.ok && r.url) { w ? (w.location = r.url) : window.open(r.url, "_blank"); }
-          else { w && w.close(); $("#err").textContent = "ログイン画面を用意できませんでした：" + (r.error || ""); }
+          if (r.ok && r.url) {
+            if (W()) $("#err").innerHTML = `<span style="color:var(--ink2)">ブラウザにログインの画面が開きました。開いていなければ <a href="${esc(r.url)}" target="_blank">ここを押してください</a>。</span>`;
+            else w ? (w.location = r.url) : window.open(r.url, "_blank");
+          } else { w && w.close(); $("#err").textContent = "ログイン画面を用意できませんでした：" + (r.error || ""); }
         };
         $("#send", el).onclick = async () => {
           $("#send").disabled = true; $("#err").innerHTML = '<span class="spin"></span>確かめています…';
@@ -491,8 +506,12 @@
     $("#progBar").style.width = Math.round((n / steps.length) * 100) + "%";
     $("#steps").innerHTML = S.steps.map((s, i) => s.done && s.skipped
       ? `<button class="st done later" data-reopen="${s.id}" title="押すと、この段に戻ってやり直せます"><i>↩</i>${esc(s.title)}<small>あとでやる → 押すと戻れます</small></button>`
+      : s.done && s.redo
+      ? `<button class="st done redo" data-reopen="${s.id}" data-ask="${esc(s.title)}" title="押すと、この段をやり直せます"><i>✓</i>${esc(s.title)}<small>押すとやり直せます</small></button>`
       : `<div class="st ${s.done ? "done" : s.id === cur ? "now" : ""}"><i>${s.done ? "✓" : s.id === "done" ? "★" : i + 1}</i>${esc(s.title)}</div>`).join("");
-    document.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => { await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
+    document.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => {
+      if (b.dataset.ask && !confirm(`「${b.dataset.ask}」をやり直しますか？\n（ほかの段で入れたものは、そのまま残ります）`)) return;
+      await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
     const sig = cur + "|" + JSON.stringify(S.jobs[cur] ? S.jobs[cur].state : "") + "|" + JSON.stringify(S.data[cur] || {}) + "|" + (cur === "packs" ? JSON.stringify(S.data.gemini || {}) : "");
     if (!force && view === sig) {           // 同じ段なら、動いている作業の表示だけ更新（入力中を消さない）
       document.querySelectorAll("pre.log").forEach((pre) => { const j = S.jobs[cur]; if (j) pre.textContent = j.tail; });

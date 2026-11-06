@@ -73,3 +73,9 @@ details.sub-card summary{cursor:pointer}
 .names .nm:hover{border-color:var(--accent)}.names .nm.on{border-color:var(--accent);background:var(--soft);font-weight:600}
 .names .nm:disabled{color:var(--ink2);cursor:default;border-style:dashed}
 @media (max-width:560px){.names .ng>span{min-width:100%}}
+.names .nmore{font:inherit;font-size:13px;margin:6px 0 0;padding:5px 12px;border:0;background:none;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+#more:empty{display:none}
+/* 終わった段：押すとやり直せる */
+.st.redo{width:100%;border:0;background:none;text-align:left;cursor:pointer;flex-wrap:wrap;font:inherit;font-size:14px}
+.st.redo small{flex-basis:100%;padding-left:34px;color:var(--ink2);font-size:12px;display:none}
+.st.redo:hover{background:var(--soft)}.st.redo:hover small{display:block}

@@ -54,6 +54,7 @@ STEPS = [  # (id, 題名, 誰がやるか)
     ("talk", "AIと最初のお話", "you"),
     ("done", "完了", "auto"),
 ]
+REDO = {"level", "update", "names", "mac", "storage", "channel", "gemini"}   # 終わったあとでも、左の一覧から押してやり直せる段
 NOWIN = {"creationflags": 0x08000000} if os.name == "nt" else {}   # Windows：裏の作業で黒い窓を出さない
 PY = sys.executable                     # 設定画面を動かしている Python（Windows は /usr/bin/python3 が無い）
 
@@ -407,9 +408,9 @@ def act(step: str, body: dict) -> dict:
             target = "gemini"
         with LOCK:
             st = load()
-            if target in st["done"] and st["data"].get(target, {}).get("skipped"):
+            if target in st["done"] and (st["data"].get(target, {}).get("skipped") or target in REDO):
                 st["done"].remove(target)
-                st["data"][target].pop("skipped", None)
+                st["data"].setdefault(target, {}).pop("skipped", None)
                 if target == "channel":
                     st["data"][target].pop("platform", None)
                 save(st)
@@ -539,6 +540,7 @@ def state() -> dict:
         "answers": st["answers"], "data": st["data"], "current": cur,
         "packs_installed": "packs" in st["done"],   # 鍵だけ戻したときに、入れ直しを始めないため
         "steps": [{"id": s, "title": t_, "who": w, "done": s in done,
+                   "redo": s in done and ("gemini" if s == "packs" and not WIN else s) in REDO,
                    "skipped": not (WIN and s == "packs")   # Windows は画像づくりの鍵を聞かない＝戻る意味がない
                               and bool(st["data"].get("gemini" if s == "packs" else s, {}).get("skipped"))} for s, t_, w in STEPS],
         "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k)} for k, v in JOBS.items()},
