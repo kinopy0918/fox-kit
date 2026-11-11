@@ -59,6 +59,8 @@ if [[ -n "$__kept" ]]; then
 fi
 # 毎朝の点検（スキルの見張り・健康診断）を登録
 [[ -f "$HOME/Tools/fox-guard/install.py" ]] && quiet /usr/bin/python3 "$HOME/Tools/fox-guard/install.py" ${FOX_UPDATE:+--no-reset}
+# どこで話しても同じ前提に：基本の1枚（Drive）と記憶の写し
+[[ -f "$HOME/Tools/fox-base/fox_base.py" ]] && quiet /usr/bin/python3 "$HOME/Tools/fox-base/fox_base.py" install --owner "$FOX_OWNER" --agent "$FOX_AGENT" --machine "${FOX_MACHINE:-}"
 # 置きっぱなしの Mac には一時ファイルの掃除を入れる（更新のときは「パソコンの設定」を飛ばすので、ここで拾う）
 __use="$(sed -n 's/^FOX_MAC_USE=//p' "$HOME/.config/fox-kit/state.env" 2>/dev/null | tail -1)"
 if [[ ( "$__use" == office || "$__use" == mobile ) && -f "$HOME/Tools/fox-home/home.py" ]]; then

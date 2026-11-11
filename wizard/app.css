@@ -81,3 +81,11 @@ details.sub-card summary{cursor:pointer}
 .st.redo:hover{background:var(--soft)}.st.redo:hover small{display:block}
 .sub-card.auto{border:2px solid var(--accent)}
 .autonote{margin:0 0 12px;padding:10px 14px;border-radius:10px;background:var(--soft);color:var(--ink);font-size:14px}
+/* 秘書とつながる：分かったこと */
+ul.facts{list-style:none;padding:0;margin:12px 0}
+ul.facts li{border:1px solid var(--line);border-radius:12px;margin:8px 0}
+ul.facts label{display:flex;gap:12px;padding:12px 14px;cursor:pointer}
+ul.facts input{accent-color:var(--accent);width:20px;height:20px;flex:none;margin-top:4px}
+ul.facts small{display:block;color:var(--ink2);font-size:14px}
+ul.facts li:has(input:not(:checked)){opacity:.55}
+.choice.offer small{display:block;margin:4px 0 0;color:var(--ink2)}

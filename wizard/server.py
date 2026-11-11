@@ -53,6 +53,7 @@ STEPS = [  # (id, 題名, 誰がやるか)
     ("claude", "AIの本体を入れる", "auto"),
     ("login", "AIのアカウントにログイン", "you"),
     ("build", "あなた専用に組み立てる", "auto"),
+    ("meet", "秘書とつながる", "you"),
     ("mac", "パソコンの設定", "you"),
     ("packs", "スキルと道具をそろえる", "auto"),
     ("storage", "資料の保存先", "you"),
@@ -448,6 +449,9 @@ def act(step: str, body: dict) -> dict:
     if step == "talk":
         return talk(body, st)
 
+    if step == "meet":
+        return meet(body, st)
+
     if step == "skip":
         target = body.get("target", "")
         if target not in {s for s, _, _ in STEPS} | {"gemini"} or target in ("claude", "login", "build", "done") \
@@ -576,6 +580,57 @@ def channel(body: dict, st: dict) -> dict:
     return {"ok": False, "error": "?"}
 
 
+# ------------------------------------------------------------------ 秘書とつながる（予定・メール → 分かったこと → 今できること → 毎朝のまとめ → 目標）
+MORNING = KIT / "tools/fox-morning/morning.py"
+GOALS = ["売上・お客さま集め", "お金の管理", "新しい事業", "人と採用", "自分の時間を作る"]
+
+
+def meet(body: dict, st: dict) -> dict:
+    do, d = body.get("do"), st["data"].get("meet", {})
+    if do == "connectors":     # claude.ai のコネクタ画面（Google カレンダー・Gmail をオンにする）
+        webbrowser.open("https://claude.ai/settings/connectors"); return {"ok": True}
+    if do == "discover":
+        JOBS.pop("meet", None)
+        set_data("meet", result=None)
+        def got():
+            set_data("meet", result=json.loads((CONF / "meet.json").read_text(encoding="utf-8")))
+        run_job("meet", [PY, str(MORNING), "discover"], env=env_for(st), on_ok=got)
+        return {"ok": True}
+    facts = (d.get("result") or {}).get("facts", [])
+    if do == "confirm":        # 「合っている」にしたものだけ覚える（記憶への書き込みは秘書自身が CLAUDE.md の作法で行う）
+        kept = [facts[i] for i in body.get("keep", []) if isinstance(i, int) and 0 <= i < len(facts)]
+        set_data("meet", kept=kept)
+        if kept:
+            msg = ("持ち主の予定とメールから分かったことを、本人に確かめました。次の内容を記憶フォルダに user_work.md として書いて、"
+                   "MEMORY.md の索引に1行足してください。返事は「覚えました」の1行だけ。\n" + "\n".join("- " + f["text"] for f in kept))
+            threading.Thread(target=talk, args=({"message": msg, "quiet": True}, load()), daemon=True).start()
+        return {"ok": True}
+    if do == "offer":          # 押した手伝いを、その場でやる
+        offers = (d.get("result") or {}).get("offers", [])
+        i = body.get("i")
+        if not isinstance(i, int) or not 0 <= i < len(offers):
+            return {"ok": False, "error": "?"}
+        r = talk({"message": offers[i]["prompt"], "quiet": True}, st)
+        if r.get("ok"):
+            done_ = dict(load()["data"].get("meet", {}).get("done_offers") or {}); done_[str(i)] = r["reply"]
+            set_data("meet", done_offers=done_)
+        return r
+    if do == "morning":        # 毎朝のまとめ（Mac の予定に登録）
+        if not body.get("on"):
+            set_data("meet", morning="no"); return {"ok": True}
+        r = subprocess.run([PY, str(MORNING), "install", "8:00"], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           env=env_for(st), **NOWIN)
+        if r.returncode != 0:
+            return {"ok": False, "error": (r.stdout + r.stderr).strip()[-200:] or "登録できませんでした"}
+        set_data("meet", morning="8:00"); return {"ok": True}
+    if do == "goal":
+        g = (body.get("goal") or "").strip()[:40]
+        with LOCK:
+            s2 = load(); s2["answers"]["goal"] = g; save(s2)
+        mark("meet"); return {"ok": True}
+    return {"ok": False, "error": "?"}
+
+
 # ------------------------------------------------------------------ 画面の中でAIと話す
 TALK = {"sid": None}
 
@@ -608,7 +663,7 @@ def talk(body: dict, st: dict) -> dict:
     with LOCK:
         s2 = load(); t2 = s2["data"].setdefault("talk", {}); t2["sid"] = j.get("session_id")
         lg = t2.setdefault("log", [])
-        if body.get("message"):
+        if body.get("message") and not body.get("quiet"):
             lg.append({"who": "me", "text": body["message"]})
         lg.append({"who": "ai", "text": j["result"]}); t2["log"] = lg[-60:]
         save(s2)

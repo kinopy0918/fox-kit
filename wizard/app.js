@@ -215,6 +215,59 @@
       },
     }),
     build: () => autoStep("build", t("あなた専用に組み立てています", "組み立て（install.sh）"), t("仕事の作法・資料のチェック役・話し方の設定などを入れています（1分ほど）。", "人格・作法・スキル・settings・hooks・点検")),
+    meet: () => {
+      const d = S.data.meet || {}, me = esc(S.answers.agent || "AI"), you = esc(S.answers.owner || "あなた");
+      const j = job("meet"), res = d.result, kept = d.kept, done_ = d.done_offers || {};
+      let html;
+      if (j?.state === "running") html = running("meet", "予定とメールを読んでいます（1分ほど）");
+      else if (!res) html = `<div class="msg ai" style="max-width:100%">はじめまして、${me}です。${you}専用の秘書です。<br>わたしはこの${PC()}の中で動くので、ファイルや会話は外に出ません。<br>予定とメールを見せてもらえれば、${you}の仕事に合わせてお手伝いできます。</div>
+          <ol class="do"><li>下の「予定とメールをつなぐ」を押すと claude.ai の画面が開きます。<b>Google カレンダー</b>と<b>Gmail</b> の「接続」を押してください</li>
+            <li>つないだら、この画面に戻って「つなぎました」を押します</li></ol>
+          ${failNote("meet")}
+          <div class="row"><button class="btn sub" id="conn">予定とメールをつなぐ</button><button class="btn" id="disc">つなぎました。見てもらう</button><button class="btn sub" id="later">あとで</button></div>
+          <p class="hint">読むだけです。予定を変えたり、メールを送ったりはしません。</p>`;
+      else if (!res.facts?.length) html = `<p>予定もメールも読めませんでした。claude.ai でつなげたか確かめて、もう一度押してください。</p>
+          <div class="row"><button class="btn sub" id="conn">予定とメールをつなぐ</button><button class="btn" id="disc">もう一度見てもらう</button><button class="btn sub" id="later">あとで</button></div>`;
+      else if (!kept) html = `<div class="msg ai" style="max-width:100%">${you}について、分かったことがあります。</div>
+          <ul class="facts">${res.facts.map((f, i) => `<li><label><input type="checkbox" data-f="${i}" checked><span><b>${esc(f.text)}</b><small>${esc(f.why || "")}</small></span></label></li>`).join("")}</ul>
+          <p class="hint">違うものはチェックを外してください。チェックしたものだけ覚えます。</p>
+          <div class="row"><button class="btn" id="keep">これで覚えて</button></div>`;
+      else {
+        const offers = (res.offers || []).map((o, i) => done_[i] != null
+          ? `<div class="sub-card"><b>✓ ${esc(o.label)}</b><div class="msg ai" style="max-width:100%;margin-top:8px">${md(done_[i])}</div></div>`
+          : `<button class="choice offer" data-o="${i}" style="width:100%;text-align:left"><b>${esc(o.label)}</b></button>`).join("");
+        const goal = d.morning ? `<div class="sub-card auto"><b>最後に1つだけ。いま、仕事でいちばん達成したいことは？</b>
+            <div class="names"><div class="ng">${["売上・お客さま集め", "お金の管理", "新しい事業", "人と採用", "自分の時間を作る"].map((g) => `<button class="nm" data-g="${g}">${g}</button>`).join("")}</div></div>
+            <input class="t" id="gfree" placeholder="その他（自由に）"><div class="row"><button class="btn sub" id="gGo">これにする</button></div>
+            <p class="hint">毎朝のまとめと、週1回の振り返りに使います。</p></div>` : "";
+        html = `<div class="msg ai" style="max-width:100%">覚えておきました。違っていたり、消してほしいものがあれば、いつでも言ってください。<br>今、お手伝いできることがあります。押すと、その場でやります。</div>
+          ${offers}<div class="err" id="err"></div>
+          <div class="sub-card"><b>明日の朝8時に、1日のまとめをお送りしましょうか？</b>
+            <p>今日の予定と準備・返事が要るメール・やり残しをまとめます。やることは${W() ? "" : " Mac の「リマインダー」にも入れます（iPhone なら通知が鳴ります）。ノートPCでも、朝に開いた瞬間に動きます"}。</p>
+            ${d.morning === "8:00" ? `<p class="okmsg">✓ 毎朝8時に登録しました</p>` : d.morning === "no" ? `<p class="hint">いりません、にしました</p>`
+              : W() ? `<p class="hint">Windows はこれから対応します</p><div class="row"><button class="btn sub" id="mNo">次へ</button></div>`
+              : `<div class="row"><button class="btn" id="mYes">お願いします</button><button class="btn sub" id="mNo">いりません</button></div>`}</div>${goal}`;
+      }
+      return {
+        title: "秘書とつながる", lead: kept ? "押したものから順に、その場でやります。" : `${me}が、あなたの予定とメールから仕事の様子をつかみます（5分ほど）。`, html,
+        bind: (el) => {
+          const on = (id, f) => { const b = $("#" + id, el); if (b) b.onclick = f; };
+          on("conn", () => act("meet", { do: "connectors" }));
+          on("disc", async () => { await act("meet", { do: "discover" }); refresh(true); });
+          on("later", async () => { await act("skip", { target: "meet" }); refresh(true); });
+          on("keep", async () => { await act("meet", { do: "confirm", keep: [...el.querySelectorAll("[data-f]:checked")].map((x) => +x.dataset.f) }); refresh(true); });
+          el.querySelectorAll("[data-o]").forEach((b) => (b.onclick = async () => {
+            b.disabled = true; b.innerHTML += `<small><span class="spin"></span>やっています（1分ほど）</small>`;
+            const r = await act("meet", { do: "offer", i: +b.dataset.o });
+            r.ok ? refresh(true) : (($("#err").textContent = r.error), (b.disabled = false));
+          }));
+          on("mYes", async () => { const r = await act("meet", { do: "morning", on: true }); r.ok ? refresh(true) : ($("#err").textContent = r.error); });
+          on("mNo", async () => { await act("meet", { do: "morning", on: false }); refresh(true); });
+          el.querySelectorAll("[data-g]").forEach((b) => (b.onclick = async () => { await act("meet", { do: "goal", goal: b.dataset.g }); refresh(true); }));
+          on("gGo", async () => { const v = $("#gfree").value.trim(); if (v) { await act("meet", { do: "goal", goal: v }); refresh(true); } });
+        },
+      };
+    },
     mac: () => (W() ? pcWin() : {
       title: t("パソコンの設定", "Mac 設定（電源・Chrome・Antigravity）"),
       lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Chrome（既定ブラウザ）/ Antigravity IDE"),
@@ -355,7 +408,12 @@
         const talkCard = talkLater ? `<div class="sub-card auto"><b>最後に1つ：AIと最初のお話（20分ほど）</b>
                <p>AIがあなたの仕事について聞きます。ここで話しておくと、AIがあなた専用に動けるようになります（ChatGPT などを使っていたなら、その記録から下書きを作って「こうですか？」と確かめる形でも進められます）。</p>
                <div class="row"><button class="btn" data-reopen="talk">AIと話す</button></div></div>` : "";
-        return `${talkCard}${laterCard}<div class="sub-card"><b>これからの使い方</b>
+        const m = S.data.meet || {}, did = Object.keys(m.done_offers || {}).map((i) => m.result?.offers?.[i]?.label).filter(Boolean).map((s) => s.replace(/します$/, "しました"));
+        const meetCard = m.kept ? `<div class="sub-card auto"><b>${esc(S.answers.agent || "AI")}のページ</b>
+               <p><b>今日やったこと</b></p><ul class="done-list"><li>あなたについて ${m.kept.length}つ覚えました</li>${did.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+               <p><b>次の予定</b></p><ul class="done-list">${m.morning === "8:00" ? "<li>明日の朝8時：1日のまとめ（資料の保存先の「毎朝のまとめ」フォルダと、通知）</li>" : ""}
+               ${S.answers.goal ? `<li>目標「${esc(S.answers.goal)}」：毎朝のまとめで、今日やれる一歩を出します</li>` : ""}</ul></div>` : "";
+        return `${meetCard}${talkCard}${laterCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
