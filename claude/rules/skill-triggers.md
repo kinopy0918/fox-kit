@@ -47,6 +47,10 @@
     `$py = (Get-Command python -All | Where-Object Source -notlike '*WindowsApps*' | Select-Object -First 1).Source; & $py "$HOME\Tools\fox-kit\tools\fox-bridge\connect.py" --status`
     鍵（トークン）は画面にだけ貼ってもらい、会話には貼らせない
 
+28. **「作業の前に毎回確認して／勝手に進めないで」「確認なしで進めて」** — Mac は `fox-kit confirm`（毎回確認する）／`fox-kit confirm off`（確認なしに戻す）。Windows は `python ~/Tools/fox-kit/tools/fox-kit-cli/uninstall.py confirm on`（または `off`）。変えたら「いまの会話を開き直すと効きます」と伝える。
+
+29. **「このキットを外したい／やめたい／元に戻したい」** — 先に `fox-kit uninstall --dry-run`（Windows は `python ~/Tools/fox-kit/tools/fox-kit-cli/uninstall.py --dry-run`）で**外すものと残すものを見せ、「外してよいですか」と確かめる**。「はい」と言われてから `--yes` を付けて実行する。記憶と資料は残ること、外したものは消さずに1つのフォルダへ移すことを伝える。パソコンのパスワードが要るもの（眠る設定を戻す等）は、出てきた1行を本人に貼ってもらう。
+
 - **ブラウザで調べる・ログインした画面で入力する・ページを見て確かめる**依頼 → Claude in Chrome（Chrome の公式拡張）を使う。つながっていなければ、持ち主に「この画面で `/chrome` と打ち、『Enabled by default』を選んでください」と1回だけ案内する（拡張が無ければ Chrome ウェブストアの「Claude」を「Chrome に追加」→ 同じアカウントでログイン）。**支払いの確定は代行しない**（持ち主が押す）。ログインが要る画面・送信・公開は、押す前に必ず持ち主に確認する
 - 「パソコンを最新にして」「更新を確かめて」→ Mac は `softwareupdate -l` で一覧を見せ、`open "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"` で更新の画面を開く／Windows は `start ms-settings:windowsupdate-action`。再起動が要る更新は、押す前に持ち主に確認する（作業中のものが消えるため）
 

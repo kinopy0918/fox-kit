@@ -155,6 +155,9 @@ if [[ "$FOX_MAC_USE" == office ]]; then
   echo "  $(t "設定を変えるので、Macのパスワードを聞かれます。" "sudo pmset")"
   if sudo pmset -c sleep 0 disksleep 0 displaysleep 10 >/dev/null; then
     ok "$(t "電源につないでいる間は眠らないようにしました（画面だけ10分で消えます）" "pmset -c sleep 0 disksleep 0 displaysleep 10")"
+  else
+    warn "$(t "眠らない設定を入れられませんでした（パスワードが違うか、このMacの管理者ではないようです）。このままだと、使っていない間にMacが眠り、スマホから頼んでも返事が来なくなります。管理者の人に頼むか、あとでAIに「パソコンの設定をやり直したい」と言ってください" "pmset 失敗（sudo 不可）。あとで fox-kit mac")"
+    __mac_failed=1
   fi
   sudo pmset -a autorestart 1 >/dev/null 2>&1 && ok "$(t "停電のあと電気が戻ったら、自動で起動するようにしました" "pmset autorestart 1")"
   sudo pmset -a womp 1 >/dev/null 2>&1 && ok "$(t "ネットワーク越しに起こせるようにしました" "pmset womp 1")"
@@ -196,4 +199,4 @@ choose FOX_CHROME "$(t "Chrome を入れて、いつも使うブラウザにし�
 choose FOX_ANTIGRAVITY "$(t "Antigravity（AIと画面で一緒に作業する編集ソフト。中で Claude Code も使えます）を入れますか？" "Antigravity IDE を入れる")" 1 \
   "1:$(t "入れる（おすすめ）" "入れる")" "2:$(t "入れない" "入れない")"
 [[ "$FOX_ANTIGRAVITY" == 1 || "$FOX_ANTIGRAVITY" == yes ]] && antigravity
-exit 0
+exit ${__mac_failed:-0}   # 眠らない設定が入らなかったら「済み」にしない（設定画面が やり直す／あとでやる を出す）

@@ -1,7 +1,7 @@
 :root{--bg:#f7f6f2;--ink:#1d2433;--ink2:#5b6475;--line:#e3e0d8;--card:#fff;--accent:#c2410c;--soft:#fdf1e8;--ok:#15803d;--okbg:#eaf6ee;--warn:#b45309;--code:#141a26}
 @media (prefers-color-scheme:dark){:root{--bg:#10141c;--ink:#e8ecf3;--ink2:#9aa3b5;--line:#252c3a;--card:#171d28;--accent:#fb923c;--soft:#2a1d14;--ok:#4ade80;--okbg:#10251a;--warn:#fbbf24;--code:#0a0e15}}
 *{box-sizing:border-box}
-html,body{overflow-x:hidden}
+html,body{overflow-x:clip}   /* hidden だと上の進み具合の帯がスクロールに付いてこない */
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 "Noto Sans JP",system-ui,sans-serif}
 .bar{position:sticky;top:0;z-index:9;background:var(--bg);border-bottom:1px solid var(--line)}
 .bar .in{max-width:1080px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
@@ -90,3 +90,8 @@ ul.facts input{accent-color:var(--accent);width:20px;height:20px;flex:none;margi
 ul.facts small{display:block;color:var(--ink2);font-size:14px}
 ul.facts li:has(input:not(:checked)){opacity:.55}
 .choice.offer small{display:block;margin:4px 0 0;color:var(--ink2)}
+
+/* 文中のリンク：暗い配色でも読める色に */
+.card a:not(.btn){color:var(--accent)}
+details.logbox{margin:8px 0}details.logbox summary{cursor:pointer;font-size:13px;color:var(--ink2)}
+ul.know{margin:8px 0;padding-left:1.2em}ul.know li{margin:6px 0}

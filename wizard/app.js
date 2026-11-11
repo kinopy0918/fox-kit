@@ -34,7 +34,14 @@
     level: () => ({
       title: "はじめましょう",
       lead: "4つだけ答えれば、あとは最後まで自動で進みます。パスワードやログインなど、あなたが押すしかない所だけ、そのとき画面でお知らせします。",
-      html: `<div class="sub-card auto"><b>おまかせで全部進める（おすすめ）</b>
+      html: `<div class="sub-card"><b>入れる前に、知っておいてほしいこと</b>
+               <ul class="know">
+                 <li>AIは、作業のたびに「やっていいですか」とは聞かずに進めます（この${PC()}のファイルを作る・書き換える・消す、を含みます）。<b>お金が動くこと・社外への送信・取り消せない操作は、先にあなたに確かめる</b>決まりにしてあります。大切なファイルは、控え（バックアップ）を取っておいてください。</li>
+                 <li>この${PC()}の設定を一部変えます。置きっぱなしを選ぶと、眠らない設定にします。Chrome と、AIと一緒に作業するアプリ（Antigravity）を入れ、毎朝の点検などを裏で動かします。</li>
+                 <li>やめたくなったら、AIに「作業の前に毎回確認して」「このキットを外したい」と言えば戻せます。AIの記憶と資料は残ります。</li>
+               </ul>
+               <p class="hint">先へ進むと、<a href="https://idm-drone.co.jp/fox-kit-terms/" target="_blank">利用規約</a>に同意したことになります。</p></div>
+             <div class="sub-card auto"><b>おまかせで全部進める（おすすめ）</b>
                <label class="f">あなたのお名前</label><input class="t" id="a_owner" placeholder="例：山田さん">
                <label class="f">AIの名前</label><input class="t" id="a_agent" placeholder="例：ヤマダAI">
                <div class="names"><div class="ng">${["__own__", "フォックス", "ミライ", "はやと", "ジャービス", "ココ"].map((x) => `<button type="button" class="nm" data-n="${esc(x)}">${x === "__own__" ? "（お名前から）" : esc(x)}</button>`).join("")}</div></div>
@@ -52,6 +59,11 @@
                <button class="choice" data-lv="expert" style="width:100%;text-align:left"><b>AIやパソコンの設定に慣れている</b><small>短く、専門用語のまま案内します</small></button></details>`,
       bind: (el) => {
         el.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = async () => { await act("level", { level: b.dataset.lv }); refresh(true); }));
+        if (S.answers.owner) $("#a_owner", el).value = S.answers.owner;      // やり直しのときは、前の答えを入れておく
+        if (S.answers.agent) $("#a_agent", el).value = S.answers.agent;
+        const o0 = S.data.auto || {};
+        if (o0.use) $(`input[name=a_use][value=${o0.use}]`, el).checked = true;
+        if (o0.storage) $(`input[name=a_sto][value=${o0.storage}]`, el).checked = true;
         const own = $('.nm[data-n="__own__"]', el);
         const sync = () => { const base = $("#a_owner").value.trim().replace(/(さん|様|さま|くん|ちゃん)$/, ""); own.dataset.v = base ? base + "AI" : ""; own.textContent = base ? base + "AI" : "（お名前から）"; };
         $("#a_owner", el).addEventListener("input", sync);
@@ -455,7 +467,20 @@
   function failNote(name) {
     const j = job(name);
     if (!j || j.state !== "error") return "";
-    return `<div class="err">うまくいきませんでした。もう一度押してみてください。続くときは、この画面を開いたまま担当者に連絡してください。</div><pre class="log">${esc(j.tail)}</pre><div class="row"><button class="btn sub" id="retry">もう一度</button>${name === "packs" ? `<button class="btn sub" id="pskip" onclick="window.__packsSkip()">あとでやる</button>` : ""}</div>`;
+    // 記録の中の、人に向けた行（! や ✕ で始まる日本語）を理由として先に見せる。英語まじりの生の記録は折りたたむ
+    const why = j.tail.replace(/\x1b\[[0-9;]*m/g, "").split("\n").filter((l) => /^\s*[!✕×]\s/.test(l)).slice(-2).map((l) => l.replace(/^\s*[!✕×]\s*/, ""));
+    return `<div class="err">うまくいきませんでした。${why.length ? esc(why.join(" ")) : "「もう一度」を押してみてください。"}</div>
+      <p class="hint">続くときは、この画面を開いたまま、渡してくれた人に知らせてください（下の「くわしい記録」を見せると早く直せます）。</p>
+      <details class="logbox"${B() ? "" : " open"}><summary>くわしい記録</summary><pre class="log">${esc(j.tail)}</pre></details>
+      <div class="row"><button class="btn sub" id="retry" onclick="window.__retry('${name}')">もう一度</button>${name === "packs" ? `<button class="btn sub" id="pskip" onclick="window.__packsSkip()">あとでやる</button>` : ""}</div>`;
+  }
+  // 「もう一度」：その画面に本番のボタン（この内容で設定する／見てもらう）があれば、いまの入力のままそれを押す。無ければ同じ作業をやり直す
+  window.__retry = async (name) => { const b = $("#go") || $("#disc"); if (b) return b.click(); await act(name); refresh(true); };
+  // Discord／Slack の途中の画面からの出口：あとでやる／最初から選び直す（待ちの画面で行き止まりにしない）
+  function chanExits(el) {
+    const l = $("#later", el), a = $("#again", el);
+    if (l) l.onclick = async () => { await act("skip", { target: "channel" }); refresh(true); };
+    if (a) a.onclick = async () => { await act("channel", { do: "choose", platform: "" }); refresh(true); };
   }
   window.__packsSkip = async () => { await act("skip", { target: "packs" }); refresh(true); };   // スキルが入らなくても先へ進めるように（あとで左の一覧から戻れる）
   function autoStep(name, title, lead) {
@@ -555,8 +580,9 @@
                <ol class="do"><li>${k("招待の画面を開く")} を押す</li><li>「サーバーに追加」の欄から、AIの部屋を選ぶ</li><li>${k("はい")} → ${k("認証")}（人間かどうかの確認が出たら答える）</li><li>この画面に戻って ${k("招待しました")}</li></ol>
                ${shot("discord-invite", "招待の画面でサーバーを選んで「認証」")}
                <div class="row"><a class="btn sub" id="inv" target="_blank">招待の画面を開く</a></div><div class="err" id="err"></div>
-               <div class="row"><button class="btn" id="go">招待しました</button></div>`,
+               <div class="row"><button class="btn" id="go">招待しました</button><button class="btn sub" id="again">最初から選び直す</button><button class="btn sub" id="later">あとでやる</button></div>`,
         bind: (el) => {
+          chanExits(el);
           const inv = $("#inv", el); inv.href = local.invite || `https://discord.com/oauth2/authorize?client_id=${d.app_id}&scope=bot&permissions=117840`;
           $("#go", el).onclick = async () => { $("#err").innerHTML = '<span class="spin"></span>確かめています…'; const r = await act("channel", { do: "joined" }); r.ok ? refresh(true) : ($("#err").textContent = r.error); };
         },
@@ -589,8 +615,12 @@
       html: `<ol class="do"><li>${k("チャンネルを開く")} を押す</li>${p === "slack" ? `<li>下に ${k("チャンネルに参加する")} と出ていたら押す（参加しないと送れません）</li>` : ""}<li>AIの案内の下に「はじめまして」と送る</li><li>返事が来たら、この画面が自動で次へ進みます</li></ol>
              ${shot("channel-test", "チャンネルで「はじめまして」と送ると返事が来る")}
              <div class="row"><a class="btn" href="${esc(d.link)}" target="_blank">チャンネルを開く</a></div>
-             <p><span class="spin"></span>${t("返事を待っています…", "応答待ち")}</p>`,
-      bind: () => { local.poll = setInterval(async () => { const r = await act("channel", { do: "check" }); if (r.ok) { clearInterval(local.poll); refresh(true); } }, 4000); },
+             <p><span class="spin"></span>${t("返事を待っています…", "応答待ち")}</p>
+             <div class="sub-card"><b>1分待っても返事が来ないとき</b>
+               <ul class="done-list"><li>${p === "slack" ? "チャンネルに「参加」しているか" : "送った場所が、AIの名前の下の「相談」チャンネルか"}を確かめて、もう一度送る</li>
+               <li>それでも来なければ「あとでやる」で先へ進んで大丈夫です。あとで AI に「スマホから頼めるようにしたい」と言えば、続きができます</li></ul>
+               <div class="row"><button class="btn sub" id="later">あとでやる</button><button class="btn sub" id="again">最初から選び直す</button></div></div>`,
+      bind: (el) => { chanExits(el); local.poll = setInterval(async () => { const r = await act("channel", { do: "check" }); if (r.ok) { clearInterval(local.poll); refresh(true); } }, 4000); },
     };
   }
 

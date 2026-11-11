@@ -516,6 +516,9 @@ def channel(body: dict, st: dict) -> dict:
     what = body.get("do")
     if what == "choose":
         d["platform"] = body.get("platform")
+        if not d["platform"]:        # 「最初から選び直す」：前のボット・サーバーの記録を消して、選ぶ画面から
+            for k in ("bot", "app_id", "guild", "team", "link", "greeted", "invite", "channel", "mc", "guilds_before"):
+                d.pop(k, None)
         save(st)
         if d["platform"] == "none":
             mark("channel", skipped=True)
