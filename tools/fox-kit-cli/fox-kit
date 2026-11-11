@@ -9,6 +9,8 @@
 #   fox-kit mac       … パソコンの設定（眠る・眠らない／Chrome／Antigravity）
 #   fox-kit packs     … スキルと道具をそろえる（install / status / key＝Geminiの鍵）
 #   fox-kit guide     … 手順書を開く
+#   fox-kit confirm   … AIが作業の前に毎回確認するようにする（fox-kit confirm off で、確認なしに戻す）
+#   fox-kit uninstall … このキットを外す（記憶と資料は残す。外したものは消さずに1つのフォルダへ移す）
 set -uo pipefail
 REPO="kinopy0918/fox-kit"
 GUIDE="${FOX_GUIDE_URL:-https://kinopy0918.github.io/fox-kit}"
@@ -61,5 +63,7 @@ case "$cmd" in
   mac)     "$HOME/Tools/fox-mac/mac.sh" "${2:-}" ;;
   packs)   python3 "$HOME/Tools/fox-packs/packs.py" "${2:-install}" ;;
   guide)   open "$GUIDE" ;;
-  *) sed -n '2,11p' "$0" | sed 's/^# //' ;;
+  confirm)   /usr/bin/python3 "${0:A:h}/uninstall.py" confirm "${2:-on}" ;;
+  uninstall) shift; /usr/bin/python3 "${0:A:h}/uninstall.py" "$@" ;;
+  *) sed -n '2,13p' "$0" | sed 's/^# //' ;;
 esac

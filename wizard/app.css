@@ -11,8 +11,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 "Noto Sans JP
 .prog-b{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
 .prog-b i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
 .wrap{max-width:1080px;margin:0 auto;padding:24px 16px 80px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px}
-@media (max-width:760px){.wrap{grid-template-columns:minmax(0,1fr)}.steps{display:none}}
 .steps{display:flex;flex-direction:column;gap:4px;position:sticky;top:76px;align-self:start}
+/* 幅が狭いとき：「いまやること」を先に、段の一覧はその下へ（一覧はやり直しの入口なので隠さない） */
+@media (max-width:760px){.wrap{grid-template-columns:minmax(0,1fr)}.steps{order:2;position:static}}
 .st{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;font-size:14px;color:var(--ink2)}
 .st i{flex:none;width:24px;height:24px;letter-spacing:-.04em;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font:700 11px "Roboto Mono";font-style:normal}
 .st.done{color:var(--ink)}.st.done i{background:var(--ok);border-color:var(--ok);color:#fff}

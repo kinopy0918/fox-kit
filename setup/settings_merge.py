@@ -31,6 +31,22 @@ def deep_merge(base: dict, over: dict) -> dict:
     return out
 
 
+def record(path: str, new: dict, cur: dict):
+    """このキットが足したものの控え。外すとき（fox-kit uninstall）に、足したものだけを正確に外すために使う。"""
+    try:
+        rec = json.load(open(path, encoding="utf-8"))
+    except (OSError, ValueError):
+        rec = {"allow": [], "keys": [], "mode": False}
+    if MARK not in json.dumps(cur):                     # まだ足していないとき（＝最初の1回）に、持ち主に無かった項目を控える
+        rec["keys"] = sorted(set(rec["keys"]) | {k for k in new if k not in cur and k not in ("permissions", "hooks")})
+        rec["mode"] = rec["mode"] or "defaultMode" not in (cur.get("permissions") or {})
+    have = set((cur.get("permissions") or {}).get("allow") or [])
+    rec["allow"] = sorted(set(rec["allow"]) | {a for a in (new.get("permissions") or {}).get("allow") or [] if a not in have})
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(rec, f, ensure_ascii=False, indent=1)
+
+
 def merge(new: dict, dest: str, notices: str, backup: str) -> bool:
     """書いたら True。読めなくて触らなかったら False。"""
     def tell(msg):
@@ -39,7 +55,7 @@ def merge(new: dict, dest: str, notices: str, backup: str) -> bool:
         with open(notices, "a", encoding="utf-8") as f:
             f.write(msg + "\n")
 
-    result, before, first = new, None, False
+    result, before, first, cur = new, None, False, {}
     if os.path.exists(dest):
         before = open(dest, encoding="utf-8-sig").read()
         try:
@@ -71,6 +87,7 @@ def merge(new: dict, dest: str, notices: str, backup: str) -> bool:
                         lst.append(e)
         if hooks:
             result["hooks"] = hooks
+    record(os.path.join(os.path.dirname(notices), "kit-settings.json"), new, cur)
     text = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
     if text == before:
         print(f"  変更なし: {dest}")

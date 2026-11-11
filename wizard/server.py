@@ -243,6 +243,7 @@ def act(step: str, body: dict) -> dict:
 
     if step == "level":
         a["level"] = "expert" if body.get("level") == "expert" else "beginner"
+        a["auto"] = False               # 「1つずつ確かめながら」を選び直したら、おまかせをやめる
         save(st); mark("level")
         return {"ok": True}
 
@@ -482,6 +483,8 @@ def act(step: str, body: dict) -> dict:
         with LOCK:
             st = load()
             if target in st["done"] and (st["data"].get(target, {}).get("skipped") or target in REDO):
+                if all(x in st["done"] for x, _, _ in STEPS if x != "done") or target == "level":
+                    st["answers"]["auto"] = False   # 最後まで通したあとのやり直しは、本人が自分で進める（画面が勝手に「あとでやる」に戻さない）
                 st["done"].remove(target)
                 d = st["data"].setdefault(target, {})
                 d.pop("skipped", None)
