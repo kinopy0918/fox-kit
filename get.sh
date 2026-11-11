@@ -28,7 +28,10 @@ if [[ -n "${FOX_KIT_URL:-}" ]]; then
 else
   # 既定は最新の公開版（リリース）。まだ1つも無ければ main
   __ver="${FOX_VERSION:-$(curl -fsSL --max-time 10 "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null \
-    | /usr/bin/sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -1)}"
+    | /usr/bin/sed -n 's/.*"tag_name": *"v\{0,1\}\([^"]*\)".*/\1/p' | head -1 || true)}"   # 聞けなくても止まらず main へ（set -e で無言終了しないように）
+  # API は同じ回線から大勢が使うと回数の上限に当たる。そのときは「最新の公開版」の転送先から版を読む
+  [[ -n "$__ver" ]] || __ver="$(curl -fsSI --max-time 10 "https://github.com/$REPO/releases/latest" 2>/dev/null \
+    | /usr/bin/sed -n 's#^[Ll]ocation: .*/tag/v\{0,1\}\([0-9][^[:space:]]*\).*#\1#p' | tr -d '\r' | head -1 || true)"
   if [[ -n "$__ver" ]]; then KIT_URL="https://github.com/$REPO/archive/refs/tags/v$__ver.tar.gz"
   else KIT_URL="https://github.com/$REPO/archive/refs/heads/main.tar.gz"; fi
 fi
@@ -112,11 +115,12 @@ if [[ -d "$KIT_URL" ]]; then
   cp -R "$KIT_URL/." "$TMP/kit"
 else
   mkdir -p "$TMP/kit"
-  curl -fsSL "$KIT_URL" | tar -xz -C "$TMP/kit" --strip-components 1 \
+  curl -fsSL "$KIT_URL" 2>>"$LOG" | tar -xz -C "$TMP/kit" --strip-components 1 \
     || die "$(t "部品を取ってこられませんでした。インターネットにつながっているか確かめてください" "キットを取得できませんでした: $KIT_URL")"
 fi
 [[ -f "$TMP/kit/install.sh" ]] || die "$(t "部品の中身がおかしいようです" "キットの中身が不正です（install.sh がない）")"
 mkdir -p "$HOME/Tools"
+rm -rf "$KIT_DIR".bak-*(N)   # 控えは直前の1つだけ（貼り直すたびに増やさない。中身は取ってきた部品だけで、持ち主のものは無い）
 [[ -d "$KIT_DIR" ]] && mv "$KIT_DIR" "$KIT_DIR.bak-$(date +%Y%m%d-%H%M%S)"
 rm -rf "$TMP/kit/.git"; mv "$TMP/kit" "$KIT_DIR"; chmod +x "$KIT_DIR/install.sh"
 ok "$(t "取ってきました" "$KIT_DIR")"
@@ -156,6 +160,7 @@ if [[ -z "${FOX_TERMINAL:-}" && -z "$__ENV_OWNER" && -z "$__ENV_UPDATE" && -z "$
   rm -f "$HOME/.config/fox-kit/wizard.url"   # 前回の古いURLを出さないように
   nohup /usr/bin/python3 "$KIT_DIR/wizard/server.py" > "$HOME/Library/Logs/fox-wizard.log" 2>&1 &
   for __i in {1..30}; do [[ -s "$HOME/.config/fox-kit/wizard.url" ]] && break; sleep 0.5; done
+  [[ -s "$HOME/.config/fox-kit/wizard.url" ]] || die "設定画面を開けませんでした。少し待ってから、同じ1行をもう一度貼り付けてください。それでも開かないときは、渡してくれた人に「設定画面が開かない」と伝えてください（記録：~/Library/Logs/fox-wizard.log）"
   echo
   c "1;32" "  ブラウザで設定画面が開きました。ここから先は画面の案内どおりに進めてください。"; echo
   echo "  （開かないときは、このURLをブラウザに貼ってください：$(cat "$HOME/.config/fox-kit/wizard.url" 2>/dev/null)）"

@@ -42,7 +42,7 @@
                <label class="choice"><input type="radio" name="a_use" value="office" checked><b>事務所などに置きっぱなし</b><small>いつでもスマホから頼めるように、眠らない設定にします</small></label>
                <label class="choice"><input type="radio" name="a_use" value="mobile"><b>持ち歩く</b><small>眠る設定はそのまま。使うときだけ動けばよい</small></label>
                <label class="f">資料の保存先</label>
-               <label class="choice"><input type="radio" name="a_sto" value="drive" checked><b>Google ドライブ（あれば）</b><small>パソコンが壊れても残り、スマホからも見られます。無ければこの${PC()}の中に置きます</small></label>
+               <label class="choice"><input type="radio" name="a_sto" value="drive" checked><b>Google ドライブ（あれば）</b><small>パソコンが壊れても残り、スマホからも見られます。AIの記憶の写しも、同じ Google ドライブに置きます。無ければこの${PC()}の中に置きます</small></label>
                <label class="choice"><input type="radio" name="a_sto" value="local"><b>この${PC()}の中だけ</b><small>${PC()}が壊れると消えます</small></label>
                <div class="err" id="aerr"></div>
                <div class="row"><button class="btn" id="autoGo">この内容で、最後まで進める</button></div>
@@ -337,6 +337,7 @@
       html: `<div id="places"><span class="spin"></span>このパソコンの保存先を調べています…</div>
              <div class="sub-card"><b>フォルダの形</b>
                <p>仕組み・案件・議事録・記録・手順・テンプレート・タスク・メモと調査・AIの記憶・目標・保管庫の<b>11フォルダ</b>に分けて置きます。細かく分けておくと、AIが探す範囲がしぼれて、速く正確に見つけられます。</p>
+               <p class="hint">Google ドライブを選ぶと、<b>AIの記憶の写し</b>も、選んだ Google アカウントのマイドライブ（AIの名前のフォルダ）に10分おきに置きます。ほかのパソコンやスマホの Claude と、同じ前提で話せるようにするためです。「この${PC()}の中だけ」を選ぶと、どこにも写しません。</p>
                <p class="hint">Google ドライブを選んだときは、ファイルは開いたものだけパソコンに取ってくる設定（ストリーミング）のままにしてください。大きな動画のフォルダを「オフラインで使用可能」にすると、パソコンの空きが減って重くなります。</p>
                <label class="choice"><input type="checkbox" id="idx" checked><b>作業が終わるたびに目次を自動で作り直す</b><small>AIは目次を見て、関係のある所だけを読みに行きます（速く正確）</small></label></div>
              <div class="err" id="err"></div><div class="row"><button class="btn" id="go">ここに決める</button></div>`,
@@ -413,7 +414,9 @@
                <p><b>今日やったこと</b></p><ul class="done-list"><li>あなたについて ${m.kept.length}つ覚えました</li>${did.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
                <p><b>次の予定</b></p><ul class="done-list">${m.morning === "8:00" ? "<li>明日の朝8時：1日のまとめ（資料の保存先の「毎朝のまとめ」フォルダと、通知）</li>" : ""}
                ${S.answers.goal ? `<li>目標「${esc(S.answers.goal)}」：毎朝のまとめで、今日やれる一歩を出します</li>` : ""}</ul></div>` : "";
-        return `${meetCard}${talkCard}${laterCard}<div class="sub-card"><b>これからの使い方</b>
+        const noteCard = (S.notices || []).length ? `<div class="sub-card"><b>前からお使いだった設定について</b>
+               <ul class="done-list">${S.notices.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+        return `${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`

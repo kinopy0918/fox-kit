@@ -5,7 +5,8 @@
   python3 bridge.py --once   1周だけ見て終わる（確認用）
 
 ・見るのは config.json の channels に書いたチャンネルだけ。ボット自身と他のボットの発言は無視。
-・allowed_users が空なら、そのチャンネルの人間全員に応える（チャンネル＝会社の中の場所なので）。
+・応えるのは allowed_users の人だけ。空なら、最初に話しかけた人（＝つないだ本人）を登録する。
+  チャンネルの全員に応えるのは、config.json に "everyone": true と書いたときだけ（AIは確認なしでパソコンを動かせるため）。
 ・チャンネルごとに会話を続ける。育ちすぎた・6時間空いた会話は新しくし、直前のやりとりを添える（session_guard）。
 ・返事に [[FILE:/絶対パス]] や [[IMG:/絶対パス]] と書かれていたら、そのファイルを添付して送る。
 """
@@ -53,6 +54,9 @@ def system_prompt(platform: str) -> str:
         "ファイルや画像を相手に届けたいときは、本文に [[FILE:/絶対パス]]（画像は [[IMG:/絶対パス]]）と書く。そう書けば添付して送られる。"
         + ("このパソコンは Windows なので、絶対パスは C:/Users/… の形で書く。" if c.WIN else ""),
         "相手が送ったファイルは、本文の最後に『添付:』として置き場所が書いてある。",
+        "このチャンネルで頼みごとを聞く相手は ~/.config/fox-bridge/config.json の allowed_users（相手のIDの一覧）で決まる。"
+        "『○○さんも使えるように』と頼まれたら、本文の <@ID> のIDを allowed_users に足す。『みんなも使えるように』なら everyone を true にする。"
+        "どちらも先に『その人（たち）が、このパソコンのAIに確認なしで頼めるようになります。よいですか』と確かめてから。",
     ]
     if platform == "discord":
         base.append("Discord は表（縦棒で区切る表）を描画しない。表を書かず、ラベル付きの箇条書きにする。")
@@ -224,9 +228,36 @@ def handle(api, platform: str, channel: str, msgs: list[dict], st: dict, cfg: di
     audit(api, cfg, channel, msgs, reply, attach)
 
 
+ONLY_OWNER = ("このAIは、つないだ本人の頼みだけを聞く設定です。ほかの人も使えるようにするには、"
+              "本人がAIに「このチャンネルのみんなも使えるようにして」と頼んでください。")
+
+
+def allowed_only(api, cfg: dict, channel: str, cs: dict, humans: list[dict]) -> list[dict]:
+    """応えてよい人の発言だけを返す。AIは確認なしでパソコンを動かすので、既定は本人だけ。"""
+    if cfg.get("everyone") or not humans:
+        return humans
+    allowed = cfg.get("allowed_users") or []
+    if not allowed:
+        # ponytail: 最初に話しかけた人を持ち主とみなす（つないだ直後の往復テストが最初の発言になる）。
+        # それより先に他人が書く場なら、connect.py で本人のIDを聞いて入れる形に上げる
+        allowed = cfg["allowed_users"] = [humans[0]["user"]]
+        c.save(c.CONFIG, {**c.load(c.CONFIG, {}), "allowed_users": allowed})
+        c.log("持ち主を登録:", humans[0].get("name") or humans[0]["user"])
+    told = cs.setdefault("told", [])
+    for u in {m["user"] for m in humans} - set(allowed) - set(told):
+        told.append(u)                         # 1人につき1回だけ知らせる
+        try:
+            api.send(channel, ONLY_OWNER)
+        except Exception as e:  # noqa: BLE001
+            c.log("本人専用の知らせを送れませんでした:", repr(e)[:200])
+    return [m for m in humans if m["user"] in allowed]
+
+
 def poll_once(api, cfg, st):
     me = api.me()["id"]
-    allowed = set(cfg.get("allowed_users") or [])
+    live = c.load(c.CONFIG, cfg)             # 持ち主が相手を足したら、起こし直さなくても効くように毎回読む
+    cfg["everyone"] = bool(live.get("everyone"))
+    cfg["allowed_users"] = list(live.get("allowed_users") or [])
     for channel in cfg["channels"]:
         cs = st.setdefault("channels", {}).setdefault(channel, {})
         after = cs.get("after")
@@ -255,7 +286,8 @@ def poll_once(api, cfg, st):
             pass
         cs["after"] = msgs[-1]["id"]
         c.save(c.STATE, st)
-        mine = [m for m in msgs if not m["bot"] and m["user"] != me and (not allowed or m["user"] in allowed)]
+        mine = allowed_only(api, cfg, channel, cs, [m for m in msgs if not m["bot"] and m["user"] != me])
+        c.save(c.STATE, st)
         if mine:
             cs["pending"] = time.time()          # 途中で止まったら、次に動き出したとき本人に知らせる
             c.save(c.STATE, st)

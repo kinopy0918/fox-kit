@@ -26,13 +26,6 @@ def slug(path: str) -> str:
     return re.sub(r"[^A-Za-z0-9]", "-", path)
 
 
-def backup(p: Path):
-    if p.exists():
-        b = HOME / ".config-backup" / time.strftime("%Y%m%d-%H%M%S")
-        b.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(p, b / p.name)
-
-
 # 1. 人格
 mem_rel = f"~/.claude/projects/{slug(str(HOME))}/memory/"
 text = (HERE / "claude" / "CLAUDE.md.template").read_text(encoding="utf-8")
@@ -52,10 +45,21 @@ OLD_WIN = "- Discord/Slack との常駐連携・Mac の設定・キーチェー�
 if cm.exists() and OLD_WIN in cm.read_text(encoding="utf-8"):   # 0.5.0 より前にキットが書いた1行だけ新しくする（持ち主の文は触らない）
     cm.write_text(cm.read_text(encoding="utf-8").replace(OLD_WIN, NEW_WIN), encoding="utf-8")
     print("  人格の Windows の注意書きを新しくしました")
-if cm.exists():
-    side = CLAUDE / "CLAUDE.md.fox-kit-draft"
-    side.write_text(text, encoding="utf-8")
-    print(f"  既に CLAUDE.md があるので上書きせず、下書きを置きました: {side}")
+NOTICES = HOME / ".config" / "fox-kit" / "notices.txt"       # 前からあった設定をどう扱ったか（設定画面の完了画面に出す）
+NOTICES.parent.mkdir(parents=True, exist_ok=True)
+BACKUP = HOME / ".config-backup" / time.strftime("%Y%m%d-%H%M%S")
+if cm.exists() and "fox-kit/rules/craft.md" in cm.read_text(encoding="utf-8"):
+    print("  すでにこのキットの人格が入っています。育てた中身はそのままにします")
+elif cm.exists():
+    # キットを入れる前から自分で書いていた人：控えを取り、新しい人格の後ろに前の中身をそのまま残す（何も消さない）
+    BACKUP.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(cm, BACKUP / cm.name)
+    old = cm.read_text(encoding="utf-8")
+    cm.write_text(text + "\n\n## 前から書いてあった決まり（このキットを入れる前の CLAUDE.md。そのまま残してあります）\n\n" + old, encoding="utf-8")
+    msg = f"前から使っていたAIへの決まり（CLAUDE.md）は、新しい秘書の決まりの後ろにそのまま残しました。入れる前の控え：{BACKUP}"
+    print("  ! " + msg)
+    with open(NOTICES, "a", encoding="utf-8") as f:
+        f.write(msg + "\n")
 else:
     cm.write_text(text, encoding="utf-8")
     print("  人格を書きました: ~/.claude/CLAUDE.md")
@@ -75,37 +79,9 @@ new["permissions"]["allow"] = [a for a in new["permissions"]["allow"] if not a.s
 new.setdefault("env", {})["PYTHONUTF8"] = "1"
 # 記憶の置き場所を1か所に固定する：どのフォルダで開いても同じ記憶を読む
 new["autoMemoryDirectory"] = f"~/.claude/projects/{slug(str(HOME))}/memory"
-sp = CLAUDE / "settings.json"
-backup(sp)
-cur = {}
-if sp.exists():
-    try:
-        cur = json.loads(sp.read_text(encoding="utf-8"))
-    except Exception:
-        cur = {}
-out = dict(cur)
-for k, v in new.items():
-    if isinstance(v, dict) and isinstance(out.get(k), dict) and k != "hooks":
-        out[k] = {**out[k], **v}
-    elif k != "hooks":
-        out[k] = v
-allow = []
-for a in (new["permissions"]["allow"] + ((cur.get("permissions") or {}).get("allow") or [])):
-    if a not in allow:
-        allow.append(a)
-out["permissions"]["allow"] = allow
-if cur.get("autoMemoryDirectory"):
-    out["autoMemoryDirectory"] = cur["autoMemoryDirectory"]   # 持ち主が決めた場所は触らない
-hooks = {}
-for src in ((cur.get("hooks") or {}), (new.get("hooks") or {})):
-    for ev, entries in src.items():
-        lst = hooks.setdefault(ev, [])
-        for e in entries:
-            if json.dumps(e, sort_keys=True) not in {json.dumps(x, sort_keys=True) for x in lst}:
-                lst.append(e)
-out["hooks"] = hooks
-sp.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-print("  設定を書きました: ~/.claude/settings.json")
+sys.path.insert(0, str(HERE / "setup"))
+import settings_merge  # noqa: E402  Mac と同じ合流（持ち主が決めていた値は残す・読めなければ触らない・変えるときだけ控え）
+settings_merge.merge(new, str(CLAUDE / "settings.json"), str(NOTICES), str(BACKUP))
 
 # 3. 作法・スキル・チェック役・ガード
 subprocess.run([sys.executable, str(HERE / "kit_sync.py")], check=True)

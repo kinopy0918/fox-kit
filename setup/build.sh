@@ -12,6 +12,7 @@ warn() { printf '\033[33m  ! %s\033[0m\n' "$1"; }
 die()  { printf '\033[31m  ✕ %s\033[0m\n' "$1"; exit 1; }
 quiet() { if [[ -n "$B" ]]; then "$@" >> "$LOG" 2>&1; else "$@"; fi; }
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+__log_from=$(( $(wc -l < "$LOG" 2>/dev/null || echo 0) + 1 ))   # ここから先が今回の記録
 quiet "$KIT_DIR/install.sh" --owner "$FOX_OWNER" --agent "$FOX_AGENT" \
   --machine-label "$FOX_MACHINE" --role "$FOX_ROLE" ${FOX_VAULT:+--vault-path "$FOX_VAULT"} \
   || die "$(t "組み立ての途中で止まりました" "install.sh が失敗しました（ログ: $LOG）")"
@@ -52,10 +53,14 @@ if [[ -n "${FOX_PROFILE:-}" ]]; then
   done
 fi
 ok "$(t "組み立てました（仕事の作法・資料のチェック役・話し方の設定も入りました）" "install.sh 完了 / talk-style: $FOX_LEVEL${FOX_PROFILE:+ / profile 適用}")"
-__kept="$(grep -h '★残した' "$LOG" 2>/dev/null | tail -20 || true)"
+__kept="$(tail -n +"$__log_from" "$LOG" 2>/dev/null | grep -h '★残した' | tail -20 || true)"
 if [[ -n "$__kept" ]]; then
   warn "$(t "あなたが手を入れていたファイルは残しました（新しい版は横に「.new-版」で置いてあります）" "modified files kept (see *.new-<ver>)")"
   print -r -- "$__kept" | sed 's/^/    /'
+fi
+# 前からあった設定をどう扱ったか（install.sh が書く）。はじめての人向けの表示でも必ず見せる
+if [[ -s "$HOME/.config/fox-kit/notices.txt" ]]; then
+  while IFS= read -r __n; do warn "$__n"; done < "$HOME/.config/fox-kit/notices.txt"
 fi
 # 毎朝の点検（スキルの見張り・健康診断）を登録
 [[ -f "$HOME/Tools/fox-guard/install.py" ]] && quiet /usr/bin/python3 "$HOME/Tools/fox-guard/install.py" ${FOX_UPDATE:+--no-reset}

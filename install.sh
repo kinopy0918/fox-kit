@@ -5,8 +5,8 @@
 #                 --role "個人の作業機" [--dry-run]
 #
 # 何をするか（すべて既存ファイルを壊さない。バックアップしてから重ねる）:
-#   1. CLAUDE.md.template を埋めて ~/.claude/CLAUDE.md へ（既存があれば退避して確認を挟む）
-#   2. settings.json を ~/.claude/settings.json へマージ（allowは和集合、既存のdenyは残す）
+#   1. CLAUDE.md.template を埋めて ~/.claude/CLAUDE.md へ（前から自分で書いていた人は、控えを取って後ろにそのまま残す）
+#   2. settings.json を ~/.claude/settings.json へマージ（同じ項目は持ち主の値を残す。allow と hooks は足し合わせ）
 #   3. 出力先ガードのフックを ~/.claude/hooks/ へ
 #   4. 記憶の索引スケルトンを ~/.claude/projects/<場所>/memory/ へ
 #   5. 汎用ツール（tools/ 配下）を ~/Tools/ へコピー
@@ -57,6 +57,10 @@ fi
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP="$HOME/.config-backup-$STAMP"
+# 持ち主に伝えること（前からあった設定をどう扱ったか）。組み立ての最後と設定画面の完了画面に出す
+NOTICES="$HOME/.config/fox-kit/notices.txt"
+[[ $DRY == 1 ]] || mkdir -p "${NOTICES:h}"   # 知らせが出るのは最初に足したときだけなので、消さずに残す（完了画面でいつでも読める）
+notice() { warn "$1"; [[ $DRY == 1 ]] || print -r -- "$1" >> "$NOTICES"; }
 
 backup_of() {
   local f="$1"
@@ -69,7 +73,7 @@ backup_of() {
 
 # ---------------------------------------------------------------- 1. CLAUDE.md
 say "人格宣言 (~/.claude/CLAUDE.md)"
-RENDERED="/tmp/portable-fox-claude-md-$STAMP.md"
+RENDERED="$(mktemp -t fox-claude-md)"
 python3 - "$HERE/claude/CLAUDE.md.template" "$RENDERED" \
   "$AGENT_NAME" "$OWNER_NAME" "$MACHINE_LABEL" "$MACHINE_ROLE" \
   "$DEV_DIR" "$VAULT_PATH" "$GITHUB_ORG" "$MEMORY_HOME" <<'PY'
@@ -97,69 +101,30 @@ print(f"  下書き: {out}")
 print(f"  記憶の場所: {memory_path}")
 PY
 
-if [[ -f "$HOME/.claude/CLAUDE.md" ]]; then
-  warn "既に ~/.claude/CLAUDE.md があります。上書きせず下書きだけ置きました:"
-  echo "    $RENDERED"
-  echo "    中身を見て、必要な部分だけ手で合流させてください（diff -u ~/.claude/CLAUDE.md $RENDERED）。"
+if [[ -f "$HOME/.claude/CLAUDE.md" ]] && grep -q "fox-kit/rules/craft.md" "$HOME/.claude/CLAUDE.md"; then
+  echo "  すでにこのキットの人格が入っています。育てた中身はそのままにします: ~/.claude/CLAUDE.md"
+elif [[ -f "$HOME/.claude/CLAUDE.md" ]]; then
+  # キットを入れる前から自分で書いていた人：控えを取り、新しい人格の後ろに前の中身をそのまま残す（何も消さない）
+  backup_of "$HOME/.claude/CLAUDE.md"
+  if [[ $DRY == 0 ]]; then
+    { cat "$RENDERED"; printf '\n\n## 前から書いてあった決まり（このキットを入れる前の CLAUDE.md。そのまま残してあります）\n\n'; cat "$HOME/.claude/CLAUDE.md"; } > "$RENDERED.merged"
+    mv "$RENDERED.merged" "$HOME/.claude/CLAUDE.md"
+    notice "前から使っていたAIへの決まり（CLAUDE.md）は、新しい秘書の決まりの後ろにそのまま残しました。入れる前の控え：$BACKUP"
+  fi
 else
   run "mkdir -p '$HOME/.claude'"
   run "cp '$RENDERED' '$HOME/.claude/CLAUDE.md'"
   echo "  書きました: ~/.claude/CLAUDE.md"
 fi
+rm -f "$RENDERED"
 
 # ---------------------------------------------------------------- 2. settings.json
 say "Claude Code のグローバル設定 (~/.claude/settings.json)"
-backup_of "$HOME/.claude/settings.json"
 if [[ $DRY == 1 ]]; then
   echo "    (dry-run) merge $HERE/claude/settings.json -> ~/.claude/settings.json"
 else
   mkdir -p "$HOME/.claude"
-  python3 - "$HERE/claude/settings.json" "$HOME/.claude/settings.json" <<'PY'
-import json, os, sys
-src, dest = sys.argv[1], sys.argv[2]
-new = json.load(open(src))
-result = new
-if os.path.exists(dest):
-    try:
-        cur = json.load(open(dest))
-    except Exception:
-        cur = {}
-
-    def deep_merge(base, over):
-        out = dict(base)
-        for k, v in over.items():
-            if isinstance(v, dict) and isinstance(out.get(k), dict):
-                out[k] = deep_merge(out[k], v)
-            else:
-                out[k] = v
-        return out
-
-    result = deep_merge(cur, new)
-    a = (cur.get("permissions", {}) or {}).get("allow", []) or []
-    b = (new.get("permissions", {}) or {}).get("allow", []) or []
-    merged, seen = [], set()
-    for x in b + a:
-        if x not in seen:
-            seen.add(x); merged.append(x)
-    result.setdefault("permissions", {})["allow"] = merged
-    # hooks は「足し合わせ」。持ち主が足した hook（目次の自動更新など）を消さない
-    hooks = {}
-    for src_hooks in ((cur.get("hooks") or {}), (new.get("hooks") or {})):
-        for ev, entries in src_hooks.items():
-            lst = hooks.setdefault(ev, [])
-            for e in entries:
-                if json.dumps(e, sort_keys=True) not in {json.dumps(x, sort_keys=True) for x in lst}:
-                    lst.append(e)
-    if hooks:
-        result["hooks"] = hooks
-# 記憶の置き場所を1か所に固定する：Antigravity でどのフォルダを開いても同じ記憶を読む（持ち主が決めていれば触らない）
-import re as _re
-result.setdefault("autoMemoryDirectory", "~/.claude/projects/" + _re.sub(r"[^A-Za-z0-9-]", "-", os.path.expanduser("~").rstrip("/")) + "/memory")
-os.makedirs(os.path.dirname(dest), exist_ok=True)
-json.dump(result, open(dest, "w"), indent=2, ensure_ascii=False)
-open(dest, "a").write("\n")
-print(f"  wrote {dest}（トークンは含めていません。docs/BOOTSTRAP_育て方.md 参照）")
-PY
+  python3 "$HERE/setup/settings_merge.py" "$HERE/claude/settings.json" "$HOME/.claude/settings.json" "$NOTICES" "$BACKUP"
 fi
 
 # ---------------------------------------------------------------- 3. キットのファイル（作法・スキル・チェック役・ガード・道具）

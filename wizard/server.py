@@ -438,6 +438,10 @@ def act(step: str, body: dict) -> dict:
         base = str(Path(root) / a.get("agent", "FOX"))
         open_path(base)
         mark("storage", base=base)
+        fb = HOME / "Tools/fox-base/fox_base.py"
+        if fb.exists() and not WIN:   # Google ドライブを選んだ人だけ、基本の1枚と記憶の写しをそのドライブへ（選ばなければ止める）
+            run_job("fox-base", [PY, str(fb), "install", "--owner", a.get("owner", ""), "--agent", a.get("agent", "FOX"),
+                                 "--machine", a.get("machine", "")], env=env_for(st))
         rag = HOME / ".local/bin/vault-rag"
         if rag.exists():   # 意味で探す索引をすぐ作る（毎朝の更新を待つと、その日は「まだ使えません」になる）
             run_job("rag-index", [str(rag), "index"], env=env_for(st))
@@ -671,6 +675,13 @@ def talk(body: dict, st: dict) -> dict:
 
 
 # ------------------------------------------------------------------ 画面に返す状態
+def notices() -> list:
+    try:
+        return [l for l in (HOME / ".config/fox-kit/notices.txt").read_text(encoding="utf-8").splitlines() if l.strip()]
+    except OSError:
+        return []
+
+
 def state() -> dict:
     st = load()
     done = set(st["done"])
@@ -679,6 +690,7 @@ def state() -> dict:
     cur = next((s for s, _, _ in STEPS if s not in done), "done")
     return {
         "answers": st["answers"], "data": st["data"], "current": cur,
+        "notices": notices(),          # 前からあった設定をどう扱ったか（install.sh が書く）。完了画面に出す
         "packs_installed": "packs" in st["done"] and not st["data"].get("packs", {}).get("skipped"),   # 鍵だけ戻したときに、入れ直しを始めないため
         "steps": [{"id": s, "title": t_, "who": w, "done": s in done,
                    "redo": s in done and ("gemini" if s == "packs" and not WIN else s) in REDO,
