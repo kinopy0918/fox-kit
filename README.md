@@ -7,6 +7,7 @@ Claude Code を「その人・その会社専用の秘書」として組み立�
 画面の質問に答えるだけでそろいます。AIに詳しくない人でも入れられるように作っています。
 
 - 手順書（図つき）：https://kinopy0918.github.io/fox-kit/
+- 利用規約：[TERMS.md](TERMS.md)（インストールしたとき・手順書を開いたときに、同意したものとみなします）
 - 動く環境：macOS ／ Windows 10・11（基本セット）／ Claude の契約（Pro・Max・Team）
 
 ## 入れ方

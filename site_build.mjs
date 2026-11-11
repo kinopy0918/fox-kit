@@ -42,6 +42,7 @@ for (const f of readdirSync("site").filter((x) => x.endsWith(".html"))) {
   <button id="go">開く</button>
   <div class="err" id="err" role="alert"></div>
   <p class="help">分からないときは、渡した人に聞いてください。</p>
+  <p class="help">開いた時点で、<a href="https://idm-drone.co.jp/fox-kit-terms/">利用規約</a>に同意したものとみなします。</p>
 </form></div>
 <script type="application/json" id="fx">${payload}</script>
 </body>
