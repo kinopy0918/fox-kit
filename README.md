@@ -35,7 +35,7 @@ Windows 版に入るのは基本セット（人格・作法・資料のチェッ
 | 何 | どこ | 更新のとき |
 |---|---|---|
 | 人格（名前・持ち主・役割） | `~/.claude/CLAUDE.md` | さわらない（持ち主のもの） |
-| 仕事の作法 34項目 | `~/.claude/fox-kit/rules/craft.md` | 手を入れていなければ新しくする |
+| 仕事の作法 35項目 | `~/.claude/fox-kit/rules/craft.md` | 手を入れていなければ新しくする |
 | 初期設定の聞き取り・資料の品質ループ | `~/.claude/skills/fox-setup` ・ `shiryo-review-loop` | 同上（差し戻し一覧 `checklist.md` は育つのでさわらない） |
 | 資料のチェック役・お金の監査役 | `~/.claude/agents/shiryo-reviewer.md`・`money-auditor.md` | 同上 |
 | Discord / Slack とつなぐ部品 | `~/Tools/fox-bridge` | 同上 |

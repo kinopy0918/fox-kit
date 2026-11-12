@@ -286,6 +286,8 @@ def stop():
 
 def install_launchd():
     """常駐を入れる（名前は昔のまま。Windows ではタスク スケジューラに登録する）。"""
+    if os.environ.get("FOX_SKIP_LAUNCHD"):   # 試運転：本物の常駐には触らない
+        return print("（試運転）常駐の登録は飛ばしました")
     cfg = c.load(c.CONFIG, {})
     if cfg.pop("paused", None):
         c.save(c.CONFIG, cfg)

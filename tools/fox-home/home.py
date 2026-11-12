@@ -203,7 +203,7 @@ def noise(p: Path) -> bool:
     return False   # ほかの隠しファイル（.mcp.json・.hidden.sh など）は見る
 
 
-RULES = {   # 作法33の5つ（外部送信・秘密・難読化・隠す指示・決まりの上書き）
+RULES = {   # 作法34の5つ（外部送信・秘密・難読化・隠す指示・決まりの上書き）
     "外への送信": r"curl\s[^\n|]*(?:-d\b|--data|-F\b|--upload-file|-T\b)|requests\.post|method:\s*['\"]POST|Invoke-RestMethod[^\n]*-Method\s+Post",
     "秘密の読み取り": r"find-generic-password|find-internet-password|\.ssh/id_|Login Data|Cookies\.binarycookies|\.aws/credentials|CredRead",
     "隠して実行": r"base64\s+(?:-d|--decode)[^\n]*\|\s*(?:sh|bash|zsh|python)|b64decode\([^)]*\)\)?\s*\)?\s*$|FromBase64String[^\n]*(?:iex|Invoke-Expression)|eval\s*\(\s*(?:atob|Buffer\.from)",
@@ -324,6 +324,8 @@ def py() -> str:
 
 
 def install(use: str):
+    if os.environ.get("FOX_SKIP_LAUNCHD"):   # 試運転：本物の常駐には触らない
+        return print("（試運転）常駐の登録は飛ばしました")
     if WIN:   # Windows には fox-guard（Mac の毎朝の点検）が無いので、ここで全部やる
         names = ["watch", "clean", "skills"] if use == "office" else ["skills"]
     else:     # Mac は fox-guard が 7:20 に常駐の起こし直し・ログイン・空き・スキルの点検をする。重ねない

@@ -254,6 +254,8 @@ def mcps():
 
 def daily_index():
     """意味検索の索引を毎日更新する（中身が変わった分だけ）。"""
+    if os.environ.get("FOX_SKIP_LAUNCHD"):   # 試運転：本物の常駐には触らない
+        return print("（試運転）常駐の登録は飛ばしました")
     rag = TOOLS / "vault-rag"
     if not (rag / ".venv/bin/python").exists():
         return

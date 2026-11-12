@@ -183,6 +183,8 @@ def notify_mac(text: str):
 
 # ------------------------------------------------------------------ 毎朝の予定に登録
 def install(at: str = "8:00"):
+    if os.environ.get("FOX_SKIP_LAUNCHD"):   # 試運転：本物の常駐には触らない
+        return print("（試運転）常駐の登録は飛ばしました")
     import plistlib
     h, m = (int(x) for x in at.split(":"))
     py = "/usr/bin/python3" if Path("/usr/bin/python3").exists() else sys.executable

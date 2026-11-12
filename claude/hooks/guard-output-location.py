@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 """生成物の置き場ガード（PreToolUse: Write|Edit|NotebookEdit）
 
-エージェントが作ったファイルが ~/Desktop・~/Downloads・ホーム直下に
-散らばるのを止める。汎用型FOXの標準装備（portable-fox/claude/hooks/）。
+エージェントが作ったファイルがホーム直下に散らばるのを止める。
+汎用型FOXの標準装備（portable-fox/claude/hooks/）。
 
 止める場所:
-  - ~/Desktop 配下
-  - ~/Downloads 配下
   - ホーム直下のファイル（ドットファイルは除く）
   - ホーム直下に新しく作業フォルダを生やす行為（許可リスト外の第1階層）
+
+デスクトップとダウンロードは止めない（持ち主が「デスクトップに保存して」と頼むのは
+ふつうのこと）。頼まれていないのに置きっぱなしにしない、は作法（craft.md 27）の側で守る。
 
 通す場所は下の ALLOWED_TOP を参照。会社・機械ごとの正式な置き場ルールは
 CLAUDE.md の「保管先」セクションに書く（このファイルはガードだけを担当し、
@@ -23,6 +24,7 @@ HOME = os.path.expanduser("~")
 
 # ホーム直下でファイルを置いてよい第1階層。増やすならここに足す。
 ALLOWED_TOP = {
+    "Desktop", "Downloads",   # 持ち主に頼まれたときの置き場
     "Projects",      # コードのローカル作業コピー（正本はGitHub）
     "Tools",         # 常駐・実行系ツール
     "dev",           # 作業ツリー
@@ -31,10 +33,9 @@ ALLOWED_TOP = {
     "Library",       # CloudStorage（Drive）はこの下
     "OneDrive", "AppData", "source",   # Windows（OneDrive の同期フォルダ・アプリの設定・Visual Studio の既定）
 }
-WIN_DESKTOP = {"Desktop", "デスクトップ", "Downloads", "ダウンロード"}
-
 GUIDE = """置き場ルール:
-  文書・資料・データ・コード → CLAUDE.md の「保管先」を見る
+  文書・資料・データ・コード → CLAUDE.md の「保管先」を見る（決まっていなければ ~/Documents/ の下）
+  持ち主が場所を指定したとき（デスクトップなど）→ その場所
   作業中の中間ファイル → セッションのスクラッチパッド
   常駐・実行系ツール → ~/Tools/
 秘密情報（APIキー・サービスアカウント鍵）はDriveにもGitHubにも置かない → ~/.config/ """
@@ -49,10 +50,6 @@ def verdict(path):
     parts = rel.split(os.sep)
     top = parts[0]
 
-    if top in ("Desktop", "Downloads"):
-        return f"~/{top} は生成物の置き場ではありません（受信箱／一時表示用）。"
-    if os.name == "nt" and top.lower().startswith("onedrive") and len(parts) > 1 and parts[1] in WIN_DESKTOP:
-        return f"~/{top}/{parts[1]} は生成物の置き場ではありません（受信箱／一時表示用）。"
     if os.name == "nt" and top.lower().startswith("onedrive"):
         return None                       # OneDrive - 会社名 なども同期フォルダ
     if top.startswith("."):

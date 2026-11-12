@@ -341,14 +341,26 @@ $gb0 = Find-GitBash
 if ($gb0) { [Environment]::SetEnvironmentVariable('CLAUDE_CODE_GIT_BASH_PATH', $gb0, 'User'); $env:CLAUDE_CODE_GIT_BASH_PATH = $gb0 }
 # 取ってあるキットが最新の版でなければ取り直す（同じ1行を貼り直すだけで新しい版になるように）
 $latest = $env:FOX_VERSION
-if (-not $latest -and -not $env:FOX_KIT_URL) { try { $latest = ((Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest").tag_name) -replace '^v', '' } catch {} }
+if (-not $latest -and -not $env:FOX_KIT_URL) { try { $latest = ((Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest").tag_name) -replace '^v', '' } catch { LogLine "版を聞けませんでした（API）: $($_.Exception.Message)" } }
+# API は同じ回線から大勢が使うと回数の上限に当たる。そのときは「最新の公開版」の転送先から版を読む
+if (-not $latest -and -not $env:FOX_KIT_URL) {
+  try {
+    $rq = [Net.HttpWebRequest]::Create("https://github.com/$Repo/releases/latest"); $rq.AllowAutoRedirect = $false; $rq.Method = 'HEAD'; $rq.Timeout = 10000
+    $rs = $rq.GetResponse(); $loc = "$($rs.Headers['Location'])"; $rs.Close()
+    if ($loc -match '/tag/v?([0-9][0-9.]*)$') { $latest = $Matches[1] }
+  } catch { LogLine "版を聞けませんでした（転送先）: $($_.Exception.Message)" }
+}
+$verUnknown = (-not $latest -and -not $env:FOX_KIT_URL)   # 版が分からないまま入れたら「最新」とは言わず、次に貼り直したとき取り直す
 $have = if (Test-Path "$KitDir\VERSION") { "$(Get-Content "$KitDir\VERSION" -ErrorAction SilentlyContinue | Select-Object -First 1)".Trim() } else { '' }
 $stale = $latest -and $have -and ($latest -ne $have)
 if ($stale) { Write-Host ('  ' + (T "新しい版（$have → $latest）があるので、取り直します" "update kit $have -> $latest")) }
 # 取り直す前に、動いている設定画面を止める（使用中のフォルダは入れ替えられないため）
 Get-CimInstance Win32_Process -Filter "Name like 'python%'" -ErrorAction SilentlyContinue |
   Where-Object { $_.CommandLine -like '*wizard*server.py*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-if ((IsDone 'kit') -and (Test-Path "$KitDir\setup\build_win.py") -and -not $env:FOX_UPDATE -and -not $stale) { Ok (T 'もう取ってあります（最新の版です）' "取得済み: $KitDir（取り直しは `$env:FOX_UPDATE=1）") } else {
+if ((IsDone 'kit') -and (Test-Path "$KitDir\setup\build_win.py") -and -not $env:FOX_UPDATE -and -not $stale) {
+  if ($verUnknown) { Ok (T 'もう取ってあります（最新の版かどうかは、いま確かめられませんでした）' "取得済み: $KitDir（版の確認に失敗）") }
+  else { Ok (T 'もう取ってあります（最新の版です）' "取得済み: $KitDir（取り直しは `$env:FOX_UPDATE=1）") }
+} else {
 $tmp = Join-Path $env:TEMP ("fox-kit-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 if ($env:FOX_KIT_URL -and (Test-Path $env:FOX_KIT_URL)) {
@@ -371,7 +383,10 @@ try {
 } catch { Die (T '前の部品を入れ替えられませんでした。Antigravity などを閉じてから、同じ1行をもう一度貼ってください' "KitDir を入れ替えられません（使用中？）: $KitDir") }
 Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 Ok (T '取ってきました' $KitDir)
-Mark 'kit'
+if ($verUnknown) {
+  Warn (T '最新の版を確かめられなかったので、手元に取れたものを入れました。後日、同じ1行をもう一度貼ると最新の版になります' '版の確認に失敗 → main を取得（次回の実行で取り直します）')
+  $S.done = @($S.done | Where-Object { $_ -ne 'kit' }); Save
+} else { Mark 'kit' }
 }
 
 if ($Wizard) {
@@ -390,7 +405,7 @@ if ($Wizard) {
     $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
     $sc.TargetPath = $pyw; $sc.Arguments = "`"$KitDir\wizard\server.py`""; $sc.WorkingDirectory = $HOME
     $sc.Description = 'AI秘書の設定画面（あとでやる、にした設定の続き）'; $sc.Save()
-  } catch {}
+  } catch { LogLine "ショートカットを作れませんでした: $($_.Exception.Message)"; Warn 'デスクトップに「AIの設定画面」のショートカットを作れませんでした（あとから開き直すときは、同じ1行をもう一度貼ってください）' }
   for ($i = 0; $i -lt 40 -and -not (Test-Path $urlFile); $i++) { Start-Sleep -Milliseconds 500 }
   Write-Host ''
   if (Test-Path $urlFile) {
@@ -420,7 +435,7 @@ function Logged-In { try { return ((claude auth status 2>$null | Out-String) -ma
 if (Logged-In) { Ok (T 'ログイン済みです' 'ログイン済み'); Mark 'login' }
 else {
   Write-Host ('  ' + (T "インターネットの画面が開きます。AIの契約をしたアカウントで「ログイン」→「許可」を押してください。`n  ★会社のパソコンなら、会社で契約したアカウントを使ってください（Pro 以上の契約が要ります）。`n  画面にコードが出たら、この画面に貼り付けて Enter。" 'ブラウザで OAuth（会社の端末なら会社の契約アカウントで）'))
-  try { & claude auth login } catch {}
+  try { & claude auth login } catch { LogLine "claude auth login: $($_.Exception.Message)" }
   if (Logged-In) { Ok (T 'ログインできました' 'ログイン完了'); Mark 'login' }
   else { [void]$Todo.Add((T 'AIのアカウントにログインする → 同じ1行をもう一度貼り付けると、ここから再開します（やらないと、AIが動きません）' 'claude auth login（未完了）')) }
 }
@@ -451,7 +466,7 @@ if (-not (IsDone 'chrome')) {
       if (Has-Winget) { Winget-Install 'Google.Chrome' | Out-Null }
       if (-not (Find-Chrome)) {
         $exe = Join-Path $env:TEMP 'chrome_installer.exe'
-        try { Download 'https://dl.google.com/chrome/install/latest/chrome_installer.exe' $exe; Start-Process -FilePath $exe -ArgumentList '/silent', '/install' -Wait } catch {}
+        try { Download 'https://dl.google.com/chrome/install/latest/chrome_installer.exe' $exe; Start-Process -FilePath $exe -ArgumentList '/silent', '/install' -Wait } catch { LogLine "Chrome を入れられませんでした: $($_.Exception.Message)" }
       }
     }
     $chromeExe = Find-Chrome
@@ -476,9 +491,10 @@ if (-not (IsDone 'chrome')) {
 
 if (-not (IsDone 'power')) {
   if (Ask-YesNo (T 'このパソコンは置きっぱなし（持ち歩かない）ですか？ はいなら、電源につないでいる間は眠らない設定にします' '据え置き？（AC接続中スリープ無効）') $false) {
-    & powercfg /change standby-timeout-ac 0 *>> $Log
+    & powercfg /change standby-timeout-ac 0 *>> $Log; $pw = $LASTEXITCODE
     & powercfg /change hibernate-timeout-ac 0 *>> $Log
-    Ok (T '電源につないでいる間は眠らないようにしました（画面だけは消えます）' 'standby/hibernate AC = 0')
+    if ($pw -eq 0) { Ok (T '電源につないでいる間は眠らないようにしました（画面だけは消えます）' 'standby/hibernate AC = 0') }
+    else { Warn (T '眠らない設定を入れられませんでした（会社の管理で変えられないことがあります）。「設定」→「システム」→「電源」で、電源接続時のスリープを「なし」にしてください' "powercfg 失敗（$pw）") }
   }
   Mark 'power'
 }
@@ -515,7 +531,8 @@ if ($agDir) {
     # 拡張の取り込みは、まれに終わらないことがあるので1つ2分で打ち切る（あとで Antigravity の画面から入れ直せる）
     function Install-Ext($arg) {
       $pr = Start-Process -FilePath $cli.FullName -ArgumentList '--install-extension', $arg, '--force' -PassThru -WindowStyle Hidden
-      if (-not $pr.WaitForExit(120000)) { try { $pr.Kill() } catch {}; LogLine "extension timeout: $arg" }
+      if (-not $pr.WaitForExit(120000)) { try { $pr.Kill() } catch {}; LogLine "extension timeout: $arg"; $script:extFail = $true }
+      elseif ($pr.ExitCode -ne 0) { LogLine "extension failed ($($pr.ExitCode)): $arg"; $script:extFail = $true }
     }
     Write-Host ('  ' + (T 'Antigravity に AI の部品を入れています（1〜3分）…' 'install extensions'))
     foreach ($ext in @('anthropic.claude-code', 'ms-ceintl.vscode-language-pack-ja')) { Install-Ext $ext }
@@ -526,7 +543,8 @@ if ($agDir) {
     $agUser = Join-Path $env:APPDATA ((Split-Path $agDir -Leaf) + '\User\settings.json')
     $agArgv = Join-Path $HOME '.antigravity-ide\argv.json'
     & $py -c "import json,os,sys`nfor p,kv in ((sys.argv[1],{'claudeCode.preferredLocation':'panel','claudeCode.hideOnboarding':True}),(sys.argv[2],{'locale':'ja'})):`n    os.makedirs(os.path.dirname(p),exist_ok=True)`n    try: d=json.load(open(p,encoding='utf-8')) if os.path.exists(p) else {}`n    except Exception: continue`n    [d.setdefault(k,v) for k,v in kv.items()]`n    json.dump(d,open(p,'w',encoding='utf-8'),indent=4,ensure_ascii=False)" $agUser $agArgv *>> $Log
-    Ok (T 'Antigravity の中で AI を使えるようにし、画面を日本語にしました' 'extensions: claude-code, language-pack-ja')
+    if ($script:extFail) { Warn (T 'Antigravity の部品の一部が入りませんでした。Antigravity を開き、左の四角いマーク（拡張機能）で「Claude Code」を探して「インストール」を押してください' 'extensions: 一部失敗（ログ参照）') }
+    else { Ok (T 'Antigravity の中で AI を使えるようにし、画面を日本語にしました' 'extensions: claude-code, language-pack-ja') }
   }
 }
 

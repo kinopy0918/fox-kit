@@ -45,7 +45,9 @@ case "$cmd" in
     ;;
   update)
     echo "新しい版に更新します。あなたが手を入れたファイルは上書きしません。"
-    FOX_UPDATE=1 /bin/zsh -c "$(curl -fsSL "$GET")"
+    script="$(curl -fsSL --max-time 30 "$GET" 2>/dev/null)" || script=""
+    [[ -n "$script" ]] || { echo "✕ 更新できませんでした。インターネットにつながっているか確かめて、もう一度 fox-kit update と打ってください（いまの版のまま使えます）。"; exit 1; }
+    FOX_UPDATE=1 /bin/zsh -c "$script"
     ;;
   setup)   cd ~ && claude "/fox-setup" ;;
   settings)

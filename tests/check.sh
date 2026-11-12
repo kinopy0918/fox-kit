@@ -13,7 +13,7 @@ say "Python の文法"
 for f in $(git ls-files '*.py'); do /usr/bin/python3 -m py_compile "$f" 2>&1 | head -3; [[ ${pipestatus[1]} == 0 ]] || bad "$f"; done
 find . -name __pycache__ -not -path './.git/*' -exec rm -rf {} + 2>/dev/null
 say "Python の未定義の名前（消してしまった関数・定数を拾う）"
-if command -v uvx >/dev/null; then uvx -q ruff check --no-cache --select F821,F811,F823 $(git ls-files '*.py') || bad "ruff"; else echo "  （uvx が無いので飛ばしました）"; fi
+if command -v uvx >/dev/null; then uvx -q ruff check --no-cache --select F821,F811,F823,F401 $(git ls-files '*.py') || bad "ruff"; else echo "  （uvx が無いので飛ばしました）"; fi
 say "JavaScript の文法"
 for f in wizard/app.js site.js gate.js site_build.mjs; do node --check "$f" || bad "$f"; done
 say "PowerShell：文法・5.1 で動かない書き方・未定義の関数"

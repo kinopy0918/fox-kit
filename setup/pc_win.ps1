@@ -27,9 +27,10 @@ $py = (Get-Command python -ErrorAction SilentlyContinue | Where-Object { $_.Sour
 
 # ---------------------------------------------------------------- 電源
 if ($env:FOX_PC_USE -eq 'office') {
-  & powercfg /change standby-timeout-ac 0 | Out-Null
+  & powercfg /change standby-timeout-ac 0 | Out-Null; $pw = $LASTEXITCODE
   & powercfg /change hibernate-timeout-ac 0 | Out-Null
-  Say '電源につないでいる間は眠らないようにしました（画面だけは消えます）'
+  if ($pw -eq 0) { Say '電源につないでいる間は眠らないようにしました（画面だけは消えます）' }
+  else { Say '! 眠らない設定を入れられませんでした（会社の管理で変えられないことがあります）。「設定」→「システム」→「電源」で、電源接続時のスリープを「なし」にしてください' }
   if (Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue) {   # ノートPC：電源につないでいる間は、ふたを閉じても眠らない
     & powercfg /setacvalueindex SCHEME_CURRENT SUB_BUTTONS LIDACTION 0 | Out-Null
     & powercfg /setactive SCHEME_CURRENT | Out-Null
@@ -55,7 +56,7 @@ if ($env:FOX_CHROME -ne '2') {
     if (Has-Winget) { Winget-Install 'Google.Chrome' | Out-Null }
     if (-not (Find-Chrome)) {
       $exe = Join-Path $env:TEMP 'chrome_installer.exe'
-      try { Download 'https://dl.google.com/chrome/install/latest/chrome_installer.exe' $exe; $p = Start-Process -FilePath $exe -ArgumentList '/silent', '/install' -PassThru; [void]$p.WaitForExit(600000) } catch {}
+      try { Download 'https://dl.google.com/chrome/install/latest/chrome_installer.exe' $exe; $p = Start-Process -FilePath $exe -ArgumentList '/silent', '/install' -PassThru; [void]$p.WaitForExit(600000) } catch { Say "! Chrome を取ってこられませんでした（$($_.Exception.Message)）" }
     }
   }
   if (Find-Chrome) { Say 'Chrome が入りました' } else { Say '! Chrome を自動で入れられませんでした（あとで https://www.google.com/chrome/ から入れられます）' }
@@ -80,6 +81,7 @@ if ($env:FOX_ANTIGRAVITY -ne '2') {
       $inst = Start-Process -FilePath $exe -ArgumentList '/VERYSILENT', '/NORESTART', '/SUPPRESSMSGBOXES' -PassThru
       [void]$inst.WaitForExit(900000)
       $agDir = Find-Antigravity
+      if (-not $agDir) { Say '! Antigravity が入りませんでした。あとで https://antigravity.google/download から入れられます' }
     } catch { Say "! Antigravity を自動で入れられませんでした（$($_.Exception.Message)）。あとで https://antigravity.google/download から入れられます" }
   }
   if ($agDir) {
@@ -90,16 +92,18 @@ if ($env:FOX_ANTIGRAVITY -ne '2') {
       foreach ($arg in @('anthropic.claude-code', 'ms-ceintl.vscode-language-pack-ja', $vsix)) {
         if ($arg -like '*.vsix' -and -not (Test-Path $arg)) { continue }
         $pr = Start-Process -FilePath $cli.FullName -ArgumentList '--install-extension', "`"$arg`"", '--force' -PassThru -WindowStyle Hidden
-        if (-not $pr.WaitForExit(120000)) { try { $pr.Kill() } catch {} ; Say "! 時間切れ: $arg" }
+        if (-not $pr.WaitForExit(120000)) { try { $pr.Kill() } catch {} ; Say "! 時間切れ: $arg"; $extFail = $true }
+        elseif ($pr.ExitCode -ne 0) { $extFail = $true }
       }
-    }
+    } else { $extFail = $true }
     # 画面を日本語に・Claude の最初の案内を出さない・会話は真ん中のタブで開く（持ち主が決めた値は上書きしない）
     if ($py) {
       $agUser = Join-Path $env:APPDATA ((Split-Path $agDir -Leaf) + '\User\settings.json')
       $agArgv = Join-Path $HOME '.antigravity-ide\argv.json'
       & $py -c "import json,os,sys`nfor p,kv in ((sys.argv[1],{'claudeCode.preferredLocation':'panel','claudeCode.hideOnboarding':True}),(sys.argv[2],{'locale':'ja'})):`n    os.makedirs(os.path.dirname(p),exist_ok=True)`n    try: d=json.load(open(p,encoding='utf-8')) if os.path.exists(p) else {}`n    except Exception: continue`n    [d.setdefault(k,v) for k,v in kv.items()]`n    json.dump(d,open(p,'w',encoding='utf-8'),indent=4,ensure_ascii=False)" $agUser $agArgv
     }
-    Say 'Antigravity の中で AI を使えるようにし、画面を日本語にしました'
+    if ($extFail) { Say '! Antigravity の部品の一部が入りませんでした。Antigravity を開き、左の四角いマーク（拡張機能）で「Claude Code」を探して「インストール」を押してください' }
+    else { Say 'Antigravity の中で AI を使えるようにし、画面を日本語にしました' }
   }
 }
 exit 0

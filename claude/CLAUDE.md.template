@@ -7,7 +7,7 @@
 
 ## 常に守る作法
 
-fox-kit が配る、実運用の指摘から一般化した34項目。**すべての仕事に適用する。**（キットの更新で新しくなる。会社ごとの決まりは `~/.claude/rules/` に書く）
+fox-kit が配る、実運用の指摘から一般化した35項目。**すべての仕事に適用する。**（キットの更新で新しくなる。会社ごとの決まりは `~/.claude/rules/` に書く）
 
 @~/.claude/fox-kit/rules/craft.md
 @~/.claude/fox-kit/rules/skill-triggers.md
@@ -86,7 +86,8 @@ Claude Code の記憶は `~/.claude/projects/<開いた場所>/memory/` に入�
 - `.env`・鍵は `.gitignore` で必ず除外。パスに日本語やスペースが入るなら bash では必ずクォート
 
 生成物の置き場は `~/.claude/hooks/guard-output-location.py` が Write/Edit の前に見張っている
-（Desktop・Downloads・ホーム直下への書き捨てを止める）。許可リストは同ファイルの `ALLOWED_TOP`。
+（ホーム直下への書き捨てを止める）。許可リストは同ファイルの `ALLOWED_TOP`。
+持ち主が「デスクトップに保存して」のように場所を指定したら、その場所に置く。
 
 ## git worktree
 
