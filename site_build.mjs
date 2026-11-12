@@ -37,7 +37,7 @@ for (const f of readdirSync("site").filter((x) => x.endsWith(".html"))) {
   <div class="logo">AI</div>
   <h1>fox-kit</h1>
   <p>AI秘書セットアップの手順書です。<br>お伝えしたパスワードを入れてください。</p>
-  <input type="password" id="pw" autocomplete="current-password" placeholder="パスワード" aria-label="パスワード" autofocus>
+  <div class="pwrow"><input type="password" id="pw" autocomplete="current-password" placeholder="パスワード" aria-label="パスワード" autofocus><button type="button" class="show" id="show" aria-label="入力した文字を見えるようにする">見る</button></div>
   <label class="keep"><input type="checkbox" id="keep" checked>この端末では次から入れなくてよい</label>
   <button id="go">開く</button>
   <div class="err" id="err" role="alert"></div>

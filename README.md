@@ -62,7 +62,7 @@ fox-kit confirm    # 作業の前に毎回確認する設定に戻す（confirm 
 fox-kit uninstall  # キットを外す（先に、外すものと残すものを見せる。記憶と資料は残る）
 ```
 
-うまくいかなかったときの記録は `~/Library/Logs/` にあります（入口：`fox-install.log`／設定画面：`fox-wizard.log`／返事の仕組み：`fox-bridge.out.log`）。Windows は `%LOCALAPPDATA%\fox-kit\`。
+うまくいかなかったときの記録は `~/Library/Logs/` にあります（入口：`fox-install.log`／設定画面：`fox-wizard.log`／返事の仕組み：`fox-bridge.out.log`）。Windows は `~\.config\fox-kit\`（`fox-install.log`・`logs\`）。
 
 ## 安全について
 

@@ -19,6 +19,7 @@
   try { os = localStorage.getItem(OSKEY) || os; } catch (e) {}
   // 鍵つきのページは、本文を差し込んだあとに gate.js が foxInit() を呼ぶ
   window.foxInit = function () {
+    if (/iPhone|iPad|Android/i.test(navigator.userAgent)) document.body.classList.add("phone");   // 入れる作業はパソコンで、の注意を出す
     set(lv);
     setOs(os);
     document.querySelectorAll(".os button").forEach(function (b) { b.onclick = function () { setOs(b.dataset.os); }; });

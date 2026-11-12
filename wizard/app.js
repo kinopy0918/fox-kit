@@ -430,7 +430,7 @@
         const talkCard = talkLater ? `<div class="sub-card auto"><b>最後に1つ：AIと最初のお話（20分ほど）</b>
                <p>AIがあなたの仕事について聞きます。ここで話しておくと、AIがあなた専用に動けるようになります（ChatGPT などを使っていたなら、その記録から下書きを作って「こうですか？」と確かめる形でも進められます）。</p>
                <div class="row"><button class="btn" data-reopen="talk">AIと話す</button></div></div>` : "";
-        const m = S.data.meet || {}, did = Object.keys(m.done_offers || {}).map((i) => m.result?.offers?.[i]?.label).filter(Boolean).map((s) => s.replace(/します$/, "しました"));
+        const m = S.data.meet || {}, did = Object.keys(m.done_offers || {}).map((i) => m.result?.offers?.[i]?.label).filter(Boolean).map((s) => s.replace(/ます$/, "ました"));   // 「〜します」「〜を作ります」→「〜しました」「〜を作りました」
         const meetCard = m.kept ? `<div class="sub-card auto"><b>${esc(S.answers.agent || "AI")}のページ</b>
                <p><b>今日やったこと</b></p><ul class="done-list"><li>あなたについて ${m.kept.length}つ覚えました</li>${did.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
                <p><b>次の予定</b></p><ul class="done-list">${m.morning === "8:00" ? "<li>明日の朝8時：1日のまとめ（資料の保存先の「毎朝のまとめ」フォルダと、通知）</li>" : ""}
@@ -683,8 +683,8 @@
       const MIN = W() ? { update: 1, names: 1, claude: 3, login: 3, build: 1, meet: 5, mac: 15, packs: 10, storage: 2, channel: 10, talk: 20 }
                       : { update: 2, names: 1, claude: 3, login: 3, build: 1, meet: 5, mac: 10, packs: 20, storage: 2, channel: 10, talk: 20 };
       const rest = steps.filter((s) => !s.done && !(S.answers.auto && ["channel", "talk"].includes(s.id))).reduce((a, s) => a + (MIN[s.id] || 0), 0);
-      if (rest) $("#progText").textContent += `　｜　残りの目安：約${rest}分`;
-    }
+      $("#progRest").textContent = rest ? `残りの目安：約${rest}分` : "";
+    } else $("#progRest").textContent = "";
     $("#progBar").style.width = Math.round((n / steps.length) * 100) + "%";
     $("#steps").innerHTML = S.steps.map((s, i) => s.done && s.skipped
       ? `<button class="st done later" data-reopen="${s.id}" title="押すと、この段に戻ってやり直せます"><i>↩</i>${esc(s.title)}<small>あとでやる → 押すと戻れます</small></button>`

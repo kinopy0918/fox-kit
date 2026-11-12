@@ -27,6 +27,8 @@
     }
     document.documentElement.classList.remove("chk");
     var f = document.getElementById("gate"), err = document.getElementById("err"), go = document.getElementById("go");
+    var show = document.getElementById("show"), pwEl = document.getElementById("pw");
+    if (show) show.onclick = function () { var on = pwEl.type === "password"; pwEl.type = on ? "text" : "password"; show.textContent = on ? "隠す" : "見る"; pwEl.focus(); };
     f.onsubmit = async function (ev) {
       ev.preventDefault();
       var pw = document.getElementById("pw").value.trim();
@@ -41,7 +43,8 @@
         try { sessionStorage.setItem(K, raw); } catch (e) {}
       } catch (e) {
         go.disabled = false; go.textContent = "開く";
-        err.textContent = "パスワードが違います（大文字・小文字に注意）";
+        err.textContent = "パスワードが違います。大文字と小文字を確かめてください";
+        pwEl.focus(); pwEl.select();   // すぐ打ち直せるように
       }
     };
   });

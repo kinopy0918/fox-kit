@@ -168,7 +168,7 @@ em.nw{font-style:normal;white-space:nowrap}
 @media(max-width:760px){.hero p.lead{max-width:none}}
 /* 3周目：見出しを細く・空きマスを埋める・明るいコバルトのカード・文末の1文字送りを防ぐ */
 h1{font-weight:500}h2{font-weight:500}ol.steps>li b.t{font-weight:500}.need>div.key b{font-weight:500}
-body:not(.os-win) .need>div.key{grid-column:span 2}
+.need>div.key{grid-column:span 2}
 @media(max-width:760px){.need>div.key{grid-column:auto}}
 .need>div.blue{background:linear-gradient(140deg,#3457d5,#8fa6f0);color:#fff;border-color:rgba(255,255,255,.35)}
 .need>div.blue>b:first-child{color:rgba(255,255,255,.85)}
@@ -198,3 +198,15 @@ code.nw{white-space:normal}
   tr:nth-child(even) td{background:transparent}
 }
 @media(max-width:760px){.need>div.key{grid-column:auto!important}}
+
+/* スマホで開いた人への注意（site.js が body.phone を付ける） */
+.phone-only{display:none}
+body.phone .phone-only{display:block}
+/* パスワード画面：入力を見えるようにする切り替え */
+.gate .pwrow{position:relative}
+.gate .pwrow input{padding-right:64px}
+.gate .pwrow .show{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:auto;margin:0;padding:8px 10px;border-radius:10px;font:500 12px "Noto Sans JP";color:var(--ink2);background:transparent;box-shadow:none}
+.gate input[type=text]#pw{width:100%;font:500 18px/1 "Roboto Mono",monospace;letter-spacing:.12em;text-align:center;padding:14px 64px 14px 14px;border-radius:14px;border:1px solid var(--line);background:var(--glass2);color:var(--ink);outline:none}
+.gate .err{word-break:keep-all;overflow-wrap:anywhere}   /* 「。」の所でだけ折り返す */
+.need>div.wide{grid-column:span 2}
+@media(max-width:760px){.need>div.wide{grid-column:auto}}

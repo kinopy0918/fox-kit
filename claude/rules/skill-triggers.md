@@ -51,6 +51,7 @@
 
 29. **「このキットを外したい／やめたい／元に戻したい」** — 先に `fox-kit uninstall --dry-run`（Windows は `python ~/Tools/fox-kit/tools/fox-kit-cli/uninstall.py --dry-run`）で**外すものと残すものを見せ、「外してよいですか」と確かめる**。「はい」と言われてから `--yes` を付けて実行する。記憶と資料は残ること、外したものは消さずに1つのフォルダへ移すことを伝える。パソコンのパスワードが要るもの（眠る設定を戻す等）は、出てきた1行を本人に貼ってもらう。
 
+    「記憶の写しを止めて」（Mac）→ `python3 ~/Tools/fox-base/fox_base.py stop`（Google ドライブへの10分おきの写しを止める。手元の記憶は消えない）。もう一度始めるときは、設定画面の「資料の保存先」で Google ドライブを選び直す
     「遠隔サポートの鍵を外して」→ `~/.ssh/authorized_keys` を見せ、どの行を外すかを確かめてから、その行だけ消す（控えを取ってから）。Tailscale も要らなければ「アプリケーション」から外す手順を案内する
 
 30. **「毎朝のまとめを始めて／止めて／時間を変えて」**（Mac のみ）— 始める・時間を変える：`python3 ~/Tools/portable-fox/tools/fox-morning/morning.py install 8:00`（時刻は言われたものに）。止める：同じファイルに `uninstall`。始める前に、claude.ai で Google カレンダーと Gmail がつないであるかを聞く（つないでいなければ https://claude.ai/settings/connectors を案内）。Windows では「いまは Mac 版だけです」と伝える

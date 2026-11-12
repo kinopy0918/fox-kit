@@ -1,4 +1,4 @@
-# fox-kit（AI秘書セットアップ）── Windows 用の1行インストーラ
+﻿# fox-kit（AI秘書セットアップ）── Windows 用の1行インストーラ
 #
 #   PowerShell に次の1行を貼る（手順書 index.html の「Windows」タブにある）:
 #   powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol='Tls12';iex ([Text.Encoding]::UTF8.GetString((New-Object Net.WebClient).DownloadData('https://kinopy0918.github.io/fox-kit/get.ps1')))"
@@ -83,7 +83,7 @@ function Die($s)  {
 function LogLine($s) { Add-Content -Path $Log -Value "$(Get-Date -Format s) $s" -Encoding UTF8 }
 
 # ------------------------------------------------------------------ 覚えておく（続きから再開）
-if ($env:FOX_RESET) { Remove-Item -Force $State -ErrorAction SilentlyContinue }
+if ($env:FOX_RESET) { Remove-Item -Force $State, (Join-Path $Conf 'wizard.json') -ErrorAction SilentlyContinue }   # 設定画面の答えと進み具合も消す
 $S = @{ done = @() }
 $Resumed = $false
 if (Test-Path $State) {

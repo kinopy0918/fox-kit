@@ -69,7 +69,7 @@ done_() {  # ターミナル版の記録か、ブラウザの設定画面の記�
 }
 # 設定画面で進めるかどうかは「この1行に環境変数で渡されたか」で決める（前回の答えを読む前に控える）
 __ENV_OWNER="${FOX_OWNER:-}"; __ENV_UPDATE="${FOX_UPDATE:-}"
-[[ -n "${FOX_RESET:-}" ]] && rm -f "$STATE"
+[[ -n "${FOX_RESET:-}" ]] && rm -f "$STATE" "$HOME/.config/fox-kit/wizard.json"   # 設定画面の答えと進み具合も消す
 RESUMED=""
 if [[ -s "$STATE" ]]; then
   # 環境変数で渡された値を優先し、無いものだけ前回の答えで埋める
