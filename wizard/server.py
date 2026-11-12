@@ -270,7 +270,7 @@ def act(step: str, body: dict) -> dict:
                 return {"ok": False, "error": "お名前とAIの名前は必ず入れてください"}
             if len(v) > 30 or re.search(r'["$`\\|]', v):
                 return {"ok": False, "error": "30文字以内で、記号（\" $ ` \\ |）は使わないでください"}
-            a[k] = v or {"machine": "このMac", "role": "作業機"}.get(k, "")
+            a[k] = v or {"machine": "このパソコン" if WIN else "このMac", "role": "作業機"}.get(k, "")
         save(st); mark("names")
         # やり直しで名前が変わったら、AIの人格のファイル（CLAUDE.md）の名前も書き換える（組み立ては既存の CLAUDE.md を上書きしないため）
         cm = HOME / ".claude" / "CLAUDE.md"
@@ -329,6 +329,8 @@ def act(step: str, body: dict) -> dict:
                 time.sleep(1)
                 if logged_in():
                     mark("login"); return {"ok": True}
+                if p.poll() is not None:     # ログインの道具が終わった＝コードが違った。30秒待たせない
+                    break
             return {"ok": False, "error": "コードを確認できませんでした。もう一度「ログイン画面を開く」からやり直してください"}
         # ログインを始める：URL を拾って画面に返す
         if LOGIN["proc"] and LOGIN["proc"].poll() is None:
@@ -435,10 +437,14 @@ def act(step: str, body: dict) -> dict:
             cmd.append("--auto-index")
         r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env_for(st), **NOWIN)
         if r.returncode != 0:
-            return {"ok": False, "error": (r.stderr or r.stdout)[-300:]}
+            raw = (r.stderr or r.stdout).strip()
+            why = [l.lstrip(" !✕×") for l in raw.splitlines() if re.match(r"\s*[!✕×]\s", l)][-2:]   # 人に向けた行だけ先に見せる
+            return {"ok": False, "detail": raw[-300:],
+                    "error": "保存先を作れませんでした。" + (" ".join(why) or "別の保存先を選ぶか、少し待ってからもう一度押してください。")}
         base = str(Path(root) / a.get("agent", "FOX"))
         open_path(base)
-        mark("storage", base=base)
+        # おまかせで Google ドライブを選んだのに無かった → 完了画面の「あとでやる」に載せる（選び直したら消える）
+        mark("storage", base=base, skipped=bool(body.get("wanted_drive")))
         fb = HOME / "Tools/fox-base/fox_base.py"
         if fb.exists() and not WIN:   # Google ドライブを選んだ人だけ、基本の1枚と記憶の写しをそのドライブへ（選ばなければ止める）
             run_job("fox-base", [PY, str(fb), "install", "--owner", a.get("owner", ""), "--agent", a.get("agent", "FOX"),
@@ -702,7 +708,8 @@ def state() -> dict:
                    "redo": s in done and ("gemini" if s == "packs" and not WIN else s) in REDO,
                    "skipped": bool(st["data"].get(s, {}).get("skipped"))     # スキルそのものを「あとでやる」にした
                               or (s == "packs" and not WIN and bool(st["data"].get("gemini", {}).get("skipped")))} for s, t_, w in STEPS],
-        "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k)} for k, v in JOBS.items()},
+        "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k),
+                     "sec": int((v.get("ended") or time.time()) - v.get("started", time.time()))} for k, v in JOBS.items()},
         "home": str(HOME),
         "platform": "win" if WIN else "mac",
     }

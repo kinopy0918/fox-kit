@@ -33,7 +33,7 @@
   const V = {
     level: () => ({
       title: "はじめましょう",
-      lead: "4つだけ答えれば、あとは最後まで自動で進みます。パスワードやログインなど、あなたが押すしかない所だけ、そのとき画面でお知らせします。",
+      lead: "4つだけ答えれば、あとは最後まで自動で進みます。パスワード・ログイン・予定とメールを見せるかどうかなど、あなたが決めるしかない所だけ、そのとき画面でお知らせします。",
       html: `<div class="sub-card"><b>入れる前に、知っておいてほしいこと</b>
                <ul class="know">
                  <li>AIは、作業のたびに「やっていいですか」とは聞かずに進めます（この${PC()}のファイルを作る・書き換える・消す、を含みます）。<b>お金が動くこと・社外への送信・取り消せない操作は、先にあなたに確かめる</b>決まりにしてあります。大切なファイルは、控え（バックアップ）を取っておいてください。</li>
@@ -102,7 +102,7 @@
       if (!d.state || d.state === "checking") {
         html = `<p><span class="spin"></span>${t(`この${PC()}に入れていない更新があるか調べています${W() ? "" : "（1分ほど）"}…`, "softwareupdate -l を実行中")}</p>`;
       } else if (d.state === "error") {
-        html = `<div class="err">${t("更新を調べられませんでした。", "softwareupdate -l 失敗：")}${esc(d.error || "")}</div>
+        html = `<div class="err">${t("更新を調べられませんでした。下のボタンで更新の画面を開いて確かめるか、このまま進んでください。", "softwareupdate -l 失敗：" + esc(d.error || ""))}</div>
                 <div class="row"><button class="btn" id="open">更新の画面を開いて自分で確かめる</button><button class="btn sub" id="later">このまま進む</button></div>`;
       } else {
         const tooOld = d.too_old ? `<div class="err"><b>${t(`このMacの版（macOS ${esc(d.version)}）は古く、AIの本体が動きません。`, `macOS ${esc(d.version)} は Claude Code の対応外（13 以上が必要）。`)}</b>${t("下の「更新の画面を開く」から新しい版にしてから進めてください。", "")}</div>` : "";
@@ -218,7 +218,7 @@
           } else { w && w.close(); $("#err").textContent = "ログイン画面を用意できませんでした：" + (r.error || ""); }
         };
         $("#send", el).onclick = async () => {
-          $("#send").disabled = true; $("#err").innerHTML = '<span class="spin"></span>確かめています…';
+          $("#send").disabled = true; $("#err").innerHTML = '<span class="spin"></span>確かめています…（30秒ほどかかることがあります）';
           const r = await act("login", { code: $("#code").value });
           $("#send").disabled = false;
           r.ok ? refresh(true) : ($("#err").textContent = r.error);
@@ -232,12 +232,12 @@
       const j = job("meet"), res = d.result, kept = d.kept, done_ = d.done_offers || {};
       let html;
       if (j?.state === "running") html = running("meet", "予定とメールを読んでいます（1分ほど）");
-      else if (!res) html = `<div class="msg ai" style="max-width:100%">はじめまして、${me}です。${you}専用の秘書です。<br>わたしはこの${PC()}の中で動くので、ファイルや会話は外に出ません。<br>予定とメールを見せてもらえれば、${you}の仕事に合わせてお手伝いできます。</div>
+      else if (!res) html = `<div class="msg ai" style="max-width:100%">はじめまして、${me}です。${you}専用の秘書です。<br>わたしはこの${PC()}の中で動きます。考えるときは、会話と、読んだ内容のうち必要な分を、AIの会社（Anthropic）に送ります。それ以外の所へは出しません。<br>予定とメールを見せてもらえれば、${you}の仕事に合わせてお手伝いできます。</div>
           <ol class="do"><li>下の「予定とメールをつなぐ」を押すと claude.ai の画面が開きます。<b>Google カレンダー</b>と<b>Gmail</b> の「接続」を押してください</li>
             <li>つないだら、この画面に戻って「つなぎました」を押します</li></ol>
           ${failNote("meet")}
-          <div class="row"><button class="btn sub" id="conn">予定とメールをつなぐ</button><button class="btn" id="disc">つなぎました。見てもらう</button><button class="btn sub" id="later">あとで</button></div>
-          <p class="hint">読むだけです。予定を変えたり、メールを送ったりはしません。</p>`;
+          <div class="row"><button class="btn${local.conn ? " sub" : ""}" id="conn">1. 予定とメールをつなぐ</button><button class="btn${local.conn ? "" : " sub"}" id="disc">2. つなぎました。見てもらう</button><button class="btn sub" id="later">あとでやる</button></div>
+          <p class="hint">読むだけです。予定を変えたり、メールを送ったりはしません。見せたくないときは「あとでやる」で先へ進めます。</p>`;
       else if (!res.facts?.length) html = `<p>予定もメールも読めませんでした。claude.ai でつなげたか確かめて、もう一度押してください。</p>
           <div class="row"><button class="btn sub" id="conn">予定とメールをつなぐ</button><button class="btn" id="disc">もう一度見てもらう</button><button class="btn sub" id="later">あとで</button></div>`;
       else if (!kept) html = `<div class="msg ai" style="max-width:100%">${you}について、分かったことがあります。</div>
@@ -251,20 +251,20 @@
         const goal = d.morning ? `<div class="sub-card auto"><b>最後に1つだけ。いま、仕事でいちばん達成したいことは？</b>
             <div class="names"><div class="ng">${["売上・お客さま集め", "お金の管理", "新しい事業", "人と採用", "自分の時間を作る"].map((g) => `<button class="nm" data-g="${g}">${g}</button>`).join("")}</div></div>
             <input class="t" id="gfree" placeholder="その他（自由に）"><div class="row"><button class="btn sub" id="gGo">これにする</button></div>
-            <p class="hint">毎朝のまとめと、週1回の振り返りに使います。</p></div>` : "";
+            <p class="hint">${d.morning === "8:00" ? "毎朝のまとめで、今日やれる一歩を出すのに使います。" : "AIが、何を優先して手伝うかを決めるのに使います。"}</p></div>` : "";
         html = `<div class="msg ai" style="max-width:100%">覚えておきました。違っていたり、消してほしいものがあれば、いつでも言ってください。<br>今、お手伝いできることがあります。押すと、その場でやります。</div>
           ${offers}<div class="err" id="err"></div>
           <div class="sub-card"><b>明日の朝8時に、1日のまとめをお送りしましょうか？</b>
-            <p>今日の予定と準備・返事が要るメール・やり残しをまとめます。やることは${W() ? "" : " Mac の「リマインダー」にも入れます（iPhone なら通知が鳴ります）。ノートPCでも、朝に開いた瞬間に動きます"}。</p>
+            <p>今日の予定と準備・返事が要るメール・やり残しをまとめます。${W() ? "" : "やることは Mac の「リマインダー」にも入れます（iPhone なら通知が鳴ります）。ノートPCでも、朝に開いた瞬間に動きます。やめたくなったら、AI に「毎朝のまとめを止めて」と言えば止まります。"}</p>
             ${d.morning === "8:00" ? `<p class="okmsg">✓ 毎朝8時に登録しました</p>` : d.morning === "no" ? `<p class="hint">いりません、にしました</p>`
-              : W() ? `<p class="hint">Windows はこれから対応します</p><div class="row"><button class="btn sub" id="mNo">次へ</button></div>`
+              : W() ? `<p class="hint">毎朝のまとめは、Windows ではまだ使えません（これから対応します）。「次へ」を押してください。</p><div class="row"><button class="btn" id="mNo">次へ</button></div>`
               : `<div class="row"><button class="btn" id="mYes">お願いします</button><button class="btn sub" id="mNo">いりません</button></div>`}</div>${goal}`;
       }
       return {
         title: "秘書とつながる", lead: kept ? "押したものから順に、その場でやります。" : `${me}が、あなたの予定とメールから仕事の様子をつかみます（5分ほど）。`, html,
         bind: (el) => {
           const on = (id, f) => { const b = $("#" + id, el); if (b) b.onclick = f; };
-          on("conn", () => act("meet", { do: "connectors" }));
+          on("conn", async () => { await act("meet", { do: "connectors" }); local.conn = true; view = null; draw(true); });
           on("disc", async () => { await act("meet", { do: "discover" }); refresh(true); });
           on("later", async () => { await act("skip", { target: "meet" }); refresh(true); });
           on("keep", async () => { await act("meet", { do: "confirm", keep: [...el.querySelectorAll("[data-f]:checked")].map((x) => +x.dataset.f) }); refresh(true); });
@@ -283,7 +283,7 @@
     mac: () => (W() ? pcWin() : {
       title: t("パソコンの設定", "Mac 設定（電源・Chrome・Antigravity）"),
       lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Chrome（既定ブラウザ）/ Antigravity IDE"),
-      html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。", "実行中（既定ブラウザの確認ダイアログあり）")) : `
+      html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。", "実行中（既定ブラウザの確認ダイアログあり）")) + `<p class="hint">しばらく進まないときは、パスワードを入れる窓が、ほかの窓の後ろに隠れていることがあります。画面下の Dock で跳ねているアイコンを押すか、この窓を横にずらして探してください。</p>` : `
              <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動・AIが作り置いた一時ファイルを毎日片付け（おすすめ）</small></label>
              <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて、使うときだけ動けばよい</b><small>作業中だけ眠らない仕組みを入れます（CapsLockのランプが点いている間）</small></label>
              <label class="choice"><input type="checkbox" id="lid"><b>ふたを閉じたまま置いておく</b><small>ノートのMacを閉じたまま使う場合だけ。電源につなぎ、熱がこもらない場所に置いてください</small></label>
@@ -294,8 +294,10 @@
              <div class="row"><button class="btn" id="go">この内容で設定する</button><button class="btn sub" id="skip">あとでやる</button></div>`,
       bind: (el) => {
         const go = $("#go", el); if (!go) return;
+        keepForm(el, { lid: "#lid", chrome: "#chrome", antigravity: "#ag" });
         go.onclick = async () => {
-          await act("mac", { use: $("input[name=use]:checked").value, lid: $("#lid").checked, chrome: $("#chrome").checked, antigravity: $("#ag").checked });
+          local.mac = { use: $("input[name=use]:checked").value, lid: $("#lid").checked, chrome: $("#chrome").checked, antigravity: $("#ag").checked };
+          await act("mac", local.mac);
           refresh(true);
         };
         $("#skip", el).onclick = async () => { await act("skip", { target: "mac" }); refresh(true); };
@@ -329,8 +331,8 @@
                  <li>下の欄に貼って ${k("登録")}</li></ol>
                  ${shot("gemini-1", "Google AI Studio の鍵の画面")}
                  <div class="row"><a class="btn sub" href="https://aistudio.google.com/apikey" target="_blank">鍵を作る画面を開く</a></div>
-                 <input class="t" id="gkey" placeholder="ここに貼り付け（AIza で始まる）" autocomplete="off"><div class="err" id="gerr"></div>
-                 <div class="row"><button class="btn" id="greg">登録</button><button class="btn sub" id="gskip">あとでやる</button></div>
+                 <input class="t" id="gkey" placeholder="ここに貼り付け（AIza で始まる）" autocomplete="off"><p class="hint">貼った鍵は、この${PC()}の中の鍵置き場（${W() ? "資格情報マネージャー" : "キーチェーン"}）にだけしまいます。作った人や、ほかの人には送りません。</p><div class="err" id="gerr"></div>
+                 <div class="row"><button class="btn" id="greg">登録</button><button class="btn sub" id="gskip">鍵はあとでやる</button></div>
                  <p class="hint">「あとでやる」にしても、あとで AI に「画像づくりの鍵を登録したい」と言えば、鍵を入れる小さな窓が開きます。</p>`}</div>`,
         bind: (el) => {
           if (!job("packs") && !S.packs_installed) act("packs");
@@ -360,14 +362,14 @@
         $("#places", el).innerHTML = list.map((f, i) => `<label class="choice"><input type="radio" name="root" value="${esc(f.path)}" ${i === 0 ? "checked" : ""}><b>${esc(f.kind)}</b><small>${esc(f.account || "")}${/この(Mac|パソコン)/.test(f.kind) ? "　※パソコンが壊れると消えます" : ""}</small></label>`).join("")
           + (list.some((f) => f.name) ? `<p class="hint">AI専用の共有ドライブを新しく作りたいときは、<a href="https://drive.google.com/drive/shared-drives" target="_blank">Google ドライブの共有ドライブの画面</a>で「＋新規」→ 名前（例：${esc(S.answers.agent || "AI")}）→「作成」を押してから、下の ${k("もう一度調べる")} を押してください。</p><div class="row"><button class="btn sub" id="again">もう一度調べる</button></div>` : "")
           + (hasG ? "" : `<div class="sub-card"><b>Google ドライブを使うなら（おすすめ）</b><ol class="do"><li>${k("Google ドライブのアプリを入れる")} を押す（${W() ? "「変更を許可しますか？」と出たら「はい」" : "Macのパスワードを聞かれます"}）</li><li>開いたアプリで<b>会社の Google アカウント</b>でログイン</li><li>途中で「ストリーミング」か「ミラーリング」かを聞かれたら、<b>${k("ストリーミング")}</b>を選ぶ（ファイルをパソコンに丸ごと置かず、開いたものだけ取ってくる＝パソコンが重くならない）</li><li>ログインできたら ${k("もう一度調べる")}</li></ol>${shot("drive-1", "Google ドライブのアプリのログイン画面")}
-             <div class="row"><button class="btn sub" id="drive">Google ドライブのアプリを入れる</button><button class="btn sub" id="again">もう一度調べる</button></div>${running("drive", "")}</div>`);
+             <div class="row"><button class="btn sub" id="drive">Google ドライブのアプリを入れる</button><button class="btn sub" id="again">もう一度調べる</button></div>${running("drive", "Google ドライブのアプリを入れています…")}</div>`);
         const d = $("#drive", el); if (d) d.onclick = async () => { await act("storage", { install_drive: true }); refresh(true); };
         el.querySelectorAll("#again").forEach((ag) => (ag.onclick = () => { view = null; refresh(true); }));
         $("#go", el).onclick = async () => {
           const root = $("input[name=root]:checked")?.value;
           $("#err").innerHTML = '<span class="spin"></span>作っています…';
           const x = await act("storage", { root, layout: "fox", auto_index: $("#idx").checked });
-          x.ok ? refresh(true) : ($("#err").textContent = x.error);
+          x.ok ? refresh(true) : ($("#err").textContent = x.error + (B() || !x.detail ? "" : "\n" + x.detail));
         };
       },
     }),
@@ -386,10 +388,14 @@
         const send = async (text) => {
           if (text) local.chat.push({ who: "me", text });
           local.chat.push({ who: "ai", text: "…考えています" }); draw();
-          $("#send").disabled = true;
+          $("#send").disabled = true; $("#err").textContent = "";
           const r = await act("talk", { message: text || "" });
           local.chat.pop(); $("#send").disabled = false;
-          r.ok ? local.chat.push({ who: "ai", text: r.reply }) : ($("#err").textContent = r.error);
+          if (r.ok) local.chat.push({ who: "ai", text: r.reply });
+          else {   // 送れなかった文は欄に戻す（打ち直しにしない）
+            if (text) { local.chat.pop(); if (!$("#msg").value) $("#msg").value = text; }
+            $("#err").textContent = (r.error || "うまく送れませんでした") + "　もう一度「送る」を押してください。";
+          }
           draw(); finCheck();
         };
         const finCheck = () => {
@@ -406,18 +412,18 @@
       },
     }),
     done: () => ({
-      title: t("おつかれさまでした。すべて完了です", "完了"),
-      lead: t(`これで ${S.answers.agent || "AI"} があなたの秘書として動けます。`, "セットアップ完了"),
+      title: S.steps.some((x) => x.skipped) ? t("おつかれさまでした。もう使い始められます", "完了（あとでやる：あり）") : t("おつかれさまでした。すべて完了です", "完了"),
+      lead: t(`これで ${S.answers.agent || "AI"} があなたの秘書として動けます。${S.steps.some((x) => x.skipped) ? "「あとでやる」にした設定は、下から続きができます。" : ""}`, "セットアップ完了"),
       html: (() => {
         const ch = S.data.channel || {}, where = ch.platform === "slack" ? "Slack" : ch.platform === "discord" ? "Discord" : "";
         const base = S.data.storage?.base || "", folder = base.split(/[\\/]/).pop();
         const drive = /[\\/]共有ドライブ[\\/]|Shared drives/.test(base) ? "Google ドライブの共有ドライブ" : /GoogleDrive-|マイドライブ|My Drive/.test(base) ? "Google ドライブ" : `この${PC()}`;
-        const g = S.data.gemini;
-        const later = S.steps.filter((x) => x.skipped);
+        const talkLater = S.steps.find((x) => x.id === "talk")?.skipped;
+        const keyOnly = !S.data.packs?.skipped && S.data.gemini?.skipped;   // スキルは入っていて、画像づくりの鍵だけまだ
+        const later = S.steps.filter((x) => x.skipped && !(x.id === "talk" && talkLater)).map((x) => (x.id === "packs" && keyOnly ? { ...x, title: "画像づくりの鍵を登録する" } : x));
         const laterCard = later.length ? `<div class="sub-card"><b>あとでやる、にした設定（${later.length}つ）</b>
                <p>押すと、その段に戻って続きができます。いまやらなくても、この画面はあとから開き直せます（${W() ? "デスクトップの「AIの設定画面」か、AI に「設定画面を開いて」と言う" : "AI に「設定画面を開いて」と言う"}）。</p>
                <div class="row">${later.map((x) => `<button class="btn sub" data-reopen="${x.id}">${esc(x.title)}</button>`).join("")}</div></div>` : "";
-        const talkLater = S.steps.find((x) => x.id === "talk")?.skipped;
         const talkCard = talkLater ? `<div class="sub-card auto"><b>最後に1つ：AIと最初のお話（20分ほど）</b>
                <p>AIがあなたの仕事について聞きます。ここで話しておくと、AIがあなた専用に動けるようになります（ChatGPT などを使っていたなら、その記録から下書きを作って「こうですか？」と確かめる形でも進められます）。</p>
                <div class="row"><button class="btn" data-reopen="talk">AIと話す</button></div></div>` : "";
@@ -425,7 +431,7 @@
         const meetCard = m.kept ? `<div class="sub-card auto"><b>${esc(S.answers.agent || "AI")}のページ</b>
                <p><b>今日やったこと</b></p><ul class="done-list"><li>あなたについて ${m.kept.length}つ覚えました</li>${did.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
                <p><b>次の予定</b></p><ul class="done-list">${m.morning === "8:00" ? "<li>明日の朝8時：1日のまとめ（資料の保存先の「毎朝のまとめ」フォルダと、通知）</li>" : ""}
-               ${S.answers.goal ? `<li>目標「${esc(S.answers.goal)}」：毎朝のまとめで、今日やれる一歩を出します</li>` : ""}</ul></div>` : "";
+               ${S.answers.goal ? `<li>目標「${esc(S.answers.goal)}」：${m.morning === "8:00" ? "毎朝のまとめで、今日やれる一歩を出します" : "覚えました。お手伝いの優先順位に使います"}</li>` : ""}</ul></div>` : "";
         const noteCard = (S.notices || []).length ? `<div class="sub-card"><b>前からお使いだった設定について</b>
                <ul class="done-list">${S.notices.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
         return `${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
@@ -435,8 +441,7 @@
                  : W() ? `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話したくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>
                <li>見せたい画面があれば ${k("Ctrl")} + ${k("Shift")} + ${k("2")}。範囲を選ぶと、その画像が AI に届きます。</li>`
                  : `<li>いまは Slack・Discord につないでいません。つなぎたくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>`}
-               ${base ? `<li>資料は ${drive} の「${esc(folder)}」フォルダに整理して置きます。<div class="row"><button class="btn sub" id="openBase">フォルダを開く</button></div></li>` : ""}
-               ${(g && !g.skipped) || W() ? "" : `<li>あとでできること：画像づくりの鍵の登録（${where || "AI"} に「画像づくりの鍵を登録したい」と言うだけ）</li>`}
+               ${base ? `<li>資料は ${drive} の「${esc(folder)}」フォルダに整理して置きます。${S.data.storage?.skipped ? `<b>Google ドライブが見つからなかったので、いまはこの${PC()}の中に置いています。</b>Google ドライブに変えるときは、上の「資料の保存先」を押してください（アプリの入れ方から案内します）。` : ""}<div class="row"><button class="btn sub" id="openBase">フォルダを開く</button></div></li>` : ""}
                </ul></div>
              <details class="sub-card"${B() && !W() ? "" : " open"}><summary><b>Antigravity の使い方（${W() ? "" : "パソコンの前で使うとき"}いちばん便利な入口）</b></summary>
                <p>この${PC()}の前で作業するときは、<b>Antigravity</b>（AIと一緒に作業するアプリ）から話しかけるのがいちばん速くて便利です。作ったファイルをその場で開けて、${esc(S.answers.agent || "AI")} と同じ設定・記憶で動きます。</p>
@@ -453,11 +458,18 @@
     }),
   };
 
+  // 失敗して同じ画面に戻ったとき、さっき選んだ内容（置き方・チェック）をそのまま出す。初回は「おまかせ」で選んだ置き方
+  function keepForm(el, boxes) {
+    const m = local.mac || { use: (S.data.auto || {}).use };
+    if (m.use) { const r = $(`input[name=use][value=${m.use}]`, el); if (r) r.checked = true; }
+    for (const [key, sel] of Object.entries(boxes)) if (key in m) $(sel, el).checked = !!m[key];
+  }
+  const mmss = (sec) => (sec >= 60 ? `${Math.floor(sec / 60)}分${String(sec % 60).padStart(2, "0")}秒` : `${sec}秒`);
   function running(name, msg) {
     const j = job(name);
     if (!j) return "";
     const lg = B() ? "" : `<pre class="log">${esc(j.tail)}</pre>`;
-    if (j.state === "running") return `<p><span class="spin"></span>${esc(msg)}</p><p class="nowline">${esc(nowLine(j))}</p>${lg}`;
+    if (j.state === "running") return `<p><span class="spin"></span>${esc(msg)} <span class="hint elapsed">${j.sec != null ? "（" + mmss(j.sec) + " 経過）" : ""}</span></p><p class="nowline">${esc(nowLine(j))}</p>${lg}`;
     if (j.state === "ok") return `<p class="okmsg">✓ 終わりました</p>`;
     return failNote(name);
   }
@@ -472,7 +484,7 @@
     return `<div class="err">うまくいきませんでした。${why.length ? esc(why.join(" ")) : "「もう一度」を押してみてください。"}</div>
       <p class="hint">続くときは、この画面を開いたまま、渡してくれた人に知らせてください（下の「くわしい記録」を見せると早く直せます）。</p>
       <details class="logbox"${B() ? "" : " open"}><summary>くわしい記録</summary><pre class="log">${esc(j.tail)}</pre></details>
-      <div class="row"><button class="btn sub" id="retry" onclick="window.__retry('${name}')">もう一度</button>${name === "packs" ? `<button class="btn sub" id="pskip" onclick="window.__packsSkip()">あとでやる</button>` : ""}</div>`;
+      <div class="row"><button class="btn sub" id="retry" onclick="window.__retry('${name}')">もう一度</button>${name === "packs" ? `<button class="btn sub" id="pskip" onclick="window.__packsSkip()">スキルは入れずに先へ進む</button>` : ""}</div>`;
   }
   // 「もう一度」：その画面に本番のボタン（この内容で設定する／見てもらう）があれば、いまの入力のままそれを押す。無ければ同じ作業をやり直す
   window.__retry = async (name) => { const b = $("#go") || $("#disc"); if (b) return b.click(); await act(name); refresh(true); };
@@ -500,7 +512,7 @@
     if (d.installed) {   // 入れ終わった：Windows が本人に押させる2つを案内
       return {
         title: t("あと2つだけ、画面で押してください", "既定ブラウザ・Claude in Chrome"),
-        lead: t("Windows の決まりで、ここだけはあなたが押す必要があります。どちらも「あとで」でも大丈夫です。", "Windows は既定ブラウザをスクリプトで変えられない"),
+        lead: t("Windows の決まりで、ここだけはあなたが押す必要があります。いまやらずに「次へ」を押しても大丈夫です（あとからでもできます）。", "Windows は既定ブラウザをスクリプトで変えられない"),
         html: `${d.chrome ? `<div class="sub-card"><b>① AIがブラウザを使えるようにする（Claude の拡張）</b><ol class="do">
                  <li>${k("Claude の拡張を開く")} を押す（Chrome が開きます）</li><li>${k("Chrome に追加")} → ${k("拡張機能を追加")}</li><li>出てきた画面で、AI と同じアカウントでログイン</li></ol>
                  <div class="row"><button class="btn sub" id="ext">Claude の拡張を開く</button></div></div>
@@ -528,8 +540,10 @@
              <div class="row"><button class="btn" id="go">この内容で設定する</button><button class="btn sub" id="skip">あとでやる</button></div>`,
       bind: (el) => {
         const go = $("#go", el); if (!go) return;
+        keepForm(el, { chrome: "#chrome", antigravity: "#ag" });
         go.onclick = async () => {
-          await act("mac", { use: $("input[name=use]:checked").value, chrome: $("#chrome").checked, antigravity: $("#ag").checked });
+          local.mac = { use: $("input[name=use]:checked").value, chrome: $("#chrome").checked, antigravity: $("#ag").checked };
+          await act("mac", local.mac);
           refresh(true);
         };
         $("#skip", el).onclick = async () => { await act("skip", { target: "mac" }); refresh(true); };
@@ -554,7 +568,7 @@
       if (!d.bot) return {
         title: t("Discord：AIの分身（ボット）を作る", "Discord Bot 作成"),
         lead: t("英語の画面が出てきます。押すボタンは（ ）に日本語の意味を書いています。", "Developer Portal"),
-        html: `<div class="sub-card"><b>まだ AI の部屋（サーバー）が無ければ先に作る</b><ol class="do"><li>${k("Discord を開く")} を押す（アカウントが無ければ作成）</li><li>画面の左はしの ${k("＋", "サーバーを追加")} →「オリジナルの作成」→「自分と友達のため」→ 名前を入れて「新規作成」</li></ol>
+        html: `<div class="sub-card"><b>まだ AI の部屋（サーバー）が無ければ先に作る</b><ul class="done-list"><li>${k("Discord を開く")} を押す（アカウントが無ければ作成）</li><li>画面の左はしの ${k("＋", "サーバーを追加")} →「オリジナルの作成」→「自分と友達のため」→ 名前を入れて「新規作成」</li></ul>
                ${shot("discord-server", "左はしの「＋」からサーバーを作る")}<div class="row"><a class="btn sub" href="https://discord.com/channels/@me" target="_blank">Discord を開く</a></div></div>
                <ol class="do">
                  <li>${k("開発者の画面を開く")} を押す</li>
@@ -566,7 +580,7 @@
                ${shot("discord-app", "「New Application」で名前を入れて作成")}
                ${shot("discord-token", "「Bot」の画面の「Reset Token」→「Copy」")}
                <div class="row"><a class="btn sub" href="https://discord.com/developers/applications" target="_blank">開発者の画面を開く</a></div>
-               <input class="t" id="tok" placeholder="ここに貼り付け（画面には隠れて表示されます）" type="password" autocomplete="off"><div class="err" id="err"></div>
+               <input class="t" id="tok" placeholder="ここに貼り付け（画面には隠れて表示されます）" type="password" autocomplete="off"><p class="hint">貼った鍵は、この${PC()}の中の鍵置き場（${W() ? "資格情報マネージャー" : "キーチェーン"}）にだけしまいます。作った人や、ほかの人には送りません。</p><div class="err" id="err"></div>
                <div class="row"><button class="btn" id="go">確かめる</button><button class="btn sub" id="back">Slack にする／やめる</button></div>`,
         bind: (el) => {
           $("#go", el).onclick = async () => { $("#err").innerHTML = '<span class="spin"></span>確かめています…'; const r = await act("channel", { do: "token", token: $("#tok").value }); if (r.ok) { local.invite = r.invite; refresh(true); } else $("#err").textContent = r.error; };
@@ -601,7 +615,7 @@
              ${shot("slack-create", "ワークスペースを選んで作成")}
              ${shot("slack-token", "「OAuth & Permissions」の Bot User OAuth Token をコピー")}
              <div class="row"><a class="btn sub" href="https://app.slack.com/" target="_blank">Slack を開く</a><button class="btn sub" id="man">アプリを作る画面を開く</button></div>
-             <input class="t" id="tok" placeholder="xoxb- で始まる文字列を貼り付け" type="password" autocomplete="off"><div class="err" id="err"></div>
+             <input class="t" id="tok" placeholder="xoxb- で始まる文字列を貼り付け" type="password" autocomplete="off"><p class="hint">貼った鍵は、この${PC()}の中の鍵置き場（${W() ? "資格情報マネージャー" : "キーチェーン"}）にだけしまいます。作った人や、ほかの人には送りません。</p><div class="err" id="err"></div>
              <div class="row"><button class="btn" id="go">確かめる</button><button class="btn sub" id="back">Discord にする／やめる</button></div>`,
       bind: (el) => {
         $("#man", el).onclick = async () => { const w = window.open("about:blank", "_blank"); const r = await act("channel", { do: "manifest" }); w.location = r.url; };
@@ -644,7 +658,8 @@
       if (once("storage")) {
         const r = await act("storage", { detect: true }); const fs = r.folders || [];
         const pick = (o.storage === "drive" && fs.find((f) => /マイドライブ|My Drive/.test(f.kind))) || fs.find((f) => /中だけ/.test(f.kind)) || fs[0];
-        if (pick) { await act("storage", { root: pick.path, layout: "fox", auto_index: true }); refresh(true); } else AUTO.storage = false;
+        const noDrive = o.storage === "drive" && pick && !/マイドライブ|My Drive/.test(pick.kind);   // Google ドライブを選んだのに無かった
+        if (pick) { await act("storage", { root: pick.path, layout: "fox", auto_index: true, wanted_drive: noDrive }); refresh(true); } else AUTO.storage = false;
       }
     } else if (cur === "channel") {
       if (!d.platform) await go("channel", "channel", { do: "choose", platform: "none" });
@@ -659,7 +674,14 @@
     if (S.answers.auto && cur === "talk" && !(S.data.talk || {}).manual) return;   // おまかせ：お話の画面は描かずにあとへ回す（AIを呼ばない）
     const steps = S.steps.filter((s) => s.id !== "done");
     const n = steps.filter((s) => s.done).length;
-    $("#progText").textContent = cur === "done" ? "すべて完了しました" : `全${steps.length}ステップの ${steps.findIndex((s) => s.id === cur) + 1}番目：${steps.find((s) => s.id === cur)?.title || ""}`;
+    const nLater = S.steps.filter((s) => s.skipped).length;
+    $("#progText").textContent = cur === "done" ? (nLater ? `ひととおり終わりました（あとでやる：${nLater}つ）` : "すべて完了しました") : `全${steps.length}ステップの ${steps.findIndex((s) => s.id === cur) + 1}番目：${steps.find((s) => s.id === cur)?.title || ""}`;
+    if (cur !== "done") {   // 残りの目安（分）。おまかせでは、あとへ回す段（スマホ連携・最初のお話）を数えない
+      const MIN = W() ? { update: 1, names: 1, claude: 3, login: 3, build: 1, meet: 5, mac: 15, packs: 10, storage: 2, channel: 10, talk: 20 }
+                      : { update: 2, names: 1, claude: 3, login: 3, build: 1, meet: 5, mac: 10, packs: 20, storage: 2, channel: 10, talk: 20 };
+      const rest = steps.filter((s) => !s.done && !(S.answers.auto && ["channel", "talk"].includes(s.id))).reduce((a, s) => a + (MIN[s.id] || 0), 0);
+      if (rest) $("#progText").textContent += `　｜　残りの目安：約${rest}分`;
+    }
     $("#progBar").style.width = Math.round((n / steps.length) * 100) + "%";
     $("#steps").innerHTML = S.steps.map((s, i) => s.done && s.skipped
       ? `<button class="st done later" data-reopen="${s.id}" title="押すと、この段に戻ってやり直せます"><i>↩</i>${esc(s.title)}<small>あとでやる → 押すと戻れます</small></button>`
@@ -669,22 +691,47 @@
     document.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => {
       if (b.dataset.ask && !confirm(`「${b.dataset.ask}」をやり直しますか？\n（ほかの段で入れたものは、そのまま残ります）`)) return;
       await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
-    const sig = cur + "|" + JSON.stringify(S.jobs[cur] ? S.jobs[cur].state : "") + "|" + (cur === "talk" ? "" : JSON.stringify(S.data[cur] || {})) + "|" + (cur === "packs" ? JSON.stringify(S.data.gemini || {}) : "");
+    const sig = cur + "|" + JSON.stringify(S.jobs[cur] ? S.jobs[cur].state : "") + "|" + (cur === "talk" ? "" : JSON.stringify(S.data[cur] || {})) + "|" + (cur === "packs" ? JSON.stringify(S.data.gemini || {}) : "") + "|" + (cur === "storage" ? (S.jobs.drive || {}).state || "" : "");
     if (!force && view === sig) {           // 同じ段なら、動いている作業の表示だけ更新（入力中を消さない）
       document.querySelectorAll("pre.log").forEach((pre) => { const j = S.jobs[cur]; if (j) pre.textContent = j.tail; });
       document.querySelectorAll("p.nowline").forEach((p) => { const j = S.jobs[cur]; if (j) p.textContent = nowLine(j); });
+      document.querySelectorAll("span.elapsed").forEach((p) => { const j = S.jobs[cur]; if (j && j.state === "running" && j.sec != null) p.textContent = "（" + mmss(j.sec) + " 経過）"; });
       return;
     }
     if (local.poll) { clearInterval(local.poll); local.poll = null; }
     view = sig;
     const def = (V[cur] || V.done)();
-    const who = cur === "done" ? "" : S.steps.find((s) => s.id === cur)?.who;
+    // 裏で作業が動いている間と、おまかせが代わりに押す段は「自動」。パソコンの設定だけは、途中でパスワードを聞くので「あなたの操作」のまま
+    const busy = cur !== "mac" && (S.jobs[cur]?.state === "running" || (S.answers.auto && ["update", "packs", "storage", "channel"].includes(cur)));
+    const who = cur === "done" ? "" : busy ? "auto" : S.steps.find((s) => s.id === cur)?.who;
     const autoNote = S.answers.auto && cur !== "done" ? `<div class="autonote">おまかせで進めています。あなたが押す必要のある所だけ、この画面でお知らせします。</div>` : "";
-    $("#main").innerHTML = autoNote + `<div class="card"><div class="kicker">いまやること${who ? `<span class="who ${who}">${who === "you" ? "あなたの操作" : "自動で進みます"}</span>` : ""}</div><h1>${esc(def.title)}</h1><p class="lead">${esc(def.lead)}</p><div id="body">${def.html}</div></div>`;
+    $("#main").innerHTML = autoNote + `<div class="card"><div class="kicker">${cur === "done" ? "完了" : "いまやること"}${who ? `<span class="who ${who}">${who === "you" ? "あなたの操作" : "自動で進みます"}</span>` : ""}</div><h1>${esc(def.title)}</h1><p class="lead">${esc(def.lead)}</p><div id="body">${def.html}</div></div>`;
     def.bind($("#body"));
   }
+  let lost = 0;   // 続けて失敗した回数（1回の取りこぼしでは騒がない）
+  function lostCard(old) {
+    const done = S && S.current === "done";
+    const line = W() ? 'irm https://kinopy0918.github.io/fox-kit/get.ps1 | iex' : '/bin/zsh -c "$(curl -fsSL https://kinopy0918.github.io/fox-kit/get.sh)"';
+    $("#progText").textContent = done ? "設定は終わっています" : old ? "この画面は古くなりました" : `この${PC()}との通信が切れました`;
+    $("#main").innerHTML = `<div class="card"><div class="kicker">${done ? "お知らせ" : "止まっています"}</div>
+      <h1>${done ? "設定画面は閉じました" : old ? "この画面は古くなりました" : "設定画面とつながらなくなりました"}</h1>
+      <p class="lead">${done ? "設定は終わっているので、このタブは閉じて大丈夫です。" : "ここまでに入れた内容は覚えています。開き直せば、続きから始まります。"}</p>
+      <div class="sub-card"><b>${done ? "あとから設定画面を開くには" : "開き直すには"}</b>
+        <ol class="do"><li>${W() ? "スタートメニューで「PowerShell」を開く（デスクトップに「AIの設定画面」があれば、それを押すだけでも開きます）" : "「ターミナル」を開く（画面右上の虫めがねで「ターミナル」と打つ）"}</li>
+        <li>下の1行を貼り付けて Enter</li></ol>
+        <pre class="log" id="oneLine">${esc(line)}</pre>
+        <div class="row"><button class="btn" id="copyLine">この1行をコピー</button><button class="btn sub" id="reloadNow">もう一度つないでみる</button></div></div></div>`;
+    $("#copyLine").onclick = () => navigator.clipboard.writeText(line).then(() => ($("#copyLine").textContent = "コピーしました"));
+    $("#reloadNow").onclick = () => location.reload();
+    view = null;
+  }
   async function refresh(force) {
-    try { S = await api("/api/state"); draw(force); } catch (e) { $("#progText").textContent = `この${PC()}との通信が切れました。${W() ? "PowerShell" : "ターミナル"}でもう一度1行を貼ってください。`; }
+    try {
+      const s = await api("/api/state");
+      if (!s || !s.steps) { lostCard(true); return; }      // URL の鍵が合わない＝前に開いた古い画面
+      const back = lost >= 3;
+      S = s; lost = 0; draw(force || back);
+    } catch (e) { if (++lost === 3) lostCard(false); }
   }
   refresh(true);
   setInterval(() => refresh(false), 2000);
