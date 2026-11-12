@@ -13,7 +13,7 @@
 7. **図・構成図** — システムの構成・データの流れ・手順の順番 → `archify`
 8. **動画を見る** — 動画のURL（YouTube・TikTok・Instagram・X）や動画ファイルを渡されただけでも `watch`。実際にダウンロードして、場面の画像と字幕・音声から中身を読む。持ち主に文字起こしを貼らせない ※Mac のみ（Windows では「いまは Mac 版だけです」と伝え、字幕や文字起こしがあれば貼ってもらう。道具を自分で入れ始めない）
 9. **動画を作る** — 「動画作って／縦動画／字幕付き」→ `remotion-best-practices`（ほかの remotion-* はここから振り分ける）
-10. **画像を作る・直す** — 「画像作って／この写真を加工して／バナー」→ `nanobanana` コマンド（`nanobanana "指示" -i 元画像 -o 出力先`）。キャラクター・マスコット・ゆるいロゴ → `ip-as-logo-skill`。※nanobanana は Mac のみ
+10. **画像を作る・直す** — 「画像作って／この写真を加工して／バナー」→ `nanobanana` コマンド（`nanobanana "指示" -i 元画像 -o 出力先`）。キャラクター・マスコット・ゆるいロゴ → `ip-as-logo-skill`。※nanobanana は Mac のみ。無料の鍵では動かない（Google の決まり）。そのときは理由と、支払い方法を登録すれば使えること・1枚あたり数円〜20円ほどかかることを伝え、登録するかは持ち主に決めてもらう
 11. **保存先のノートを書く・整える** — `obsidian-markdown`（ノート）・`obsidian-bases`（.base）・`json-canvas`（.canvas）・`obsidian-cli`（操作）・`defuddle`（ウェブページをきれいに取り込む。Mac のみ）
 12. **保存先を横断して探す** — 言葉が違っても探したい・「前にどこかに書いた〇〇」→ MCP `vault-rag` の `vault_search`（Mac で Gemini の鍵があるときだけ）。無いとき・Windows・場所の見当がつくときは `_全体の目次.md` から辿る
 13. **ブラウザを触る** — 開く・入力・クリック・画面の保存・抜き出し → まず Claude in Chrome（下の「ブラウザで調べる」）。つながらないときの2番手が MCP `playwright`（Mac のみ）。**支払いの確定は代行しない**（持ち主が押す）。ログイン・送信・公開は押す前に持ち主に確認する
@@ -29,7 +29,7 @@
 23. **不具合・お金や予約のロジック** — 原因の分からない不具合は直す前に `systematic-debugging`、お金・席数などの計算を書く前は `test-driven-development`、「できました／直りました」と言う前は `verification-before-completion`
 
 24. **自分（AI）の設定・点検を頼まれた** — 持ち主にターミナルを打たせず、自分で実行して結果を日本語で返す。
-    **Mac**：「調子を見て」→ `fox-kit status`／「新しい版に更新して」→ `fox-kit update`／「画像づくりの鍵を登録したい」→ `python3 ~/Tools/fox-packs/packs.py key --dialog`（Macの画面に鍵を貼る窓が出る、と先に伝える。鍵を会話に貼らせない）。
+    **Mac**：「調子を見て」→ `fox-kit status`／「新しい版に更新して」→ `fox-kit update`／「画像づくりの鍵を登録したい／画像づくりを使えるようにしたい」→ `python3 ~/Tools/fox-packs/packs.py key --dialog`（Macの画面に鍵を貼る窓が出る、と先に伝える。鍵を会話に貼らせない）。
     **Windows**（`fox-kit` コマンドは無い）：「調子を見て」→ 下の 27 の状態確認と `claude auth status` を見て返す／「新しい版に更新して」→ 「PowerShell に入れ方の1行をもう一度貼ってください（手を入れたファイルは上書きしません）」と案内する／画像づくりの鍵は Windows では使えない。
     「名前（呼び方）を変えて」→ `~/.claude/CLAUDE.md` の名前と、Mac は `~/.config/fox-kit/state.env` の `FOX_OWNER`・`FOX_AGENT`、Windows は `~/.config/fox-kit/state-win.json` の `FOX_OWNER`・`FOX_AGENT`（設定画面で入れたときは `~/.config/fox-kit/wizard.json` の `answers` の `owner`・`agent`）を書き換える（AIの名前を変えても Slack/Discord の表示名と資料フォルダ名は変わらない、と添えて、変えたいなら手順を案内）／
     「見張り番を入れて」→ 置きっぱなしなら Mac は `python3 ~/Tools/fox-home/home.py install office`、Windows は PowerShell で `$py = (Get-Command python -All | Where-Object Source -notlike '*WindowsApps*' | Select-Object -First 1).Source; & $py "$HOME\Tools\fox-kit\tools\fox-home\home.py" install office`（持ち歩きなら office を mobile に）／
@@ -50,6 +50,12 @@
 28. **「作業の前に毎回確認して／勝手に進めないで」「確認なしで進めて」** — Mac は `fox-kit confirm`（毎回確認する）／`fox-kit confirm off`（確認なしに戻す）。Windows は `python ~/Tools/fox-kit/tools/fox-kit-cli/uninstall.py confirm on`（または `off`）。変えたら「いまの会話を開き直すと効きます」と伝える。
 
 29. **「このキットを外したい／やめたい／元に戻したい」** — 先に `fox-kit uninstall --dry-run`（Windows は `python ~/Tools/fox-kit/tools/fox-kit-cli/uninstall.py --dry-run`）で**外すものと残すものを見せ、「外してよいですか」と確かめる**。「はい」と言われてから `--yes` を付けて実行する。記憶と資料は残ること、外したものは消さずに1つのフォルダへ移すことを伝える。パソコンのパスワードが要るもの（眠る設定を戻す等）は、出てきた1行を本人に貼ってもらう。
+
+    「遠隔サポートの鍵を外して」→ `~/.ssh/authorized_keys` を見せ、どの行を外すかを確かめてから、その行だけ消す（控えを取ってから）。Tailscale も要らなければ「アプリケーション」から外す手順を案内する
+
+30. **「毎朝のまとめを始めて／止めて／時間を変えて」**（Mac のみ）— 始める・時間を変える：`python3 ~/Tools/portable-fox/tools/fox-morning/morning.py install 8:00`（時刻は言われたものに）。止める：同じファイルに `uninstall`。始める前に、claude.ai で Google カレンダーと Gmail がつないであるかを聞く（つないでいなければ https://claude.ai/settings/connectors を案内）。Windows では「いまは Mac 版だけです」と伝える
+
+31. **初期設定が途中のまま**（記憶フォルダに `setup-progress.md` があり、`~/.claude/rules/company.md` がまだ無い）— その日の最初の返事の終わりに1回だけ、「初期設定の続きが残っています。いま5分ほどで続きをしますか？」と声をかける。断られたら、その日はもう聞かない。答えにくい質問（会社の決まり・困りごとの窓口など）は「あとで」「ありません」で飛ばせる、と添える
 
 - **ブラウザで調べる・ログインした画面で入力する・ページを見て確かめる**依頼 → Claude in Chrome（Chrome の公式拡張）を使う。つながっていなければ、持ち主に「この画面で `/chrome` と打ち、『Enabled by default』を選んでください」と1回だけ案内する（拡張が無ければ Chrome ウェブストアの「Claude」を「Chrome に追加」→ 同じアカウントでログイン）。**支払いの確定は代行しない**（持ち主が押す）。ログインが要る画面・送信・公開は、押す前に必ず持ち主に確認する
 - 「パソコンを最新にして」「更新を確かめて」→ Mac は `softwareupdate -l` で一覧を見せ、`open "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"` で更新の画面を開く／Windows は `start ms-settings:windowsupdate-action`。再起動が要る更新は、押す前に持ち主に確認する（作業中のものが消えるため）

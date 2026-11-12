@@ -148,6 +148,15 @@ fi
 
 c "1" "fox-kit（AI秘書のセットアップ）"; echo
 [[ "$(uname -s)" == "Darwin" ]] || die "いまはMac専用です"
+# AIの本体（Claude Code）は macOS 13 以上で動く。古いままだと、入れ終わってから「動かない」になる
+__os="$(sw_vers -productVersion 2>/dev/null)"
+if [[ -n "$__os" && "${__os%%.*}" -lt 13 && -z "${FOX_SKIP_CLAUDE:-}" ]]; then
+  echo; c "31" "  ✕ このMacの macOS（$__os）は古く、AIの本体が動きません（13 以上が要ります）。"; echo
+  echo "  画面左上のリンゴのマーク →「システム設定」→「一般」→「ソフトウェアアップデート」で新しくしてから、同じ1行をもう一度貼り付けてください。"
+  echo "  新しくできない古いMacでは、このキットは使えません。"; exit 1
+fi
+__free="$(df -k "$HOME" 2>/dev/null | awk 'NR==2{print int($4/1048576)}')"
+[[ -n "$__free" && "$__free" -lt 10 ]] && warn "このMacの空きが少なくなっています（残り ${__free}GB）。道具を入れるのに10GBほど使います。足りないと途中で止まるので、先に要らないファイルを片づけるのがおすすめです。"
 
 
 # ------------------------------------------------------------------ ブラウザの設定画面で進める（既定）
@@ -190,8 +199,8 @@ if [[ -n "${FOX_UPDATE:-}" && -f "$HOME/.config/fox-kit/install.json" ]]; then
 elif [[ -n "$RESUMED" ]]; then
   ok "$(t "前回の続きから始めます（答えていただいた内容は覚えています）" "state を読み込みました: $STATE（最初からは FOX_RESET=1）")"
 else
-  t "  あなた専用のAI秘書を、このMacに用意します（15分ほど）。途中でいくつか質問します。" \
-    "  Claude Code を入れ、汎用FOXとして組み立てます（15分ほど）。"
+  t "  あなた専用のAI秘書を、このMacに用意します（30分〜1時間。ほとんどは待ち時間です）。途中でいくつか質問します。" \
+    "  Claude Code を入れ、汎用FOXとして組み立てます（30分〜1時間）。"
   t "  ※ このAIは、いちいち「実行してよいですか？」と聞かずに作業を進める設定になります。お金・社外への送信などは必ずあなたに確認します。" \
     "  ※ bypassPermissions（確認ダイアログなし）が入ります。3ゲート（金銭・対外不可逆・一次情報）は人に確認する規則を入れます。"
 fi
@@ -241,9 +250,10 @@ if [[ -n "${FOX_REMOTE:-}" ]]; then
     mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
     touch "$HOME/.ssh/authorized_keys" && chmod 600 "$HOME/.ssh/authorized_keys"
     grep -qF "$FOX_SSH_KEY" "$HOME/.ssh/authorized_keys" || echo "$FOX_SSH_KEY" >> "$HOME/.ssh/authorized_keys"
+    warn "$(t "遠隔サポート用に、サポート担当がこのMacに入るための鍵を1つ登録しました。サポートが要らなくなったら、AIに「遠隔サポートの鍵を外して」と言えば外せます" "authorized_keys に公開鍵を1行追加しました（~/.ssh/authorized_keys）")"
   fi
   if [[ ! -d /Applications/Tailscale.app ]]; then
-    echo "  $(t "遠隔サポート用のアプリを入れます（Macのパスワードを聞かれます）" "Tailscale を導入（sudo）")"
+    echo "  $(t "遠隔サポート用のアプリを入れます。Macのパスワードを聞かれます（打っても画面には何も出ませんが、入っています。打ち終えたら return）" "Tailscale を導入（sudo）")"
     curl -fsSL -o "$TMP/ts.pkg" https://pkgs.tailscale.com/stable/Tailscale-latest-macos.pkg
     sudo installer -pkg "$TMP/ts.pkg" -target / >/dev/null
   fi
@@ -289,7 +299,8 @@ elif logged_in || { [[ -n "${FOX_UPDATE:-}" ]] && done_ login; }; then   # 更�
   ok "$(t "ログイン済みです" "ログイン済み")"; mark login
 else
   t "  インターネットの画面が開きます。AIの契約をしたアカウントで「ログイン」→「許可」を押してください。
-  ★会社のMacなら、会社で契約したアカウントを使ってください。終わったらこの画面に戻ってきます。" \
+  ★会社のMacなら、会社で契約したアカウントを使ってください。
+  許可のあとに長いコード（英数字）が出たら、「コードをコピー」を押し、この黒い画面に戻って貼り付け（command + V）て return を押してください。" \
     "  ブラウザでOAuthします。会社の端末なら会社の契約アカウントで。"
   { has_tty && claude auth login < /dev/tty; } || true
   if logged_in; then ok "$(t "ログインできました" "ログイン完了")"; mark login

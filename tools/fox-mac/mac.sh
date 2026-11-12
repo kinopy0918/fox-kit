@@ -152,7 +152,7 @@ choose FOX_MAC_USE "$(t "このMacはどう使いますか？" "用途")" 1 \
 save FOX_MAC_USE
 
 if [[ "$FOX_MAC_USE" == office ]]; then
-  echo "  $(t "設定を変えるので、Macのパスワードを聞かれます。" "sudo pmset")"
+  echo "  $(t "設定を変えるので、Macのパスワードを聞かれます（打っても画面には何も出ませんが、入っています。打ち終えたら return）" "sudo pmset")"
   if sudo pmset -c sleep 0 disksleep 0 displaysleep 10 >/dev/null; then
     ok "$(t "電源につないでいる間は眠らないようにしました（画面だけ10分で消えます）" "pmset -c sleep 0 disksleep 0 displaysleep 10")"
   else
@@ -177,7 +177,7 @@ else
   choose FOX_CAPS "$(t "作業中だけ眠らない仕組みを入れますか？（CapsLockのランプが点いている間はふたを閉じても眠らない／Antigravity を開いている間は勝手に眠らない）" "capslock-nosleep を入れる")" 1 \
     "1:$(t "入れる（おすすめ）" "入れる")" "2:$(t "入れない" "入れない")"
   if [[ "$FOX_CAPS" == 1 && -x "$HOME/Tools/capslock-nosleep/install.sh" ]]; then
-    echo "  $(t "Macのパスワードを聞かれます。" "sudo install.sh")"
+    echo "  $(t "Macのパスワードを聞かれます（打っても画面には何も出ませんが、入っています。打ち終えたら return）" "sudo install.sh")"
     sudo "$HOME/Tools/capslock-nosleep/install.sh" >/dev/null && ok "$(t "入れました。CapsLock を押してランプを点けると、ふたを閉じても作業が止まりません" "capslock-nosleep installed")"
   fi
 fi

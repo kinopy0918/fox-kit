@@ -38,6 +38,8 @@
                <ul class="know">
                  <li>AIは、作業のたびに「やっていいですか」とは聞かずに進めます（この${PC()}のファイルを作る・書き換える・消す、を含みます）。<b>お金が動くこと・社外への送信・取り消せない操作は、先にあなたに確かめる</b>決まりにしてあります。大切なファイルは、控え（バックアップ）を取っておいてください。</li>
                  <li>この${PC()}の設定を一部変えます。置きっぱなしを選ぶと、眠らない設定にします。Chrome と、AIと一緒に作業するアプリ（Antigravity）を入れ、毎朝の点検などを裏で動かします。</li>
+                 <li>AIの契約（Claude の Pro 以上）の使える量には上限があります。資料づくりなどの重い作業を続けると、上限に当たって数時間止まることがあります（時間がたてば戻ります。よく使うなら Max が向いています）。</li>
+                 ${W() ? "<li>Windows では、まだ使えないものがあります：画像づくり・動画を見る・言葉が違っても探せる検索・毎朝のまとめ・AIの記憶の写し。ほかは Mac と同じに使えます。</li>" : ""}
                  <li>やめたくなったら、AIに「作業の前に毎回確認して」「このキットを外したい」と言えば戻せます。AIの記憶と資料は残ります。</li>
                </ul>
                <p class="hint">先へ進むと、<a href="https://idm-drone.co.jp/fox-kit-terms/" target="_blank">利用規約</a>に同意したことになります。</p></div>
@@ -321,7 +323,7 @@
         lead: t("SEO・動画・ノート・画像づくり・意味で探す・ブラウザ操作などを入れます（はじめてだと20分ほど）。待っている間に、下の「画像づくりの鍵」を済ませておくと早く終わります。",
                 "brew / plugins / upstream skills / MCP"),
         html: `${status}
-               <div class="sub-card"><b>画像づくり・意味で探す のための鍵（Google の Gemini）</b> ${reg ? '<span class="okmsg">✓ 登録できました</span>' : g?.skipped ? '<span class="hint">あとでやる（いまは未登録）</span>' : '<span class="who you">まだです</span>'}
+               <div class="sub-card"><b>意味で探す・画像づくり のための鍵（Google の Gemini）</b> ${reg ? '<span class="okmsg">✓ 登録できました</span>' : g?.skipped ? '<span class="hint">あとでやる（いまは未登録）</span>' : '<span class="who you">まだです</span>'}
                ${reg || g?.skipped ? "" : `<ol class="do">
                  <li>${k("鍵を作る画面を開く")} を押す</li>
                  <li>Google アカウントでログイン（会社で使うなら会社のアカウント）</li>
@@ -333,7 +335,8 @@
                  <div class="row"><a class="btn sub" href="https://aistudio.google.com/apikey" target="_blank">鍵を作る画面を開く</a></div>
                  <input class="t" id="gkey" placeholder="ここに貼り付け（AIza で始まる）" autocomplete="off"><p class="hint">貼った鍵は、この${PC()}の中の鍵置き場（${W() ? "資格情報マネージャー" : "キーチェーン"}）にだけしまいます。作った人や、ほかの人には送りません。</p><div class="err" id="gerr"></div>
                  <div class="row"><button class="btn" id="greg">登録</button><button class="btn sub" id="gskip">鍵はあとでやる</button></div>
-                 <p class="hint">「あとでやる」にしても、あとで AI に「画像づくりの鍵を登録したい」と言えば、鍵を入れる小さな窓が開きます。</p>`}</div>`,
+                 <p class="hint">無料の鍵で動くのは「意味で探す」（言葉が違っても、近い内容のメモを探せる）です。<b>画像づくりは、Google の決まりで無料の鍵では動きません</b>（支払い方法を登録した鍵が要ります。1枚あたり数円〜20円ほど）。使いたくなったら、あとで AI に「画像づくりを使えるようにしたい」と言ってください。</p>
+                 <p class="hint">「鍵はあとでやる」にしても、あとで AI に「画像づくりの鍵を登録したい」と言えば、鍵を入れる小さな窓が開きます。</p>`}</div>`,
         bind: (el) => {
           if (!job("packs") && !S.packs_installed) act("packs");
           const reg = $("#greg", el);
@@ -440,10 +443,10 @@
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
                  : W() ? `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話したくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>
                <li>見せたい画面があれば ${k("Ctrl")} + ${k("Shift")} + ${k("2")}。範囲を選ぶと、その画像が AI に届きます。</li>`
-                 : `<li>いまは Slack・Discord につないでいません。つなぎたくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>`}
+                 : `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話したくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>`}
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」フォルダに整理して置きます。${S.data.storage?.skipped ? `<b>Google ドライブが見つからなかったので、いまはこの${PC()}の中に置いています。</b>Google ドライブに変えるときは、上の「資料の保存先」を押してください（アプリの入れ方から案内します）。` : ""}<div class="row"><button class="btn sub" id="openBase">フォルダを開く</button></div></li>` : ""}
                </ul></div>
-             <details class="sub-card"${B() && !W() ? "" : " open"}><summary><b>Antigravity の使い方（${W() ? "" : "パソコンの前で使うとき"}いちばん便利な入口）</b></summary>
+             <details class="sub-card"${B() && !W() && where ? "" : " open"}><summary><b>Antigravity の使い方（${W() ? "" : "パソコンの前で使うとき"}いちばん便利な入口）</b></summary>
                <p>この${PC()}の前で作業するときは、<b>Antigravity</b>（AIと一緒に作業するアプリ）から話しかけるのがいちばん速くて便利です。作ったファイルをその場で開けて、${esc(S.answers.agent || "AI")} と同じ設定・記憶で動きます。</p>
                <ol class="do"><li>${W() ? "スタートメニュー" : "Dock か「アプリケーション」"}から ${k("Antigravity")} を開く（はじめは Google アカウントでログイン）</li>
                  <li>左に Claude の会話一覧が出ます。上の ${k("New session", "新しい会話")} を押すと、真ん中に会話が開きます</li>

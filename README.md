@@ -34,7 +34,7 @@ Windows 版に入るのは基本セット（人格・作法・資料のチェッ
 
 | 何 | どこ | 更新のとき |
 |---|---|---|
-| 人格（名前・持ち主・役割） | `~/.claude/CLAUDE.md` | さわらない（持ち主のもの） |
+| 人格（名前・持ち主・役割） | `~/.claude/CLAUDE.md` | 中身は書き換えない（持ち主のもの）。前から自分の CLAUDE.md があった人は、控えを取り、元の中身を後ろにそのまま残す |
 | 仕事の作法 35項目 | `~/.claude/fox-kit/rules/craft.md` | 手を入れていなければ新しくする |
 | 初期設定の聞き取り・資料の品質ループ | `~/.claude/skills/fox-setup` ・ `shiryo-review-loop` | 同上（差し戻し一覧 `checklist.md` は育つのでさわらない） |
 | 資料のチェック役・お金の監査役 | `~/.claude/agents/shiryo-reviewer.md`・`money-auditor.md` | 同上 |
@@ -58,13 +58,18 @@ fox-kit connect    # Discord / Slack とつなぐ
 fox-kit mac        # パソコンの設定（眠る・眠らない／Antigravity）
 fox-kit packs      # スキルと道具をそろえる（key で Gemini の鍵を登録）
 fox-kit guide      # 手順書を開く
+fox-kit confirm    # 作業の前に毎回確認する設定に戻す（confirm off で確認なしに戻す）
+fox-kit uninstall  # キットを外す（先に、外すものと残すものを見せる。記憶と資料は残る）
 ```
+
+うまくいかなかったときの記録は `~/Library/Logs/` にあります（入口：`fox-install.log`／設定画面：`fox-wizard.log`／返事の仕組み：`fox-bridge.out.log`）。Windows は `%LOCALAPPDATA%\fox-kit\`。
 
 ## 安全について
 
 このキットは、Claude Code が確認ダイアログを出さずに作業を進める設定（`bypassPermissions`）を入れます。
-その代わり、**お金が動くこと・社外に送ること・持ち主しか知らない判断**は必ず人に確認する作法を入れています。
-詳しくは [SECURITY.md](SECURITY.md)。
+その代わり、**お金が動くこと・社外に送ること・持ち主しか知らない判断**は必ず人に確認する作法を入れ、まとめ消しや外への送信は機械でも止めます。
+Discord / Slack から頼めるのは、つないだ本人だけです。やめたくなったら、いつでも外せます（記憶と資料は残ります）。
+このパソコンで変えるもの・外に出るもの・戻し方は [SECURITY.md](SECURITY.md) に全部書いてあります。
 
 ## 変更履歴
 

@@ -132,6 +132,13 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("✗ エラー:", e?.message || e);
+  const msg = String(e?.message || e);
+  // 無料の鍵は、画像づくりの枠が 0（Google の決まり）。英語の長いエラーの前に、理由と次の一手を日本語で出す
+  if (/429|RESOURCE_EXHAUSTED|quota|free[_ ]?tier|billing/i.test(msg)) {
+    console.error("✗ 画像を作れませんでした。Google の決まりで、画像づくりは無料の鍵では動きません（鍵に支払い方法の登録が要ります。1枚あたり数円〜20円ほど）。");
+    console.error("  持ち主に伝えること：https://aistudio.google.com/apikey で、鍵のプロジェクトに支払い方法（Billing）を登録すると使えるようになります。お金がかかるので、登録するかどうかは持ち主が決めます。");
+    console.error("  「意味で探す」は、無料の鍵のままで動きます。");
+  }
+  console.error("✗ エラー:", msg);
   process.exit(1);
 });

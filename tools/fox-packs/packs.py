@@ -283,7 +283,7 @@ def ask_key() -> str:
 
 
 def key():
-    say(t("\n  画像づくりと「意味で探す」には、Google の AI（Gemini）の鍵が1つ要ります（無料枠あり）。",
+    say(t("\n  画像づくりと「意味で探す」には、Google の AI（Gemini）の鍵が1つ要ります（「意味で探す」は無料の鍵で動きます。画像づくりは、あとで支払い方法を登録した鍵が要ります）。",
           "\n  Gemini API キー（画像生成・埋め込み）"))
     cur = subprocess.run(["security", "find-generic-password", "-s", "fox-kit", "-a", "gemini", "-w"],
                          capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip()

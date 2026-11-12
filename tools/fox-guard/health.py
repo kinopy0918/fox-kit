@@ -56,16 +56,16 @@ def main():
             subprocess.run(["launchctl", "bootstrap", f"gui/{UID}", str(plist)], capture_output=True)
             ok = job(label)["loaded"]
             issues.append((f"「{name}」が読み込まれていませんでした", "読み込み直しました",
-                           "直りました" if ok else "直りませんでした。fox-kit から設定し直してください"))
+                           "直りました" if ok else "直りませんでした。AIに「新しい版に更新して」と頼んでください"))
         elif label == "com.fox-bridge" and not st["running"]:
             subprocess.run(["launchctl", "kickstart", "-k", f"gui/{UID}/{label}"], capture_output=True)
             time.sleep(5)
             ok = job(label).get("running")
             issues.append((f"「{name}」が止まっていました", "起こし直しました",
-                           "動いています" if ok else "起きませんでした。ログ ~/Library/Logs/fox-bridge.log を見てください"))
+                           "動いています" if ok else "起きませんでした。パソコンの前でAIに「スマホからの返事が止まっているので調べて」と頼んでください"))
         elif st.get("exit") not in (None, 0) and label != "com.fox-bridge":
-            issues.append((f"「{name}」が前回エラーで終わっていました（終了コード {st['exit']}）", "今回は様子を見ます",
-                           "続くようなら fox-kit update で直してください"))
+            issues.append((f"「{name}」が前回うまく終わっていませんでした", "今回は様子を見ます",
+                           f"続くようなら、AIに「新しい版に更新して」と頼んでください（記録用：終了コード {st['exit']}）"))
 
     # 2) ログイン
     c = shutil.which("claude") or str(HOME / ".local/bin/claude")
@@ -80,7 +80,7 @@ def main():
         issues.append(("AIの本体を動かせませんでした", f"{e.__class__.__name__}", "AIに「調子を見て」と頼むか、新しい版に更新してください"))
     if not re.search(r'"loggedIn":\s*true', out or ""):
         issues.append(("AIのログインが切れています", "自分では直せません（本人の承認が要るため）",
-                       "ターミナルで  claude auth login  を実行してください"))
+                       "パソコンの前で、ターミナルを開いて  claude auth login  と打ち、出てきた画面で「許可」を押してください（ターミナルは、画面右上の虫めがねで「ターミナル」と打つと出ます）"))
 
     # 3) 保存先
     try:
