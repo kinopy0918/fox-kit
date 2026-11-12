@@ -23,8 +23,11 @@ for (const f of readdirSync("site").filter((x) => x.endsWith(".html"))) {
   const src = readFileSync(`site/${f}`, "utf8");
   const body = src.match(/<body[^>]*>([\s\S]*)<\/body>/)[1];
   const title = (src.match(/<title>([\s\S]*?)<\/title>/) || [, "fox-kit"])[1];
-  const iv = C.getRandomValues(new Uint8Array(12));
-  const ct = Buffer.from(await C.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ title, body }))));
+  let iv, ct;
+  do {   // 暗号文は乱数の並びなので、たまたま「鍵に似た形」（AIza… など）ができると秘密の見張りに止められる。そのときは作り直す
+    iv = C.getRandomValues(new Uint8Array(12));
+    ct = Buffer.from(await C.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ title, body }))));
+  } while (/AIza[\w-]{20}|sk-[A-Za-z0-9]{20}|xox[bp]-|ghp_[A-Za-z0-9]{20}/.test(ct.toString("base64")));
   const payload = JSON.stringify({ v: 1, n: ITER, s: salt.toString("base64"), i: Buffer.from(iv).toString("base64"), c: ct.toString("base64") });
   const head = src.match(/<head>([\s\S]*?)<\/head>/)[1].replace(/<title>[\s\S]*?<\/title>/, "<title>fox-kit</title>")
     .replace(/<meta name="description"[^>]*>/, '<meta name="robots" content="noindex">');

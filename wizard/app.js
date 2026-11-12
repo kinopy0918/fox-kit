@@ -36,11 +36,11 @@
       lead: "4つだけ答えれば、あとは最後まで自動で進みます。パスワード・ログイン・予定とメールを見せるかどうかなど、あなたが決めるしかない所だけ、そのとき画面でお知らせします。",
       html: `<div class="sub-card"><b>入れる前に、知っておいてほしいこと</b>
                <ul class="know">
-                 <li>AIは、作業のたびに「やっていいですか」とは聞かずに進めます（この${PC()}のファイルを作る・書き換える・消す、を含みます）。<b>お金が動くこと・社外への送信・取り消せない操作は、先にあなたに確かめる</b>決まりにしてあります。大切なファイルは、控え（バックアップ）を取っておいてください。</li>
-                 <li>この${PC()}の設定を一部変えます。置きっぱなしを選ぶと、眠らない設定にします。Chrome と、AIと一緒に作業するアプリ（Antigravity）を入れ、毎朝の点検などを裏で動かします。</li>
-                 <li>AIの契約（Claude の Pro 以上）の使える量には上限があります。資料づくりなどの重い作業を続けると、上限に当たって数時間止まることがあります（時間がたてば戻ります。よく使うなら Max が向いています）。</li>
-                 ${W() ? "<li>Windows では、まだ使えないものがあります：画像づくり・動画を見る・言葉が違っても探せる検索・毎朝のまとめ・AIの記憶の写し。ほかは Mac と同じに使えます。</li>" : ""}
-                 <li>やめたくなったら、AIに「作業の前に毎回確認して」「このキットを外したい」と言えば戻せます。AIの記憶と資料は残ります。</li>
+                 <li>AIは、作業のたびに「やっていいですか」とは聞かずに進めます（ファイルを作る・書き換える・消す、を含みます）。<b>お金が動くこと・社外への送信・取り消せない操作だけは、先にあなたに確かめます。</b>大切なファイルは、控え（バックアップ）を取っておいてください。</li>
+                 <li>この${PC()}の設定を一部変え、Chrome と Antigravity（AIと一緒に作業するアプリ）を入れ、毎朝の点検などを裏で動かします。</li>
+                 <li>AIの契約（Claude の Pro 以上）の使える量には上限があり、重い作業が続くと数時間止まることがあります（よく使うなら Max 向き）。</li>
+                 ${W() ? "<li>Windows では、まだ使えないものがあります：画像づくり・動画を見る・言葉が違っても探せる検索・毎朝のまとめ・AIの記憶の写し。</li>" : ""}
+                 <li>やめたくなったら、AIに「作業の前に毎回確認して」「このキットを外したい」と言えば戻せます（記憶と資料は残ります）。</li>
                </ul>
                <p class="hint">先へ進むと、<a href="https://idm-drone.co.jp/fox-kit-terms/" target="_blank">利用規約</a>に同意したことになります。</p></div>
              <div class="sub-card auto"><b>おまかせで全部進める（おすすめ）</b>
@@ -48,11 +48,11 @@
                <label class="f">AIの名前</label><input class="t" id="a_agent" placeholder="例：ヤマダAI">
                <div class="names"><div class="ng">${["__own__", "フォックス", "ミライ", "はやと", "ジャービス", "ココ"].map((x) => `<button type="button" class="nm" data-n="${esc(x)}">${x === "__own__" ? "（お名前から）" : esc(x)}</button>`).join("")}</div></div>
                <label class="f">この${PC()}の置き方</label>
-               <label class="choice"><input type="radio" name="a_use" value="office" checked><b>事務所などに置きっぱなし</b><small>いつでもスマホから頼めるように、眠らない設定にします</small></label>
-               <label class="choice"><input type="radio" name="a_use" value="mobile"><b>持ち歩く</b><small>眠る設定はそのまま。使うときだけ動けばよい</small></label>
+               <div class="pair"><label class="choice"><input type="radio" name="a_use" value="office" checked><b>事務所などに置きっぱなし</b><small>いつでもスマホから頼めるように、眠らない設定にします</small></label>
+               <label class="choice"><input type="radio" name="a_use" value="mobile"><b>持ち歩く</b><small>眠る設定はそのまま。使うときだけ動けばよい</small></label></div>
                <label class="f">資料の保存先</label>
-               <label class="choice"><input type="radio" name="a_sto" value="drive" checked><b>Google ドライブ（あれば）</b><small>パソコンが壊れても残り、スマホからも見られます。AIの記憶の写しも、同じ Google ドライブに置きます。無ければこの${PC()}の中に置きます</small></label>
-               <label class="choice"><input type="radio" name="a_sto" value="local"><b>この${PC()}の中だけ</b><small>${PC()}が壊れると消えます</small></label>
+               <div class="pair"><label class="choice"><input type="radio" name="a_sto" value="drive" checked><b>Google ドライブ（あれば）</b><small>パソコンが壊れても残り、スマホからも見られます。AIの記憶の写しも、同じ Google ドライブに置きます。無ければこの${PC()}の中に置きます</small></label>
+               <label class="choice"><input type="radio" name="a_sto" value="local"><b>この${PC()}の中だけ</b><small>${PC()}が壊れると消えます。どこにも写しません</small></label></div>
                <div class="err" id="aerr"></div>
                <div class="row"><button class="btn" id="autoGo">この内容で、最後まで進める</button></div>
                <p class="hint">スマホとつなぐ（Discord・Slack）と、AIと最初のお話は、最後に「あとでやること」としてまとめます。</p></div>
@@ -208,9 +208,12 @@
              <div class="row"><button class="btn" id="open">ログイン画面を開く</button></div>
              <label class="f">表示されたコード</label><input class="t" id="code" placeholder="ここに貼り付け" autocomplete="off">
              <div class="err" id="err"></div>
-             <div class="row"><button class="btn" id="send">送る</button></div>`,
+             <div class="row"><button class="btn sub" id="send">送る</button></div>`,
       bind: (el) => {
+        const swap = () => { $("#open", el).className = "btn sub"; $("#send", el).className = "btn"; };   // 開いたあとは「送る」が主
+        $("#code", el).addEventListener("input", swap);
         $("#open", el).onclick = async () => {
+          swap();
           const w = W() ? null : window.open("about:blank", "_blank");   // Windows はログインの道具が自分でブラウザを開く（2つ開かないように）
           $("#err").textContent = "";
           const r = await act("login", {});
@@ -320,25 +323,30 @@
       };
       return {
         title: t("スキルと道具をそろえています", "packs"),
-        lead: t("SEO・動画・ノート・画像づくり・意味で探す・ブラウザ操作などを入れます（はじめてだと20分ほど）。待っている間に、下の「画像づくりの鍵」を済ませておくと早く終わります。",
+        lead: t("SEO・動画・ノート・意味で探す・ブラウザ操作などを入れます（はじめてだと20分ほど）。待っている間に、下の「鍵」をどうするかだけ決めてください。",
                 "brew / plugins / upstream skills / MCP"),
         html: `${status}
                <div class="sub-card"><b>意味で探す・画像づくり のための鍵（Google の Gemini）</b> ${reg ? '<span class="okmsg">✓ 登録できました</span>' : g?.skipped ? '<span class="hint">あとでやる（いまは未登録）</span>' : '<span class="who you">まだです</span>'}
-               ${reg || g?.skipped ? "" : `<ol class="do">
+               ${reg || g?.skipped ? "" : `
+                 <p>無料の鍵を登録すると、<b>言葉が違っても近い内容のメモを探せる</b>ようになります（「意味で探す」）。急がなければ、あとでも大丈夫です。</p>
+                 <div class="row"><button class="btn" id="gskip">鍵はあとでやる（先へ進む）</button></div>
+                 <details class="sub-card" id="gnow"><summary><b>いま登録する（5分ほど）</b></summary>
+                 <ol class="do">
                  <li>${k("鍵を作る画面を開く")} を押す</li>
                  <li>Google アカウントでログイン（会社で使うなら会社のアカウント）</li>
                  <li>${k("Create API key", "APIキーを作成")} を押す</li>
-                 <li><b>プロジェクトを選ぶ画面が出たら</b>、${k("Create API key in new project", "新しいプロジェクトで作成")}（または「Default Gemini Project」）を選ぶ。<b>会社で既に使っている・お金の設定（請求先）がついたプロジェクトは選ばない</b>でください。無料の枠で使う鍵なので、間違えて有料の請求が来ないようにするためです</li>
-                 <li>できた長い文字列の横のコピーを押す（一覧の「プラン」が「Free（無料）」になっていればOK。前に作った無料の鍵があれば、それをコピーしても大丈夫）</li>
+                 <li><b>プロジェクトを選ぶ画面が出たら</b>、${k("Create API key in new project", "新しいプロジェクトで作成")}（または「Default Gemini Project」）を選ぶ。<b>会社で既に使っている・お金の設定（請求先）がついたプロジェクトは選ばない</b>でください。間違えて有料の請求が来ないようにするためです</li>
+                 <li>できた長い文字列の横のコピーを押す（一覧の「プラン」が「Free（無料）」になっていればOK）</li>
                  <li>下の欄に貼って ${k("登録")}</li></ol>
                  ${shot("gemini-1", "Google AI Studio の鍵の画面")}
                  <div class="row"><a class="btn sub" href="https://aistudio.google.com/apikey" target="_blank">鍵を作る画面を開く</a></div>
                  <input class="t" id="gkey" placeholder="ここに貼り付け（AIza で始まる）" autocomplete="off"><p class="hint">貼った鍵は、この${PC()}の中の鍵置き場（${W() ? "資格情報マネージャー" : "キーチェーン"}）にだけしまいます。作った人や、ほかの人には送りません。</p><div class="err" id="gerr"></div>
-                 <div class="row"><button class="btn" id="greg">登録</button><button class="btn sub" id="gskip">鍵はあとでやる</button></div>
-                 <p class="hint">無料の鍵で動くのは「意味で探す」（言葉が違っても、近い内容のメモを探せる）です。<b>画像づくりは、Google の決まりで無料の鍵では動きません</b>（支払い方法を登録した鍵が要ります。1枚あたり数円〜20円ほど）。使いたくなったら、あとで AI に「画像づくりを使えるようにしたい」と言ってください。</p>
-                 <p class="hint">「鍵はあとでやる」にしても、あとで AI に「画像づくりの鍵を登録したい」と言えば、鍵を入れる小さな窓が開きます。</p>`}</div>`,
+                 <div class="row"><button class="btn sub" id="greg">登録</button></div></details>
+                 <p class="hint"><b>画像づくりは、Google の決まりで無料の鍵では動きません</b>（支払い方法を登録した鍵が要ります。1枚あたり数円〜20円ほど）。使いたくなったら、あとで AI に「画像づくりを使えるようにしたい」と言ってください。鍵の登録も、あとで AI に「画像づくりの鍵を登録したい」と言えばできます。</p>`}</div>`,
         bind: (el) => {
           if (!job("packs") && !S.packs_installed) act("packs");
+          const gn = $("#gnow", el);   // 道具が入り終わって画面が描き直されても、開いた手順と打ちかけの鍵を残す
+          if (gn) { gn.open = !!local.gopen; gn.ontoggle = () => (local.gopen = gn.open); const gk = $("#gkey", el); gk.value = local.gkey || ""; gk.oninput = () => (local.gkey = gk.value); }
           const reg = $("#greg", el);
           if (reg) {
             reg.onclick = async () => { const r = await act("gemini", { key: $("#gkey").value }); r.ok ? refresh(true) : ($("#gerr").textContent = r.error); };
@@ -686,8 +694,9 @@
       $("#progRest").textContent = rest ? `残りの目安：約${rest}分` : "";
     } else $("#progRest").textContent = "";
     $("#progBar").style.width = Math.round((n / steps.length) * 100) + "%";
+    const keyOnly = !S.data.packs?.skipped && S.data.gemini?.skipped;   // スキルは入っていて、鍵だけ「あとで」
     $("#steps").innerHTML = S.steps.map((s, i) => s.done && s.skipped
-      ? `<button class="st done later" data-reopen="${s.id}" title="押すと、この段に戻ってやり直せます"><i>↩</i>${esc(s.title)}<small>あとでやる → 押すと戻れます</small></button>`
+      ? `<button class="st done later" data-reopen="${s.id}" title="押すと、この段に戻ってやり直せます"><i>↩</i>${esc(s.title)}<small>${s.id === "packs" && keyOnly ? "鍵だけ、あとでやる" : "あとでやる"} → 押すと戻れます</small></button>`
       : s.done && s.redo
       ? `<button class="st done redo" data-reopen="${s.id}" data-ask="${esc(s.title)}" title="押すと、この段をやり直せます"><i>✓</i>${esc(s.title)}<small>押すとやり直せます</small></button>`
       : `<div class="st ${s.done ? "done" : s.id === cur ? "now" : ""}"><i>${s.done ? "✓" : s.id === "done" ? "★" : i + 1}</i>${esc(s.title)}</div>`).join("");

@@ -97,3 +97,8 @@ ul.facts li:has(input:not(:checked)){opacity:.55}
 .card a:not(.btn){color:var(--accent)}
 details.logbox{margin:8px 0}details.logbox summary{cursor:pointer;font-size:13px;color:var(--ink2)}
 ul.know{margin:8px 0;padding-left:1.2em}ul.know li{margin:6px 0}
+
+/* 2つから選ぶものは横に並べて、進めるボタンまでの距離を縮める */
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pair .choice{margin:0}
+@media(max-width:720px){.pair{grid-template-columns:1fr}}
