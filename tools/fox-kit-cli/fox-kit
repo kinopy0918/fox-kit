@@ -9,6 +9,7 @@
 #   fox-kit mac       … パソコンの設定（眠る・眠らない／Chrome／Antigravity）
 #   fox-kit packs     … スキルと道具をそろえる（install / status / key＝Geminiの鍵）
 #   fox-kit guide     … 手順書を開く
+#   fox-kit check     … 会社で使う前の点検（AI入国審査9項目のうち、このパソコンで確かめられる分）
 set -uo pipefail
 REPO="kinopy0918/fox-kit"
 GUIDE="${FOX_GUIDE_URL:-https://kinopy0918.github.io/fox-kit}"
@@ -61,5 +62,6 @@ case "$cmd" in
   mac)     "$HOME/Tools/fox-mac/mac.sh" "${2:-}" ;;
   packs)   python3 "$HOME/Tools/fox-packs/packs.py" "${2:-install}" ;;
   guide)   open "$GUIDE" ;;
+  check)   python3 "$HOME/Tools/fox-kit-cli/check.py" ;;
   *) sed -n '2,11p' "$0" | sed 's/^# //' ;;
 esac

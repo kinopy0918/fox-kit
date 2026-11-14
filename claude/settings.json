@@ -85,5 +85,6 @@
   },
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "cleanupPeriodDays": 14
 }

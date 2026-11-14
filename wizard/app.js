@@ -179,7 +179,7 @@
     claude: () => autoStep("claude", t("AIの本体を入れています", "Claude Code を導入"), t("数分かかります。この画面はそのままで大丈夫です。", "claude.ai/install.sh")),
     login: () => ({
       title: t("AIのアカウントにログインします", "Claude にログイン"),
-      lead: t(`AIを動かすための契約（Claude）にログインします。会社の${PC()}なら、会社で契約したアカウントを使ってください。`, "claude auth login（コード貼り付け方式）"),
+      lead: t(`AIを動かすための契約（Claude）にログインします。会社の${PC()}なら、会社で契約したアカウントを使ってください。個人の契約（Pro / Max）で仕事をするなら、ログインのあと claude.ai の設定 →「プライバシー」で「Claude の改善に協力する」をオフにしてください（オンだと会話が学習に使われます）。`, "claude auth login（コード貼り付け方式）"),
       html: `<ol class="do">
                <li>下の ${k("ログイン画面を開く")} を押す（新しいタブが開きます）</li>
                <li>開いた画面でアカウントを選び、${k("Authorize", "許可する")} を押す</li>
