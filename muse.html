@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Muse の始め方</title>
+<meta name="description" content="スマホのAI「Muse」の始め方と、最初に頼むと便利な3つのこと">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+.card{background:var(--glass2);border:1px solid var(--glassline);border-radius:18px;padding:20px clamp(16px,4vw,26px);box-shadow:var(--shadow);margin:14px 0}
+.card h3{margin:0 0 8px;font-size:18px}
+ol.st{padding-left:1.4em;margin:6px 0}
+ol.st li{margin:8px 0;line-height:1.75}
+.ask{position:relative;background:var(--glass);border:1px solid var(--glassline);border-radius:14px;padding:14px 16px 46px;margin:10px 0;line-height:1.8;white-space:pre-wrap}
+.ask button{position:absolute;right:10px;bottom:10px;font:500 14px/1 "Noto Sans JP",sans-serif;padding:9px 16px;border-radius:999px;border:0;background:#fff;color:#18214f;box-shadow:0 0 0 2px var(--accent);cursor:pointer}
+.hint{color:var(--ink2);font-size:14px;margin:6px 0}
+.asof{color:var(--ink2);font-size:13px;margin-top:32px}
+@media print{header.top,.ask button{display:none}.hero{color:#000;background:none!important;box-shadow:none}.hero .lead,.hero .kick{color:#000}.card{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="shindan.html">AIの選び方</a></div></header>
+<main>
+<section class="hero">
+<span class="kick">スマホのAI</span>
+<h1>Muse を始める。</h1>
+<p class="lead">Muse（ミューズ）は、Meta（Instagram の会社）のAIです。日本語で話しかけるだけで、投稿文や返信の下書きを作ってくれます。基本は無料です。</p>
+</section>
+
+<h2>入れ方（5分）</h2>
+<div class="card">
+<ol class="st">
+<li>App Store（iPhone）か Google Play（Android）で「<b>Muse</b>」を探し、提供元が <b>Meta</b> のアプリを入れます</li>
+<li>Instagram か Facebook のアカウントでログインします（18歳以上が対象です）</li>
+<li>ログインできたら、画面下の入力欄に、下の「最初に頼むこと」をコピーして貼り付けます</li>
+</ol>
+<p class="hint">メッセージを送る・買い物をするなど大事な操作の前には、Muse があなたに確認します。Instagram への投稿そのものは、できた文をコピーして自分で行います。</p>
+</div>
+
+<h2>最初に頼むこと</h2>
+<p class="hint">［ ］の中を、あなたのお店のことに書き換えてから送ってください。</p>
+
+<div class="card">
+<h3>1. インスタの投稿文を作ってもらう</h3>
+<div class="ask">別府の北浜で［カフェ］をやっています。今週の［おすすめメニュー］をインスタに投稿したいです。お店の雰囲気に合う投稿文を3案と、ハッシュタグを5つ作ってください。</div>
+<p class="hint">料理やお店の写真をいっしょに送ると、写真に合わせた文にしてくれます。</p>
+</div>
+
+<div class="card">
+<h3>2. お客さんへの返信を考えてもらう</h3>
+<div class="ask">お客さんから次のメッセージが届きました。ていねいだけど堅すぎない返信を作ってください。お店の名前は［○○］です。
+
+［ここに届いたメッセージを貼る］</div>
+</div>
+
+<div class="card">
+<h3>3. 今週の予定を整理してもらう</h3>
+<div class="ask">今週やることを書きます。大事な順に並べて、忘れそうなことがあれば教えてください。
+
+［やることを思いつくまま書く］</div>
+<p class="hint">Google カレンダーともつなげられます（あとで大丈夫です）。</p>
+</div>
+
+<p><a href="shindan.html">← AIの選び方にもどる</a></p>
+<p class="asof">2026年11月時点の内容です。Muse の画面や機能は変わることがあります。</p>
+</main>
+<script>
+document.querySelectorAll(".ask").forEach(function(el){
+  var t=el.textContent, b=document.createElement("button"); b.type="button"; b.textContent="コピー";
+  b.onclick=function(){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="コピーしました";setTimeout(function(){b.textContent="コピー";},1600);},function(){b.textContent="長押しでコピー";}); };
+  el.appendChild(b);
+});
+</script>
+</body>
+</html>

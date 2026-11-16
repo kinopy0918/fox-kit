@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>あなたに合うAIの選び方</title>
+<meta name="description" content="3つの質問で、あなたに合うAIの始め方が分かります">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="site.css">
+<style>
+.qcard{background:var(--glass2);border:1px solid var(--glassline);border-radius:18px;padding:22px clamp(16px,4vw,28px);box-shadow:var(--shadow);margin:18px 0}
+.qcard .num{font-size:12px;letter-spacing:.12em;color:var(--ink2)}
+.qcard h2{margin:6px 0 16px;font-size:20px;line-height:1.5;display:block}
+.qcard .sub{color:var(--ink2);font-size:14px;margin:-8px 0 14px}
+.ans{display:flex;flex-wrap:wrap;gap:10px}
+.ans button{font:500 16px/1 "Noto Sans JP",sans-serif;padding:14px 22px;min-height:48px;border-radius:999px;border:1px solid var(--glassline);background:var(--glass);color:var(--ink);cursor:pointer}
+.ans button:hover{background:var(--glass2)}
+.ans button.picked{background:var(--accent);color:#fff;border-color:transparent;opacity:1!important}
+.res{border-radius:18px;padding:24px clamp(16px,4vw,28px);margin:18px 0;color:#fff;background:var(--grad);box-shadow:var(--shadow)}
+.res h2{display:block;margin:0 0 10px;font-size:22px}
+.res p{margin:8px 0;color:rgba(255,255,255,.92)}
+.res a.go{display:inline-block;margin-top:12px;padding:13px 22px;border-radius:999px;background:#fff;color:var(--navy);font-weight:600;text-decoration:none}
+.again{background:none;border:0;color:var(--ink2);text-decoration:underline;cursor:pointer;font:inherit;padding:8px 0}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="top"><div class="in"><span class="brand">AIの選び方</span></div></header>
+<main>
+<section class="hero">
+<span class="kick">3つの質問</span>
+<h1>あなたに合う、AIの始め方。</h1>
+<p class="lead">質問に答えると、いまのあなたに合う始め方を1つだけお伝えします。1分で終わります。</p>
+</section>
+
+<section class="qcard" id="q1">
+<div class="num">質問 1 / 3</div>
+<h2>いま使っているAI（ChatGPT など）で、足りていますか？</h2>
+<div class="ans"><button data-go="r-keep">はい、足りている</button><button data-go="q2">いいえ</button><button data-go="q2">わからない・使っていない</button></div>
+</section>
+
+<section class="qcard" id="q2" hidden>
+<div class="num">質問 2 / 3</div>
+<h2>パソコンを毎日使い、お店のやり方をAIに覚えさせて、資料づくりや決まった作業まで任せたいですか？</h2>
+<p class="sub">スマホで投稿文や返信を作れれば十分なら「いいえ」です。</p>
+<div class="ans"><button data-go="q3">はい</button><button data-go="r-muse">いいえ</button><button data-go="r-muse">わからない</button></div>
+</section>
+
+<section class="qcard" id="q3" hidden>
+<div class="num">質問 3 / 3</div>
+<h2>AI「Claude」の有料契約（月20ドル＝約3,000円から）を払えますか？</h2>
+<div class="ans"><button data-go="r-fox">はい</button><button data-go="r-muse">いいえ</button><button data-go="r-muse">わからない</button></div>
+</section>
+
+<section class="res" id="r-keep" hidden>
+<h2>いまのAIのままで大丈夫です</h2>
+<p>新しいアプリを入れる必要はありません。勉強会では、いま使っているAIで投稿文や返信を作るコツを、いっしょに試します。</p>
+</section>
+
+<section class="res" id="r-muse" hidden>
+<h2>スマホのAI「Muse」がおすすめです</h2>
+<p>Meta（Instagram の会社）のAIです。基本は無料で、スマホからすぐ始められます。投稿文・お客さんへの返信・予定の整理を頼めます。</p>
+<a class="go" href="muse.html">Muse の始め方を見る</a>
+</section>
+
+<section class="res" id="r-fox" hidden>
+<h2>パソコンのAI秘書「fox-kit」がおすすめです</h2>
+<p>お店や会社のやり方を覚えさせて、資料づくりや毎日の作業を任せられます。入れるのに1時間ほどかかるので、12月17日の勉強会でいっしょに入れます。</p>
+<p>手順書を見るにはパスワードが要ります。勉強会でお伝えします。</p>
+<a class="go" href="index.html">手順書を開く</a>
+</section>
+
+<button class="again" id="again" hidden>最初から答え直す</button>
+</main>
+<script>
+(function(){
+  var all=["q1","q2","q3","r-keep","r-muse","r-fox"];
+  function show(id){
+    all.forEach(function(x){document.getElementById(x).hidden=(x!=="q1"&&x!==id&&!document.getElementById(x).dataset.done);});
+    document.getElementById(id).hidden=false;
+    document.getElementById("again").hidden=(id==="q1");
+    document.getElementById(id).scrollIntoView({behavior:"smooth",block:"start"});
+  }
+  document.querySelectorAll(".ans button").forEach(function(b){
+    b.onclick=function(){
+      var card=b.closest(".qcard"); card.dataset.done="1";
+      card.querySelectorAll("button").forEach(function(x){x.disabled=(x!==b);x.classList.toggle("picked",x===b);x.style.opacity=(x===b?"1":".45");});
+      show(b.dataset.go);
+    };
+  });
+  document.getElementById("again").onclick=function(){
+    all.forEach(function(x){var el=document.getElementById(x);el.hidden=(x!=="q1");delete el.dataset.done;
+      el.querySelectorAll("button").forEach(function(btn){btn.disabled=false;btn.classList.remove("picked");btn.style.opacity="";});});
+    this.hidden=true; window.scrollTo({top:0,behavior:"smooth"});
+  };
+})();
+</script>
+</body>
+</html>
