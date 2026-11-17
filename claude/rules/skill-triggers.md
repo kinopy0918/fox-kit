@@ -62,3 +62,5 @@
 - 「パソコンを最新にして」「更新を確かめて」→ Mac は `softwareupdate -l` で一覧を見せ、`open "x-apple.systempreferences:com.apple.Software-Update-Settings.extension"` で更新の画面を開く／Windows は `start ms-settings:windowsupdate-action`。再起動が要る更新は、押す前に持ち主に確認する（作業中のものが消えるため）
 
 **新しくスキルを入れたら、同じ作業の中で `~/.claude/rules/my-skills.md`（持ち主のファイル。無ければ作り、`~/.claude/CLAUDE.md` に `@~/.claude/rules/my-skills.md` を足す）に1行足す。書くまでが導入。**このファイル（`~/.claude/fox-kit/rules/`）はキットの更新で新しくなるので書き足さない
+
+32. **用途別の台帳（スペース）・決まった時間の頼みごと** — 「〇〇のスペース／リスト／ストック／チェックリスト作って」「〇〇に入れといて」→ `fox-space`。「毎朝〜して」「毎週月曜に〜して」（毎朝のまとめ以外）→ `fox-space` の「定期実行」の節どおり `~/Tools/fox-routine/routine.py` で登録し、1回試して結果を見せる（Mac のみ）
