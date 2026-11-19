@@ -5,7 +5,7 @@
 <title>あなたに合うAIの選び方</title>
 <meta name="description" content="3つの質問で、あなたに合うAIの始め方が分かります">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="site.css"><script src="site.js"></script>
 <style>
 .qcard{background:var(--glass2);border:1px solid var(--glassline);border-radius:18px;padding:22px clamp(16px,4vw,28px);box-shadow:var(--shadow);margin:18px 0}
 .qcard .num{font-size:12px;letter-spacing:.12em;color:var(--ink2)}
@@ -29,43 +29,43 @@
 <section class="hero">
 <span class="kick">3つの質問</span>
 <h1>あなたに合う、AIの始め方。</h1>
-<p class="lead">質問に答えると、いまのあなたに合う始め方を1つだけお伝えします。1分で終わります。</p>
+<p class="lead">3つ答えると、合う始め方が1つわかります。1分です。</p>
 </section>
 
 <section class="qcard" id="q1">
 <div class="num">質問 1 / 3</div>
-<h2>いま使っているAI（ChatGPT など）で、足りていますか？</h2>
+<h2><i class="ic" data-i="chat"></i> いまのAI（ChatGPT など）で足りていますか？</h2>
 <div class="ans"><button data-go="r-keep">はい、足りている</button><button data-go="q2">いいえ</button><button data-go="q2">わからない・使っていない</button></div>
 </section>
 
 <section class="qcard" id="q2" hidden>
 <div class="num">質問 2 / 3</div>
-<h2>パソコンを毎日使い、お店のやり方をAIに覚えさせて、資料づくりや決まった作業まで任せたいですか？</h2>
-<p class="sub">スマホで投稿文や返信を作れれば十分なら「いいえ」です。</p>
+<h2><i class="ic" data-i="laptop"></i> パソコンで、資料づくりや毎日の作業まで任せたいですか？</h2>
+<p class="sub">スマホで投稿文や返信が作れれば十分なら「いいえ」。</p>
 <div class="ans"><button data-go="q3">はい</button><button data-go="r-muse">いいえ</button><button data-go="r-muse">わからない</button></div>
 </section>
 
 <section class="qcard" id="q3" hidden>
 <div class="num">質問 3 / 3</div>
-<h2>AI「Claude」の有料契約（月20ドル＝約3,000円から）を払えますか？</h2>
+<h2><i class="ic" data-i="card"></i> 月20ドル（約3,000円）の AI 契約を払えますか？</h2>
 <div class="ans"><button data-go="r-fox">はい</button><button data-go="r-muse">いいえ</button><button data-go="r-muse">わからない</button></div>
 </section>
 
 <section class="res" id="r-keep" hidden>
-<h2>いまのAIのままで大丈夫です</h2>
-<p>新しいアプリを入れる必要はありません。勉強会では、いま使っているAIで投稿文や返信を作るコツを、いっしょに試します。</p>
+<h2><i class="ic" data-i="check"></i> いまのAIのままでOK</h2>
+<p>新しいアプリは要りません。勉強会で、使いこなすコツを試します。</p>
 </section>
 
 <section class="res" id="r-muse" hidden>
-<h2>スマホのAI「Muse」がおすすめです</h2>
-<p>Meta（Instagram の会社）のAIです。基本は無料で、スマホからすぐ始められます。投稿文・お客さんへの返信・予定の整理を頼めます。</p>
+<h2><i class="ic" data-i="phone"></i> スマホのAI「Muse」がおすすめ</h2>
+<p>Instagram の会社（Meta）のAI。基本は無料です。<br>投稿文・返信・予定の整理を頼めます。</p>
 <a class="go" href="muse.html">Muse の始め方を見る</a>
 </section>
 
 <section class="res" id="r-fox" hidden>
-<h2>パソコンのAI秘書「fox-kit」がおすすめです</h2>
-<p>お店や会社のやり方を覚えさせて、資料づくりや毎日の作業を任せられます。入れるのに1時間ほどかかるので、12月17日の勉強会でいっしょに入れます。</p>
-<p>手順書を見るにはパスワードが要ります。勉強会でお伝えします。</p>
+<h2><i class="ic" data-i="laptop"></i> パソコンのAI秘書「fox-kit」がおすすめ</h2>
+<p>お店のやり方を覚え、資料や毎日の作業を任せられます。<br>入れるのに約1時間。12月17日の勉強会で一緒に入れます。</p>
+<p><i class="ic" data-i="lock"></i> 手順書のパスワードは、勉強会でお伝えします。</p>
 <a class="go" href="index.html">手順書を開く</a>
 </section>
 

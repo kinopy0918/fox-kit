@@ -10,3 +10,4 @@ package-lock.json
 site/*.html
 site/_review/
 site/_shots/
+site/_draft/
