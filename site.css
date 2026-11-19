@@ -258,3 +258,6 @@ i.ic svg{width:100%;height:100%}
 .how button.on i.ic{color:var(--accent)}
 body:not(.how-claude) .for-claude,body.how-claude .for-term{display:none!important}
 h2 small{font-size:.7em;font-weight:500;color:var(--ink2)}
+
+.steps .warn{display:flex;gap:6px;align-items:flex-start;margin-top:6px;font-size:14px;color:#c2571f}
+.steps .warn i.ic{margin-top:.2em}
