@@ -437,7 +437,7 @@
         const keyOnly = !S.data.packs?.skipped && S.data.gemini?.skipped;   // スキルは入っていて、画像づくりの鍵だけまだ
         const later = S.steps.filter((x) => x.skipped && !(x.id === "talk" && talkLater)).map((x) => (x.id === "packs" && keyOnly ? { ...x, title: "画像づくりの鍵を登録する" } : x));
         const laterCard = later.length ? `<div class="sub-card"><b>あとでやる、にした設定（${later.length}つ）</b>
-               <p>押すと、その段に戻って続きができます。いまやらなくても、この画面はあとから開き直せます（${W() ? "デスクトップの「AIの設定画面」か、AI に「設定画面を開いて」と言う" : "AI に「設定画面を開いて」と言う"}）。</p>
+               <p>押すと、その段に戻って続きができます。いまやらなくても、この画面はあとから開き直せます（デスクトップの「AIの設定画面」をダブルクリックするか、AI に「設定画面を開いて」と言う）。</p>
                <div class="row">${later.map((x) => `<button class="btn sub" data-reopen="${x.id}">${esc(x.title)}</button>`).join("")}</div></div>` : "";
         const talkCard = talkLater ? `<div class="sub-card auto"><b>最後に1つ：AIと最初のお話（20分ほど）</b>
                <p>AIがあなたの仕事について聞きます。ここで話しておくと、AIがあなた専用に動けるようになります（ChatGPT などを使っていたなら、その記録から下書きを作って「こうですか？」と確かめる形でも進められます）。</p>
@@ -467,9 +467,9 @@
                <ul class="done-list">
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」に置きます <button class="btn sub" id="openBase">フォルダを開く</button></li>` : ""}
                ${where ? `<li>パソコンの前では、Antigravity でも話せます <button class="btn sub" id="openAg">Antigravity を開く</button></li>` : `<li>スマホから話したくなったら、AIに「スマホから頼めるようにしたい」</li>`}
-               <li>この画面は、AIに「設定画面を開いて」と言えば、いつでも開けます</li>
+               <li>この画面は、デスクトップの「AIの設定画面」でいつでも開けます</li>
                </ul></details>
-             <p class="hint">この画面は閉じて大丈夫です。</p>`;
+             <p class="hint">この画面は閉じて大丈夫です。デスクトップの「AIの設定画面」で、いつでも開き直せます。</p>`;
         return `${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>

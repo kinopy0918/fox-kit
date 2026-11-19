@@ -124,7 +124,7 @@ def plan() -> dict:
         pass
     files = [Path(f) for f in rec.get("files", {}) if Path(f).exists()]
     extra = [p for p in (HOME / ".claude/fox-kit", HOME / "Tools/portable-fox", HOME / "Tools/fox-kit", CONF, HOME / ".config/fox-bridge",
-                         HOME / ".local/bin/fox-kit", HOME / ".local/bin/vault-rag", HOME / "Desktop/AIの設定画面.lnk") if p.exists() or p.is_symlink()]
+                         HOME / ".local/bin/fox-kit", HOME / ".local/bin/vault-rag", HOME / "Desktop/AIの設定画面.lnk", HOME / "Desktop/AIの設定画面.app") if p.exists() or p.is_symlink()]
     return {"files": files, "extra": extra, "agents": agents(),
             "daemon": Path("/Library/LaunchDaemons/com.local.capslock-nosleep.plist").exists(),
             "office": "FOX_MAC_USE=office" in ((CONF / "state.env").read_text(encoding="utf-8") if (CONF / "state.env").exists() else "")}
