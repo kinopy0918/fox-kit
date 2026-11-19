@@ -451,6 +451,11 @@ def act(step: str, body: dict) -> dict:
         if r.returncode != 0:
             raw = (r.stderr or r.stdout).strip()
             why = [l.lstrip(" !✕×") for l in raw.splitlines() if re.match(r"\s*[!✕×]\s", l)][-2:]   # 人に向けた行だけ先に見せる
+            if not why and re.search(r"Operation not permitted|PermissionError|Permission denied", raw):
+                why = ["この Mac が、そのフォルダへの書き込みを止めています。画面に「アクセスしようとしています」の窓が出ていたら「許可」を押してください。"
+                       "出ていなければ、システム設定 → プライバシーとセキュリティ →「ファイルとフォルダ」で、Python（python3）の「書類フォルダ」をオンにしてから、もう一度押してください。"]
+            elif not why and raw:
+                why = ["（理由：" + raw.splitlines()[-1][:160] + "）"]
             return {"ok": False, "detail": raw[-300:],
                     "error": "保存先を作れませんでした。" + (" ".join(why) or "別の保存先を選ぶか、少し待ってからもう一度押してください。")}
         base = str(Path(root) / a.get("agent", "FOX"))
