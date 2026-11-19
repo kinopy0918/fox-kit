@@ -317,8 +317,8 @@
       const reg = g && !g.skipped, pj = job("packs")?.state;
       const status = pj === "error" ? failNote("packs")
         : pj === "ok" || S.packs_installed || S.steps.find((x) => x.id === "packs")?.done
-          ? `<p class="okmsg">✓ スキルと道具はそろいました</p>${reg ? "" : `<p><b>あとは下の鍵だけです。</b>「登録」か「あとでやる」を押すと次へ進みます。</p>`}`
-          : running("packs", t(`入れています…この画面はそのままで大丈夫です。${W() ? "" : "途中でMacのパスワードを聞かれることがあります。"}`, "実行中"));
+          ? `<p class="okmsg">✓ スキルと道具はそろいました</p>${checklist(job("packs"))}${reg ? "" : `<p><b>あとは下の鍵だけです。</b>「登録」か「あとでやる」を押すと次へ進みます。</p>`}`
+          : running("packs", t(`入れています…この画面はそのままで大丈夫です。${W() ? "" : "途中でMacのパスワードを聞かれることがあります。"}`, "実行中")) + checklist(job("packs"));
       if (W()) return {
         title: t("スキルをそろえています", "packs（plugins / upstream skills）"),
         lead: t("SEO・ノート・文書づくり・マーケティングなどのスキルを入れます（5〜10分）。", "install-win"),
@@ -510,6 +510,18 @@
     if (j.state === "running") return `<p><span class="spin"></span>${esc(msg)} <span class="hint elapsed">${j.sec != null ? "（" + mmss(j.sec) + " 経過）" : ""}</span></p><p class="nowline">${esc(nowLine(j))}</p>${ask(j)}${lg}`;
     if (j.state === "ok") return `<p class="okmsg">✓ 終わりました</p>`;
     return failNote(name);
+  }
+  function checklist(j) {   // 入るものの一覧と、1つずつの進み具合（待ち → 入れています → ✓）
+    const it = (j && j.items) || [];
+    if (!it.length) return "";
+    const done = it.filter((x) => x.state === "ok").length, fin = j.state !== "running";
+    const mark = (x) => x.state === "ok" ? '<span class="ck ok">✓</span>' : x.state === "ng" ? '<span class="ck ng">–</span>'
+      : x.state === "doing" ? '<span class="spin"></span>' : fin ? '<span class="ck ng">–</span>' : '<span class="ck wait"></span>';
+    const groups = [...new Set(it.map((x) => x.group))];
+    return `<div class="packlist"><p class="pk-head"><b>入るもの ${done} / ${it.length}</b><span class="pk-bar"><i style="width:${Math.round(done / it.length * 100)}%"></i></span></p>
+      ${groups.map((g) => `<div class="pk-g"><p class="pk-gt">${esc(g)}</p><ul>${it.filter((x) => x.group === g).map((x) =>
+        `<li class="${x.state}">${mark(x)}<span>${esc(x.name)}</span></li>`).join("")}</ul></div>`).join("")}
+      ${it.some((x) => x.state === "ng") ? '<p class="hint">「–」は入らなかったものです。あとで AI に「スキルを入れ直して」と言えば、やり直せます。</p>' : ""}</div>`;
   }
   function ask(j) {   // 作業の途中で出した「お願い」（! で始まる行）の最新1つを、目立つ形で見せる
     const l = (j.tail || "").replace(/\x1b\[[0-9;]*m/g, "").split("\n").filter((x) => /^\s*!\s/.test(x)).pop();

@@ -70,6 +70,45 @@ UPSTREAM = [  # (リポジトリ, リポジトリ内の場所, 入れる名前)�
 ]
 
 
+# 設定画面に出す一覧（id, まとまり, 名前）。「◇ id|まとまり|名前」で先に全部を知らせ、「◆ id 状態」で1つずつ進み具合を知らせる
+NAMES = {
+    "node": "土台（Node.js）", "ffmpeg": "動画・音声の加工", "yt-dlp": "動画を取ってくる", "poppler": "PDFを読む",
+    "whisper-cpp": "音声の文字起こし", "uv": "土台（Python）", "google-chrome": "Google Chrome", "obsidian": "Obsidian（ノート）",
+    "defuddle": "ウェブページの取り込み",
+    "claude-seo": "SEO（検索で見つけてもらう）", "obsidian@obsidian-skills": "ノートの書き方", "marketing-skills": "マーケティング",
+    "document-skills": "Word・Excel・PowerPoint・PDF", "example-skills": "スキル作りの見本", "last30days": "世間の反応を調べる",
+    "humanizer": "文章をAIっぽくなく仕上げる",
+    "remotion-dev/skills": "動画づくり", "security-audit": "セキュリティの確認", "archify": "仕組みの図",
+    "unlazy": "最後までやり切る", "find-skills": "スキルを探す", "ip-as-logo-skill": "キャラ・ロゴの画像",
+    "book-to-skill": "本をスキルにする", "gcloud": "Google Cloud", "google-analytics-data-api-basics": "Google アナリティクス",
+    "apple-design": "Apple 風の動き", "ui-ux-pro-max": "画面のデザイン", "brainstorming": "壁打ち",
+    "systematic-debugging": "不具合の原因探し", "test-driven-development": "確かめてから作る",
+    "verification-before-completion": "終わる前の確認",
+    "nanobanana": "画像づくり", "vault-rag": "意味で探す", "playwright": "ブラウザを操作する",
+}
+
+
+def up_id(repo, name):
+    return name or repo
+
+
+def catalog(win=False):
+    rows = []
+    if not win:
+        rows += [(f, "道具") for f in BREW] + [(c, "道具") for c, _ in CASKS] + [("defuddle", "道具")]
+    rows += [(p, "スキルのまとまり") for _, p in PLUGINS]
+    rows += [(up_id(r, n), "スキル") for r, _, n in UPSTREAM]
+    if not win:
+        rows += [("nanobanana", "自作の道具"), ("vault-rag", "自作の道具"), ("playwright", "自作の道具")]
+    for i, g in rows:
+        say(f"◇ {i}|{g}|{NAMES.get(i) or NAMES.get(i.split('@')[0]) or i}")
+
+
+def prog(i, state):
+    """state: doing / ok / ng"""
+    say(f"◆ {i} {state}")
+
+
 def t(b, e):
     return b if B else e
 
@@ -130,16 +169,21 @@ def tools():
     os.environ["PATH"] = f"{Path(brew).parent}:{os.environ['PATH']}"
     have = subprocess.run([brew, "list", "--formula", "-1"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.split()
     need = [f for f in BREW if f not in have]
+    for f in BREW:
+        if f not in need:
+            prog(f, "ok")
     for i, f in enumerate(need, 1):
-        now(t(f"道具：{f}", f"brew {f}"), i, len(need))
-        sh([brew, "install", f])
+        now(t(f"道具：{f}", f"brew {f}"), i, len(need)); prog(f, "doing")
+        prog(f, "ok" if sh([brew, "install", f]) else "ng")
     for cask, app in CASKS:
         if not Path(app).exists():
-            now(t(f"アプリ：{Path(app).stem}", f"cask {cask}"))
+            now(t(f"アプリ：{Path(app).stem}", f"cask {cask}")); prog(cask, "doing")
             sh([brew, "install", "--cask", cask])
+        prog(cask, "ok" if Path(app).exists() else "ng")
     if not shutil.which("defuddle"):
-        now(t("道具：defuddle（ウェブページの取り込み）", "npm defuddle"))
+        now(t("道具：defuddle（ウェブページの取り込み）", "npm defuddle")); prog("defuddle", "doing")
         sh(["npm", "install", "-g", "defuddle"])
+    prog("defuddle", "ok" if shutil.which("defuddle") else "ng")
     ok(t("道具を入れました（動画・PDF・音声の処理、ブラウザ、ノートアプリ）", f"brew: {', '.join(BREW)} / casks / defuddle"))
     return True
 
@@ -149,11 +193,12 @@ def plugins():
     c = claude_bin()
     done = 0
     for i, (repo, plugin) in enumerate(PLUGINS, 1):
-        now(t(f"スキルのまとまり：{plugin.split('@')[0]}", f"plugin {plugin}"), i, len(PLUGINS))
+        now(t(f"スキルのまとまり：{plugin.split('@')[0]}", f"plugin {plugin}"), i, len(PLUGINS)); prog(plugin, "doing")
         sh([c, "plugin", "marketplace", "add", repo])
         if sh([c, "plugin", "install", plugin, "--scope", "user"]) or sh([c, "plugin", "install", plugin]):
-            done += 1
+            done += 1; prog(plugin, "ok")
         else:
+            prog(plugin, "ng")
             warn(f"{plugin} を入れられませんでした（あとで fox-kit packs でやり直せます）")
     ok(t(f"プラグインを {done} 個入れました（SEO・ノート・マーケティング・文書・世間の反応・文章の仕上げ）",
          f"plugins: {done}/{len(PLUGINS)}"))
@@ -171,13 +216,15 @@ def upstream():
     cache = {}
     n = 0
     for i, (repo, path, name) in enumerate(UPSTREAM, 1):
-        now(t(f"スキル：{name or repo.split('/')[0]}", f"upstream {repo}/{path}"), i, len(UPSTREAM))
+        now(t(f"スキル：{name or repo.split('/')[0]}", f"upstream {repo}/{path}"), i, len(UPSTREAM)); prog(up_id(repo, name), "doing")
         try:
             tf = cache.get(repo) or fetch_repo(repo)
             cache[repo] = tf
         except Exception as e:
             warn(f"{repo} を取ってこられませんでした: {e}")
+            prog(up_id(repo, name), "ng")
             continue
+        n0 = n
         members = tf.getmembers()
         root = members[0].name.split("/")[0]
         base = root if path == "." else f"{root}/{path.rstrip('/*')}"
@@ -212,6 +259,7 @@ def upstream():
             tmp.rename(dest)
             rec[nm] = repo
             n += 1
+        prog(up_id(repo, name), "ok" if n > n0 else "ng")
     ok(t(f"スキルを {n} 本取ってきました（動画づくり・セキュリティ・構成図・キャラ画像・Google ほか）", f"upstream skills: {n}"))
     return rec
 
@@ -221,12 +269,15 @@ def own_tools():
     bin_dir = HOME / ".local/bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
     nb = TOOLS / "nanobanana"
+    prog("nanobanana", "doing")
     if nb.exists() and shutil.which("npm"):
         sh(["npm", "install", "--silent"], cwd=str(nb))
         w = bin_dir / "nanobanana"
         w.write_text(f'#!/bin/zsh\nexec node "{nb}/generate.js" "$@"\n', encoding="utf-8")
         w.chmod(0o755)
+    prog("nanobanana", "ok" if (bin_dir / "nanobanana").exists() else "ng")
     rag = TOOLS / "vault-rag"
+    prog("vault-rag", "doing")
     if rag.exists() and shutil.which("uv"):
         venv = rag / ".venv"
         if not venv.exists():
@@ -235,6 +286,7 @@ def own_tools():
         w = bin_dir / "vault-rag"
         w.write_text(f'#!/bin/zsh\nexec "{venv}/bin/python" "{rag}/rag.py" "$@"\n', encoding="utf-8")
         w.chmod(0o755)
+    prog("vault-rag", "ok" if (bin_dir / "vault-rag").exists() else "ng")
     ok(t("画像づくり（nanobanana）と、意味で探す仕組み（vault-rag）を用意しました", "nanobanana / vault-rag"))
 
 
@@ -243,12 +295,14 @@ def mcps():
     rag = TOOLS / "vault-rag"
     added = []
     listing = subprocess.run([c, "mcp", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout
+    prog("playwright", "doing")
     if "playwright" not in listing and sh([c, "mcp", "add", "--scope", "user", "playwright", "--",
                                           "npx", "-y", "@playwright/mcp@latest"]):
         added.append("playwright")
     if "vault-rag" not in listing and (rag / ".venv/bin/python").exists() and sh(
             [c, "mcp", "add", "--scope", "user", "vault-rag", "--", str(rag / ".venv/bin/python"), str(rag / "server.py")]):
         added.append("vault-rag")
+    prog("playwright", "ok" if ("playwright" in listing or "playwright" in added) else "ng")
     ok(t("AIがブラウザを操作する仕組みと、意味で探す仕組みをつなぎました", f"MCP: playwright, vault-rag {added}"))
 
 
@@ -326,6 +380,7 @@ def first_index():
 def install():
     t0 = time.time()
     st = json.loads(RECORD.read_text(encoding="utf-8")) if RECORD.exists() else {}
+    catalog()
     if tools():
         own_tools()
         mcps()
@@ -345,6 +400,7 @@ def install_win():
     """Windows：Homebrew・常駐・鍵（Mac のキーチェーン）を使う部分は飛ばし、スキルだけそろえる。"""
     t0 = time.time()
     st = json.loads(RECORD.read_text(encoding="utf-8")) if RECORD.exists() else {}
+    catalog(win=True)
     plugins()
     st["upstream"] = upstream()
     st["plugins"] = [p for _, p in PLUGINS]
@@ -352,6 +408,15 @@ def install_win():
     RECORD.parent.mkdir(parents=True, exist_ok=True)
     RECORD.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
     ok(t(f"スキルをそろえました（{int(time.time() - t0) // 60}分）", f"done in {int(time.time() - t0)}s"))
+
+
+def demo():
+    """試運転：何も入れずに、一覧と進み具合の行だけを流す（設定画面の見え方を確かめる用）。"""
+    catalog()
+    ids = [l for l in (f for f in BREW)] + [c for c, _ in CASKS] + ["defuddle"] + [p for _, p in PLUGINS] + \
+          [up_id(r, n) for r, _, n in UPSTREAM] + ["nanobanana", "vault-rag", "playwright"]
+    for i in ids:
+        prog(i, "doing"); time.sleep(float(os.getenv("FOX_DEMO_WAIT", "0.4"))); prog(i, "ng" if i == "whisper-cpp" else "ok")
 
 
 def status():
@@ -364,4 +429,4 @@ def status():
 if __name__ == "__main__":
     LOG.parent.mkdir(parents=True, exist_ok=True)
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
-    {"install": install, "install-win": install_win, "status": status, "key": key}.get(cmd, status)()
+    {"install": install, "install-win": install_win, "status": status, "key": key, "demo": demo}.get(cmd, status)()

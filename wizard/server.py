@@ -224,6 +224,25 @@ def now_line(name: str) -> str:
         return ""
 
 
+def items(name: str) -> list:
+    """スキルの一覧と、1つずつの進み具合（packs.py の「◇ id|まとまり|名前」「◆ id 状態」）。"""
+    j = JOBS.get(name)
+    try:
+        lines = Path(j["log"]).read_text(encoding="utf-8", errors="ignore").splitlines()
+    except (OSError, TypeError, KeyError):
+        return []
+    out, idx = [], {}
+    for l in lines:
+        if l.startswith("◇ "):
+            i, g, nm = (l[2:].split("|") + ["", ""])[:3]
+            idx[i] = len(out); out.append({"id": i, "group": g, "name": nm, "state": "wait"})
+        elif l.startswith("◆ "):
+            i, _, st_ = l[2:].rpartition(" ")
+            if i in idx:
+                out[idx[i]]["state"] = st_
+    return out
+
+
 def tail(name: str, n=12) -> str:
     j = JOBS.get(name)
     if not j:
@@ -380,7 +399,7 @@ def act(step: str, body: dict) -> dict:
 
     if step == "packs":
         if os.getenv("FOX_WIZARD_FAKE_PACKS"):   # 検証用：道具の導入（端末全体に入る）を飛ばす
-            run_job("packs", "sleep 3", on_ok=lambda: mark("packs"))
+            run_job("packs", [PY, str(KIT / "tools/fox-packs/packs.py"), "demo"], on_ok=lambda: mark("packs"))
             return {"ok": True, "started": True}
         if WIN:   # Windows：プラグインと配布元のスキルだけ（画像づくりの鍵は Mac のキーチェーン前提なので聞かない）
             run_job("packs", [PY, str(KIT / "tools/fox-packs/packs.py"), "install-win"], env=env_for(st),
@@ -728,7 +747,7 @@ def state() -> dict:
                    "redo": s in done and ("gemini" if s == "packs" and not WIN else s) in REDO,
                    "skipped": bool(st["data"].get(s, {}).get("skipped"))     # スキルそのものを「あとでやる」にした
                               or (s == "packs" and not WIN and bool(st["data"].get("gemini", {}).get("skipped")))} for s, t_, w in STEPS],
-        "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k),
+        "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k), "items": items(k) if k == "packs" else [],
                      "sec": int((v.get("ended") or time.time()) - v.get("started", time.time()))} for k, v in JOBS.items()},
         "home": str(HOME),
         "platform": "win" if WIN else "mac",
