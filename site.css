@@ -210,3 +210,5 @@ body.phone .phone-only{display:block}
 .gate .err{word-break:keep-all;overflow-wrap:anywhere}   /* 「。」の所でだけ折り返す */
 .need>div.wide{grid-column:span 2}
 @media(max-width:760px){.need>div.wide{grid-column:auto}}
+/* FoxKitとは：下の「用意するもの」の枠に輪が重ならないよう、輪を右上に置く */
+@media(min-width:761px){.hero:has(.need2)::before,.hero:has(.need2)::after{top:40px;transform:none}}
