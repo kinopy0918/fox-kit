@@ -169,7 +169,14 @@ do shell script "pkill -f " & quoted form of "$KIT_DIR/wizard/server.py" & " ; n
 APPLESCRIPT
   rm -rf "$app"
   if osacompile -o "$app" "$src" >/dev/null 2>&1; then
-    [[ -f "$KIT_DIR/assets/fox-kit.icns" ]] && cp "$KIT_DIR/assets/fox-kit.icns" "$app/Contents/Resources/applet.icns" && touch "$app"   # FoxKit の狐のアイコン
+    if [[ -f "$KIT_DIR/assets/fox-kit.icns" ]]; then   # FoxKit の狐のアイコン
+      cp "$KIT_DIR/assets/fox-kit.icns" "$app/Contents/Resources/applet.icns"
+      # 新しい macOS は Assets.car の中の絵を先に使うので、そちらを外して applet.icns を使わせる
+      rm -f "$app/Contents/Resources/Assets.car"
+      /usr/libexec/PlistBuddy -c "Delete :CFBundleIconName" "$app/Contents/Info.plist" >/dev/null 2>&1
+      touch "$app"
+      /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app" >/dev/null 2>&1
+    fi
     ok "デスクトップに「AIの設定画面」を置きました（閉じてしまっても、これをダブルクリックすれば続きから開きます）"
   else
     warn "デスクトップに「AIの設定画面」を置けませんでした（開き直すときは、同じ1行をもう一度貼ってください）"
