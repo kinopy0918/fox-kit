@@ -1,5 +1,10 @@
 # 変更履歴
 
+## 0.6.9（Antigravity の中の Claude Code も確認なしで・2026-11-19）
+
+- Antigravity の中の Claude Code が「毎回確認」で始まっていた。キットの設定（`~/.claude/settings.json` の defaultMode）に合わせて、確認なしで始まるようにした（`claudeCode.initialPermissionMode`・`claudeCode.allowDangerouslySkipPermissions`）
+- AIに「作業の前に毎回確認して」「確認なしで進めて」と言うと、Antigravity の中の設定も一緒に切り替わる
+
 ## 0.6.8（スキルの一覧・最初のお話は Antigravity で・2026-11-19）
 
 - **スキルと道具をそろえる段**：入るもの（道具・スキルのまとまり・スキル・自作の道具の34個）を先に一覧で出し、1つずつ「入れています → ✓」に切り替わる。入らなかったものは「–」

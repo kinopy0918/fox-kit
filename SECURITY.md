@@ -30,6 +30,8 @@
 | 裏で動く仕組み | 毎朝の点検、一時ファイルの掃除、返事の仕組み、意味で探す索引の更新、毎朝のまとめ、記憶の写し（選んだものだけ。3〜6本） | Mac は「ログイン項目」、Windows は「タスク スケジューラ」 |
 | アプリ | Chrome（Mac は、いつも使うブラウザにするかを聞きます）、Antigravity、Google ドライブ（選んだとき）、道具一式（Homebrew ほか） | 選んだもの |
 | Claude Code の設定 | `~/.claude/settings.json` に、許可するコマンド（`rm`・`curl`・`python3` などを含む）と見張りを足す。前からあった値は残し、変える前に控えを取る | 全員 |
+| Antigravity の設定 | 中の Claude Code を、確認なしで始める設定（`claudeCode.initialPermissionMode`）にそろえる。AIに「作業の前に毎回確認して」と言えば、こちらも毎回確認に戻る | Antigravity を入れたとき |
+| Mac だけ | デスクトップの「AIの設定画面」 | Mac |
 | Windows だけ | 環境変数（`Path`・`CLAUDE_CODE_GIT_BASH_PATH`）、電源につないでいる間のふたの動作、デスクトップの「AIの設定画面」 | Windows |
 | 遠隔サポート（頼んだときだけ） | Tailscale、リモートログイン、サポート担当の鍵を1つ（`~/.ssh/authorized_keys`） | 渡した人から専用の1行をもらったとき |
 

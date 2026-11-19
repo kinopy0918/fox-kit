@@ -76,7 +76,27 @@ def confirm_mode(on: bool):
         d["skipDangerousModePermissionPrompt"] = True
         msg = "AIは、確認なしで作業を進めるようになりました（お金・社外への送信・取り消せない操作は、先に確かめる決まりです）。"
     save_settings(d)
+    ag_mode(on)
     print(msg + " いま開いているAIの会話は、開き直すと新しい設定になります。")
+
+
+def ag_mode(on: bool):
+    """Antigravity の中の Claude Code も、同じ「毎回確認／確認なし」にそろえる。"""
+    import glob
+    pats = [str(HOME / "Library/Application Support/Antigravity*/User/settings.json")]
+    if os.environ.get("APPDATA"):
+        pats.append(os.path.join(os.environ["APPDATA"], "Antigravity*", "User", "settings.json"))
+    for f in [x for pat in pats for x in glob.glob(pat)]:
+        try:
+            d = json.loads(Path(f).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue                     # 手書きのコメント入りJSONは触らない
+        d["claudeCode.initialPermissionMode"] = "default" if on else "bypassPermissions"
+        if on:
+            d.pop("claudeCode.allowDangerouslySkipPermissions", None)
+        else:
+            d["claudeCode.allowDangerouslySkipPermissions"] = True
+        Path(f).write_text(json.dumps(d, indent=4, ensure_ascii=False), encoding="utf-8")
 
 
 def unkit_settings(cur: dict, rec: dict) -> dict:

@@ -135,6 +135,12 @@ try: d = json.load(open(p)) if os.path.exists(p) else {}
 except Exception: sys.exit(0)          # 手書きのコメント入りJSONは触らない
 for k, v in {"claudeCode.preferredLocation": "panel", "claudeCode.hideOnboarding": True}.items():
     d.setdefault(k, v)                  # 持ち主が決めた値は上書きしない
+# 確認なしで進める設定を、Antigravity の中の Claude Code にもそろえる（~/.claude/settings.json の defaultMode に合わせる）
+try: mode = json.load(open(os.path.expanduser("~/.claude/settings.json"))).get("permissions", {}).get("defaultMode") or "bypassPermissions"
+except Exception: mode = "bypassPermissions"
+if mode == "bypassPermissions":
+    d.setdefault("claudeCode.allowDangerouslySkipPermissions", True)
+d.setdefault("claudeCode.initialPermissionMode", mode if mode in ("default", "acceptEdits", "plan", "bypassPermissions") else "default")
 json.dump(d, open(p, "w"), indent=4, ensure_ascii=False)
 PY2
     ok "$(t "Antigravity の中で Claude Code を使えるようにし、画面を日本語にしました（終わると音が鳴り、左の一覧が色で光ります）" "extensions: claude-code, language-pack-ja / locale=ja / claudeCode.preferredLocation=panel")"
