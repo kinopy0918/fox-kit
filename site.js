@@ -58,13 +58,6 @@
   window.foxInit = function () {
     if (/iPhone|iPad|Android/i.test(navigator.userAgent)) document.body.classList.add("phone");   // 入れる作業はパソコンで、の注意を出す
     icons();
-    var how = "term"; try { how = localStorage.getItem("fox-how") || how; } catch (e) {}
-    function setHow(h) { document.body.classList.toggle("how-claude", h === "claude");
-      document.querySelectorAll(".how button").forEach(function (b) { b.classList.toggle("on", b.dataset.how === h); });
-      try { localStorage.setItem("fox-how", h); } catch (e) {} }
-    setHow(how);
-    document.querySelectorAll(".how button").forEach(function (b) { b.onclick = function () { setHow(b.dataset.how);
-      var t = document.querySelector("h2 .for-term"); if (t) t.closest("h2").scrollIntoView({ behavior: "smooth", block: "start" }); }; });
     set(lv);
     setOs(os);
     document.querySelectorAll(".os button").forEach(function (b) { b.onclick = function () { setOs(b.dataset.os); }; });
