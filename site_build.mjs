@@ -37,7 +37,7 @@ for (const f of readdirSync("site").filter((x) => x.endsWith(".html"))) {
 </head>
 <body>
 <div class="gate"><form class="box" id="gate">
-  <div class="logo">AI</div>
+  <div class="logo" aria-hidden="true"></div>
   <h1>fox-kit</h1>
   <p>AI秘書セットアップの手順書です。<br>お伝えしたパスワードを入れてください。</p>
   <div class="pwrow"><input type="password" id="pw" autocomplete="current-password" placeholder="パスワード" aria-label="パスワード" autofocus><button type="button" class="show" id="show" aria-label="入力した文字を見えるようにする">見る</button></div>

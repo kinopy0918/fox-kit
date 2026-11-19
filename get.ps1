@@ -404,7 +404,9 @@ if ($Wizard) {
     $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'AIの設定画面.lnk'
     $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
     $sc.TargetPath = $pyw; $sc.Arguments = "`"$KitDir\wizard\server.py`""; $sc.WorkingDirectory = $HOME
-    $sc.Description = 'AI秘書の設定画面（あとでやる、にした設定の続き）'; $sc.Save()
+    $sc.Description = 'AI秘書の設定画面（あとでやる、にした設定の続き）'
+    $ico = Join-Path $KitDir 'assets\fox-kit.ico'; if (Test-Path $ico) { $sc.IconLocation = "$ico,0" }
+    $sc.Save()
   } catch { LogLine "ショートカットを作れませんでした: $($_.Exception.Message)"; Warn 'デスクトップに「AIの設定画面」のショートカットを作れませんでした（あとから開き直すときは、同じ1行をもう一度貼ってください）' }
   for ($i = 0; $i -lt 40 -and -not (Test-Path $urlFile); $i++) { Start-Sleep -Milliseconds 500 }
   Write-Host ''
