@@ -409,6 +409,18 @@ def act(step: str, body: dict) -> dict:
             with contextlib.redirect_stdout(f):
                 sto.detect()
             return {"ok": True, **json.loads(f.getvalue())}
+        if body.get("open_ag"):   # 完了画面の「Antigravity を開く」
+            if WIN:
+                for d in (Path(os.environ.get("LOCALAPPDATA", "")) / "Programs", Path(os.environ.get("ProgramFiles", ""))):
+                    hit = next((x for x in d.glob("Antigravity*") if (x / "bin").is_dir()), None) if d.is_dir() else None
+                    exe = next(iter(sorted(hit.glob("Antigravity*.exe"))), None) if hit else None
+                    if exe:
+                        open_path(str(exe)); return {"ok": True}
+                return {"ok": False}
+            app = Path("/Applications/Antigravity IDE.app")
+            if app.is_dir():
+                open_path(str(app)); return {"ok": True}
+            return {"ok": False}
         if body.get("open_base"):
             base = st["data"].get("storage", {}).get("base")
             if base and Path(base).is_dir():

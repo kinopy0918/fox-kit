@@ -288,7 +288,11 @@
     mac: () => (W() ? pcWin() : {
       title: t("パソコンの設定", "Mac 設定（電源・Chrome・Antigravity）"),
       lead: t("このMacの使い方に合わせて、眠る・眠らないの設定をします。途中でMacのパスワードを聞かれます。", "pmset / capslock-nosleep / Chrome（既定ブラウザ）/ Antigravity IDE"),
-      html: job("mac")?.state === "running" ? running("mac", t("設定しています。パスワードの画面が出たら入れてください。「いつも使うブラウザを変えますか？」と出たら「“Google Chrome”を使用」を押してください。", "実行中（既定ブラウザの確認ダイアログあり）")) + `<p class="hint">しばらく進まないときは、パスワードを入れる窓が、ほかの窓の後ろに隠れていることがあります。画面下の Dock で跳ねているアイコンを押すか、この窓を横にずらして探してください。</p>` : `
+      html: job("mac")?.state === "running" ? running("mac", t("設定しています（10〜15分）。途中で、下の画面が勝手に開きます。", "実行中（既定ブラウザの確認ダイアログあり）")) + (B() ? `<ul class="popups">
+               <li><b>パスワードの窓</b>→ Mac のパスワードを入れて「OK」</li>
+               <li><b>「いつも使うブラウザを変えますか？」</b>→「“Google Chrome”を使用」</li>
+               <li><b>Chrome に「Claude」の画面</b>→「Chrome に追加」。わからなければ閉じてOK（あとでできます）</li>
+               <li><b>Antigravity（アンチグラビティ）の画面</b>→ 閉じてOK。AIと話すアプリで、最後に使い方を出します</li></ul>` : "") + `<p class="hint">しばらく進まないときは、パスワードを入れる窓が、ほかの窓の後ろに隠れていることがあります。画面下の Dock で跳ねているアイコンを押すか、この窓を横にずらして探してください。</p>` : `
              <label class="choice"><input type="radio" name="use" value="office" checked><b>事務所などに置いて、AIにいつでも働いてもらう</b><small>電源につないでいる間は眠らない・停電のあと自動で起動・AIが作り置いた一時ファイルを毎日片付け（おすすめ）</small></label>
              <label class="choice"><input type="radio" name="use" value="mobile"><b>持ち歩いて、使うときだけ動けばよい</b><small>作業中だけ眠らない仕組みを入れます（CapsLockのランプが点いている間）</small></label>
              <label class="choice"><input type="checkbox" id="lid"><b>ふたを閉じたまま置いておく</b><small>ノートのMacを閉じたまま使う場合だけ。電源につなぎ、熱がこもらない場所に置いてください</small></label>
@@ -424,7 +428,7 @@
     }),
     done: () => ({
       title: S.steps.some((x) => x.skipped) ? t("おつかれさまでした。もう使い始められます", "完了（あとでやる：あり）") : t("おつかれさまでした。すべて完了です", "完了"),
-      lead: t(`これで ${S.answers.agent || "AI"} があなたの秘書として動けます。${S.steps.some((x) => x.skipped) ? "「あとでやる」にした設定は、下から続きができます。" : ""}`, "セットアップ完了"),
+      lead: t(`これで ${S.answers.agent || "AI"} があなたの秘書として動けます。${B() ? "" : S.steps.some((x) => x.skipped) ? "「あとでやる」にした設定は、下から続きができます。" : ""}`, "セットアップ完了"),
       html: (() => {
         const ch = S.data.channel || {}, where = ch.platform === "slack" ? "Slack" : ch.platform === "discord" ? "Discord" : "";
         const base = S.data.storage?.base || "", folder = base.split(/[\\/]/).pop();
@@ -445,6 +449,27 @@
                ${S.answers.goal ? `<li>目標「${esc(S.answers.goal)}」：${m.morning === "8:00" ? "毎朝のまとめで、今日やれる一歩を出します" : "覚えました。お手伝いの優先順位に使います"}</li>` : ""}</ul></div>` : "";
         const noteCard = (S.notices || []).length ? `<div class="sub-card"><b>前からお使いだった設定について</b>
                <ul class="done-list">${S.notices.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+        const agent = esc(S.answers.agent || "AI");
+        const first = talkLater
+          ? `<div class="sub-card auto"><b>次にやることは1つだけ：${agent}と最初のお話（20分）</b>
+               <p>AIがあなたの仕事について聞きます。話しておくと、あなた専用に動けます。</p>
+               <div class="row"><button class="btn" data-reopen="talk">AIと話す</button></div></div>`
+          : where
+          ? `<div class="sub-card auto"><b>これからは、${where} で ${agent} に話しかけます</b>
+               <p>スマホからでもOK。「〇〇の資料を作って」のように頼むだけです。</p>
+               <div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} を開く</a></div></div>`
+          : `<div class="sub-card auto"><b>これからは、Antigravity で ${agent} に話しかけます</b>
+               <p>Antigravity（アンチグラビティ）は、AIと話すためのアプリです。開いたら「New session」を押し、頼みごとを書いて送るだけ。</p>
+               <div class="row"><button class="btn" id="openAg">Antigravity を開く</button></div></div>`;
+        if (B()) return `${first}
+             <details class="sub-card"><summary><b>ほかにできること</b>（あとで大丈夫です）</summary>
+               ${meetCard}${talkLater ? "" : ""}${laterCard}${noteCard}
+               <ul class="done-list">
+               ${base ? `<li>資料は ${drive} の「${esc(folder)}」に置きます <button class="btn sub" id="openBase">フォルダを開く</button></li>` : ""}
+               ${where ? `<li>パソコンの前では、Antigravity でも話せます <button class="btn sub" id="openAg">Antigravity を開く</button></li>` : `<li>スマホから話したくなったら、AIに「スマホから頼めるようにしたい」</li>`}
+               <li>この画面は、AIに「設定画面を開いて」と言えば、いつでも開けます</li>
+               </ul></details>
+             <p class="hint">この画面は閉じて大丈夫です。</p>`;
         return `${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
@@ -464,6 +489,7 @@
       })(),
       bind: (el) => {
         const o = $("#openBase", el); if (o) o.onclick = () => act("storage", { open_base: true });
+        el.querySelectorAll("#openAg").forEach((x) => (x.onclick = async () => { const r = await act("storage", { open_ag: true }); if (r && r.ok === false) alert("Antigravity が見つかりませんでした。AIに「Antigravity を入れて」と頼んでください"); }));
         el.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => { await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
       },
     }),
@@ -480,9 +506,13 @@
     const j = job(name);
     if (!j) return "";
     const lg = B() ? "" : `<pre class="log">${esc(j.tail)}</pre>`;
-    if (j.state === "running") return `<p><span class="spin"></span>${esc(msg)} <span class="hint elapsed">${j.sec != null ? "（" + mmss(j.sec) + " 経過）" : ""}</span></p><p class="nowline">${esc(nowLine(j))}</p>${lg}`;
+    if (j.state === "running") return `<p><span class="spin"></span>${esc(msg)} <span class="hint elapsed">${j.sec != null ? "（" + mmss(j.sec) + " 経過）" : ""}</span></p><p class="nowline">${esc(nowLine(j))}</p>${ask(j)}${lg}`;
     if (j.state === "ok") return `<p class="okmsg">✓ 終わりました</p>`;
     return failNote(name);
+  }
+  function ask(j) {   // 作業の途中で出した「お願い」（! で始まる行）の最新1つを、目立つ形で見せる
+    const l = (j.tail || "").replace(/\x1b\[[0-9;]*m/g, "").split("\n").filter((x) => /^\s*!\s/.test(x)).pop();
+    return l ? `<div class="askbox"><b>いま画面でお願いしたいこと</b>${esc(l.replace(/^\s*!\s*/, ""))}</div>` : "";
   }
   function nowLine(j) {   // packs.py などが出す「▶ いま入れているもの（3/18）」
     return j && j.now ? "いま：" + j.now : "";

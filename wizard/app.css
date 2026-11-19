@@ -102,3 +102,7 @@ ul.know{margin:8px 0;padding-left:1.2em}ul.know li{margin:6px 0}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pair .choice{margin:0}
 @media(max-width:720px){.pair{grid-template-columns:1fr}}
+
+.askbox{margin:12px 0;padding:12px 14px;border-radius:12px;background:#fff4e8;border:1px solid #f0b47a;color:#5a2d0c;font-size:14px;line-height:1.7}
+.askbox b{display:block;color:#c2571f;margin-bottom:2px}
+.popups{margin:10px 0;padding-left:1.2em;font-size:14px;line-height:1.9}
