@@ -247,3 +247,14 @@ i.ic svg{width:100%;height:100%}
   html .about .need2{max-width:calc(100% - 300px)}                              /* 輪と重ならないように */
   html .about .say{grid-template-columns:repeat(3,minmax(0,1fr))}               /* 6つを3列×2段に */
 }
+
+/* 入れ方の切り替え（ターミナル／Claude のアプリ） */
+.how{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 0}
+.how button{display:flex;gap:10px;align-items:center;text-align:left;cursor:pointer;padding:12px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;font:inherit;min-width:min(260px,100%)}
+.how button i.ic{width:26px;height:26px;color:#bfe9ff}
+.how button b{display:block;font-size:16px}
+.how button small{display:block;font-size:12px;opacity:.8}
+.how button.on{background:#fff;color:var(--navy);border-color:#fff;box-shadow:0 10px 24px -12px rgba(0,0,0,.5)}
+.how button.on i.ic{color:var(--accent)}
+body:not(.how-claude) .for-claude,body.how-claude .for-term{display:none!important}
+h2 small{font-size:.7em;font-weight:500;color:var(--ink2)}
