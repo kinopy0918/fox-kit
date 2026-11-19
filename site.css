@@ -29,7 +29,7 @@ a{color:var(--accent);text-underline-offset:3px}
 
 /* ---------- 上の帯 ---------- */
 header.top{position:sticky;top:0;z-index:5;background:var(--glass);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-bottom:1px solid var(--glassline)}
-header.top .in{max-width:900px;margin:0 auto;padding:10px 16px;display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
+header.top .in{max-width:none;margin:0 auto;padding:10px clamp(16px,3vw,40px);display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap}
 header.top .brand{display:flex;align-items:center;gap:8px;font:700 17px/1 "Noto Sans JP";letter-spacing:.02em;text-decoration:none;color:var(--ink);margin-right:auto}
 header.top .brand::before{content:"";width:22px;height:22px;border-radius:7px;background:var(--grad);box-shadow:0 0 0 3px rgba(255,255,255,.6),0 4px 12px -2px rgba(52,87,213,.5)}
 header.top nav{max-width:100%;overflow-x:auto;white-space:nowrap;display:flex;gap:4px}
@@ -41,7 +41,7 @@ header.top nav a.on{background:var(--glass2);color:var(--navy);font-weight:500;b
 .lv button.on{background:var(--grad);color:#fff;box-shadow:0 4px 10px -4px rgba(52,87,213,.6)}
 
 /* ---------- 本文 ---------- */
-main{max-width:900px;margin:0 auto;padding:28px 16px 80px;min-width:0}
+main{max-width:none;margin:0 auto;padding:28px clamp(16px,3vw,40px) 80px;min-width:0}
 .hero{position:relative;overflow:hidden;border-radius:20px;padding:clamp(26px,5vw,48px);color:#fff;
   background:radial-gradient(60% 90% at 100% 0%,rgba(34,195,166,.55),transparent 60%),
              radial-gradient(70% 80% at 0% 100%,rgba(52,87,213,.75),transparent 65%),
@@ -119,7 +119,7 @@ code{font:13px "Roboto Mono",monospace;background:var(--glass2);border:1px solid
 /* 表示の切り替え：隠すルールだけ（はじめて／慣れている × Mac／Windows を組み合わせても競合しない） */
 body:not(.expert) .for-e,body.expert .for-b,body:not(.os-win) .for-win,body.os-win .for-mac{display:none!important}
 
-footer{max-width:900px;margin:0 auto;padding:0 16px 48px;color:var(--ink2);font-size:13px}
+footer{max-width:none;margin:0 auto;padding:0 clamp(16px,3vw,40px) 48px;color:var(--ink2);font-size:13px}
 
 /* ---------- 鍵の画面 ---------- */
 .gate{min-height:100vh;display:grid;place-items:center;padding:24px 16px}
