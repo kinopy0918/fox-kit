@@ -6,6 +6,7 @@ Claude Code を「その人・その会社専用の秘書」として組み立�
 人格・仕事の作法・資料のチェック役・資料の保存先・Discord/Slack とのやり取りまで、
 画面の質問に答えるだけでそろいます。AIに詳しくない人でも入れられるように作っています。
 
+- まず選ぶ：[AIの選び方（3問の診断）](https://kinopy0918.github.io/fox-kit/shindan.html) ― スマホで足りる人は Muse、PCで型を守らせたい人は fox-kit
 - 手順書（図つき）：https://kinopy0918.github.io/fox-kit/
 - 利用規約：[TERMS.md](TERMS.md)（インストールしたとき・手順書を開いたときに、同意したものとみなします）
 - 動く環境：macOS ／ Windows 10・11（基本セット）／ Claude の契約（Pro・Max・Team）

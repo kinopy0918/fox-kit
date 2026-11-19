@@ -44,7 +44,8 @@ updated: <YYYY-MM-DD>
 ## 決まった時間に足してもらう（定期実行）
 
 「毎朝AIのニュースから企画を3つ考えて企画ストックに入れて」のように**時間＋スペース**の頼みは、
-`fox-routine` で登録する（Mac のみ）。持ち主にコマンドを打たせない。
+`fox-routine` で登録する（Mac と Windows）。持ち主にコマンドを打たせない。
+Windows では道具の場所が `~/Tools/fox-kit/tools/fox-routine/routine.py` になる（下の `~/Tools/fox-routine/` を読み替える）。
 
 ```sh
 python3 ~/Tools/fox-routine/routine.py add --name "AIニュースから企画" --at 7:30 --days 毎日 \
@@ -57,4 +58,4 @@ python3 ~/Tools/fox-routine/routine.py run 名前  # いま1回だけ試す（�
 - `--days` は `毎日`・`平日`・`月,木` など。`--space` を付けないと、結果は保存先の `定期のしごと/<名前>/` に残してお知らせするだけ
 - 定期実行で使える道具は「読む・ウェブで調べる・スペースに書く」だけ。メールを送る・予定を変える・支払うことはできない、と頼まれた時点で伝える
 - 1回ごとに AI を使う。登録は10本まで。毎日動くものを3本より多く頼まれたら、回数（月およそ何回）を伝えてから登録する
-- Windows では「いまは Mac 版だけです」と伝える。スペースそのもの（ファイルの出し入れ）は Windows でも使える
+- Mac は launchd、Windows はタスク スケジューラ（`fox-routine-…`）に入る。どちらもパソコンが寝ていた分は、起きたときに1回だけ動く
