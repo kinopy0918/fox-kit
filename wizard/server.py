@@ -508,6 +508,26 @@ def act(step: str, body: dict) -> dict:
     if step == "channel":
         return channel(body, st)
 
+    if step == "dash":   # FoxKit のダッシュボード：スキルの一覧（入っている・新着・更新あり）
+        packs = KIT / "tools/fox-packs/packs.py"
+        r = subprocess.run([PY if WIN else "/usr/bin/python3", str(packs), "dash-json"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=env_for(st), timeout=60, **NOWIN)
+        try:
+            d = json.loads(r.stdout.strip().splitlines()[-1])
+        except (ValueError, IndexError):
+            return {"ok": False, "error": "スキルの一覧を読めませんでした"}
+        return {"ok": True, **d}
+    if step == "skills":   # まとめて更新／新着を取り込む
+        packs = KIT / "tools/fox-packs/packs.py"
+        py = PY if WIN else "/usr/bin/python3"
+        if body.get("do") == "update":
+            run_job("skills", [py, str(packs), "update"], env=env_for(st))
+        elif body.get("do") == "add" and body.get("ids"):
+            run_job("skills", [py, str(packs), "add", *[str(i) for i in body["ids"]][:50]], env=env_for(st))
+        elif body.get("do") == "auto":
+            run_job("skills-auto", [py, str(packs), "schedule", "on" if body.get("on") else "off"], env=env_for(st))
+        return {"ok": True, "started": True}
+
     if step == "kitupdate":
         cur = kit_version()
         if body.get("run"):
@@ -782,7 +802,7 @@ def state() -> dict:
                    "redo": s in done and ("gemini" if s == "packs" and not WIN else s) in REDO,
                    "skipped": bool(st["data"].get(s, {}).get("skipped"))     # スキルそのものを「あとでやる」にした
                               or (s == "packs" and not WIN and bool(st["data"].get("gemini", {}).get("skipped")))} for s, t_, w in STEPS],
-        "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k), "items": items(k) if k == "packs" else [],
+        "jobs": {k: {"state": v["state"], "tail": tail(k), "now": now_line(k), "items": items(k) if k in ("packs", "skills") else [],
                      "sec": int((v.get("ended") or time.time()) - v.get("started", time.time()))} for k, v in JOBS.items()},
         "home": str(HOME),
         "platform": "win" if WIN else "mac",

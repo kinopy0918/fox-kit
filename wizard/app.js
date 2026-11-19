@@ -479,7 +479,7 @@
         const phone = office && !where && !talkLater ? `<div class="sub-card"><b>置きっぱなしのパソコンなら：スマホから頼めるように（10分）</b>
                <p>Discord とつなぐと、外出先からスマホで ${agent} に頼めます。パソコンは電源につないだままにしておきます。</p>
                <div class="row"><button class="btn sub" data-reopen="channel">Discord とつなぐ</button></div></div>` : "";
-        if (B()) return `<div id="upd"></div>${first}${phone}
+        if (B()) return `<div id="upd"></div>${first}${phone}<div id="dash"></div>
              <details class="sub-card"><summary><b>ほかにできること</b>（あとで大丈夫です）</summary>
                ${meetCard}${talkLater ? "" : ""}${laterCard}${noteCard}
                <ul class="done-list">
@@ -488,7 +488,7 @@
                <li>この画面は、デスクトップの「FoxKit」でいつでも開けます。新しい版の更新もここからできます</li>
                </ul></details>
              <p class="hint">この画面は閉じて大丈夫です。デスクトップの「FoxKit」で、いつでも開き直せます。</p>`;
-        return `<div id="upd"></div>${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
+        return `<div id="upd"></div><div id="dash"></div>${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
@@ -507,6 +507,7 @@
       })(),
       bind: (el) => {
         const o = $("#openBase", el); if (o) o.onclick = () => act("storage", { open_base: true });
+        dashboard($("#dash", el));
         const u = $("#upd", el);
         if (u) {   // 新しい版があれば、ここから更新できる（ターミナルは使わない）
           const j = job("kitupdate");
@@ -544,6 +545,48 @@
     if (j.state === "running") return `<p><span class="spin"></span>${esc(msg)} <span class="hint elapsed">${j.sec != null ? "（" + mmss(j.sec) + " 経過）" : ""}</span></p><p class="nowline">${esc(nowLine(j))}</p>${ask(j)}${lg}`;
     if (j.state === "ok") return `<p class="okmsg">✓ 終わりました</p>`;
     return failNote(name);
+  }
+  // FoxKit のダッシュボード：入口・スキル（新着・更新あり・まとめて更新・週1の自動更新）・つながり
+  async function dashboard(box) {
+    if (!box) return;
+    const chn = S.data.channel || {}, where = chn.platform === "slack" ? "Slack" : chn.platform === "discord" ? "Discord" : "";
+    const base = S.data.storage?.base || "";
+    const drive = /[\\/]共有ドライブ[\\/]|Shared drives/.test(base) ? "Google ドライブの共有ドライブ" : /GoogleDrive-|マイドライブ|My Drive/.test(base) ? "Google ドライブ" : `この${PC()}`;
+    const sj = job("skills");
+    const r = await act("dash");
+    if (!r || !r.ok) return;
+    const it = r.items, have = it.filter((x) => x.installed), nw = it.filter((x) => x.new || !x.installed), up = it.filter((x) => x.update);
+    const g = S.data.gemini || {}, keyOk = g && !g.skipped && S.steps.find((x) => x.id === "packs")?.done;
+    const badge = (x) => x.update ? '<em class="bd up">更新あり</em>' : x.new ? '<em class="bd nw">新着</em>' : !x.installed ? '<em class="bd no">未</em>' : "";
+    const groups = [...new Set(it.map((x) => x.group))];
+    const busy = sj && sj.state === "running";
+    box.innerHTML = `
+      <div class="sub-card"><b>よく使う入口</b>
+        <div class="row"><button class="btn sub" id="dAg">Antigravity を開く</button>${base ? '<button class="btn sub" id="dBase">資料フォルダを開く</button>' : ""}
+        <a class="btn sub" href="https://kinopy0918.github.io/fox-kit/trouble.html" target="_blank">困ったとき</a></div></div>
+      <div class="sub-card"><b>スキル</b>　${have.length} / ${it.length} 入っています
+        <p class="hint">毎週月曜 9:00 に自動でまとめて更新します（${r.auto === false ? "いまは止めています" : "オン"}）。${r.updated_at ? "前回：" + esc(r.updated_at.slice(0, 10)) + (r.changed && r.changed.length ? "（変わったもの：" + r.changed.map(esc).join("・") + "）" : "") : ""}</p>
+        ${busy ? running("skills", "スキルを入れています…") + checklist(sj) : `
+        <div class="row">${nw.length ? `<button class="btn" id="dAdd">新着・未のものを取り込む（${nw.length}）</button>` : ""}
+          <button class="btn ${up.length ? "" : "sub"}" id="dUpd">まとめて更新${up.length ? `（更新あり ${up.length}）` : ""}</button>
+          <button class="btn sub" id="dAuto">${r.auto === false ? "自動の更新をオンにする" : "自動の更新を止める"}</button></div>
+        ${sj && sj.state === "error" ? failNote("skills") : ""}
+        <details><summary>一覧を見る</summary>${groups.map((gname) => `<div class="pk-g"><p class="pk-gt">${esc(gname)}</p><ul>${it.filter((x) => x.group === gname).map((x) =>
+          `<li class="${x.installed ? "ok" : ""}">${x.installed ? '<span class="ck ok">✓</span>' : '<span class="ck wait"></span>'}<span>${esc(x.name)}</span>${badge(x)}</li>`).join("")}</ul></div>`).join("")}</details>`}
+      </div>
+      <div class="sub-card"><b>つながり</b>
+        <ul class="conn">
+          <li><span>スマホから頼む（Discord・Slack）</span>${where ? `<em class="bd okb">${esc(where)} とつながっています</em>` : `<em class="bd no">まだ</em><button class="btn sub" data-reopen="channel">つなぐ</button>`}</li>
+          <li><span>資料の保存先</span>${base ? `<em class="bd okb">${esc(drive)}</em>` : `<em class="bd no">まだ</em><button class="btn sub" data-reopen="storage">決める</button>`}</li>
+          ${W() ? "" : `<li><span>画像づくり・意味で探す の鍵</span>${keyOk ? '<em class="bd okb">登録済み</em>' : `<em class="bd no">まだ</em><button class="btn sub" data-reopen="gemini">登録する</button>`}</li>`}
+        </ul></div>`;
+    const on = (id, f) => { const b = $(id, box); if (b) b.onclick = f; };
+    on("#dAg", () => act("storage", { open_ag: true }));
+    on("#dBase", () => act("storage", { open_base: true }));
+    on("#dUpd", async () => { await act("skills", { do: "update" }); view = null; refresh(true); });
+    on("#dAdd", async () => { await act("skills", { do: "add", ids: nw.map((x) => x.id) }); view = null; refresh(true); });
+    on("#dAuto", async () => { await act("skills", { do: "auto", on: r.auto === false }); setTimeout(() => { view = null; refresh(true); }, 1500); });
+    box.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => { await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
   }
   function checklist(j) {   // 入るものの一覧と、1つずつの進み具合（待ち → 入れています → ✓）
     const it = (j && j.items) || [];

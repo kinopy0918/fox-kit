@@ -117,3 +117,9 @@ ul.know{margin:8px 0;padding-left:1.2em}ul.know li{margin:6px 0}
 .ck{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;font-size:11px;flex:none}
 .ck.ok{background:#21b39b;color:#fff}.ck.wait{border:1.5px solid #ccc}.ck.ng{background:#eee;color:#999}
 .pk-g li .spin{width:14px;height:14px;margin:0 2px}
+
+.bd{font-style:normal;font-size:11px;padding:2px 8px;border-radius:999px;margin-left:6px;white-space:nowrap}
+.bd.up{background:#fff1e5;color:#c2571f}.bd.nw{background:#e6f6f2;color:#0f7a66}.bd.no{background:#eee;color:#777}.bd.okb{background:#e6f6f2;color:#0f7a66}
+.conn{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+.conn li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}.conn li>span{min-width:220px}
+.conn .btn{padding:6px 12px;font-size:13px}

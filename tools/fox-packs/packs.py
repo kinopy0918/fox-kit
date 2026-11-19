@@ -92,7 +92,7 @@ def up_id(repo, name):
     return name or repo
 
 
-def catalog(win=False):
+def rows_all(win=False):
     rows = []
     if not win:
         rows += [(f, "道具") for f in BREW] + [(c, "道具") for c, _ in CASKS] + [("defuddle", "道具")]
@@ -100,7 +100,13 @@ def catalog(win=False):
     rows += [(up_id(r, n), "スキル") for r, _, n in UPSTREAM]
     if not win:
         rows += [("nanobanana", "自作の道具"), ("vault-rag", "自作の道具"), ("playwright", "自作の道具")]
-    for i, g in rows:
+    return rows
+
+
+def catalog(win=False, only=None):
+    for i, g in rows_all(win):
+        if only is not None and i not in only:
+            continue
         say(f"◇ {i}|{g}|{NAMES.get(i) or NAMES.get(i.split('@')[0]) or i}")
 
 
@@ -189,13 +195,17 @@ def tools():
 
 
 # ------------------------------------------------------------------ プラグイン
-def plugins():
+def plugins(only=None, update=False):
     c = claude_bin()
     done = 0
+    if update:
+        sh([c, "plugin", "marketplace", "update"])
     for i, (repo, plugin) in enumerate(PLUGINS, 1):
+        if only is not None and plugin not in only:
+            continue
         now(t(f"スキルのまとまり：{plugin.split('@')[0]}", f"plugin {plugin}"), i, len(PLUGINS)); prog(plugin, "doing")
         sh([c, "plugin", "marketplace", "add", repo])
-        if sh([c, "plugin", "install", plugin, "--scope", "user"]) or sh([c, "plugin", "install", plugin]):
+        if (update and sh([c, "plugin", "update", plugin])) or sh([c, "plugin", "install", plugin, "--scope", "user"]) or sh([c, "plugin", "install", plugin]):
             done += 1; prog(plugin, "ok")
         else:
             prog(plugin, "ng")
@@ -205,17 +215,33 @@ def plugins():
 
 
 # ------------------------------------------------------------------ 配布元から取ってくるスキル
+SHA = {}
+
+
+def head_of(repo):
+    """配布元のいまの印（コミット）。分からなければ空。"""
+    try:
+        return json.loads(urllib.request.urlopen(f"https://api.github.com/repos/{repo}/commits/HEAD", timeout=15).read()).get("sha", "")
+    except Exception:
+        return ""
+
+
 def fetch_repo(repo):
-    url = f"https://codeload.github.com/{repo}/tar.gz/HEAD"
+    sha = head_of(repo)
+    if sha:
+        SHA[repo] = sha        # この印の束を取ってくる（あとで「更新あり」を正しく比べるため）
+    url = f"https://codeload.github.com/{repo}/tar.gz/{sha or 'HEAD'}"
     data = urllib.request.urlopen(url, timeout=120).read()
     return tarfile.open(fileobj=io.BytesIO(data), mode="r:gz")
 
 
-def upstream():
+def upstream(only=None):
     rec = {}
     cache = {}
     n = 0
     for i, (repo, path, name) in enumerate(UPSTREAM, 1):
+        if only is not None and up_id(repo, name) not in only:
+            continue
         now(t(f"スキル：{name or repo.split('/')[0]}", f"upstream {repo}/{path}"), i, len(UPSTREAM)); prog(up_id(repo, name), "doing")
         try:
             tf = cache.get(repo) or fetch_repo(repo)
@@ -388,9 +414,8 @@ def install():
     plugins()
     st["upstream"] = upstream()
     st["plugins"] = [p for _, p in PLUGINS]
-    st["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    RECORD.parent.mkdir(parents=True, exist_ok=True)
-    RECORD.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
+    remember(st)
+    schedule(True)
     if not os.getenv("FOX_NO_KEY") and key():
         first_index()
     ok(t(f"スキルと道具をそろえました（{int(time.time() - t0) // 60}分）", f"done in {int(time.time() - t0)}s"))
@@ -404,10 +429,159 @@ def install_win():
     plugins()
     st["upstream"] = upstream()
     st["plugins"] = [p for _, p in PLUGINS]
+    remember(st)
+    schedule(True)
+    ok(t(f"スキルをそろえました（{int(time.time() - t0) // 60}分）", f"done in {int(time.time() - t0)}s"))
+
+
+# ------------------------------------------------------------------ ダッシュボード（FoxKit の画面）から使う
+WIN = os.name == "nt"
+CACHE = HOME / ".config" / "fox-kit" / "upstream-heads.json"
+
+
+def load_rec():
+    try:
+        return json.loads(RECORD.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def remember(st, changed=None):
+    st.setdefault("sha", {}).update(SHA)
+    st["known"] = sorted(set(st.get("known", [])) | {i for i, _ in rows_all(WIN)})
     st["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    if changed is not None:
+        st["changed"] = changed
     RECORD.parent.mkdir(parents=True, exist_ok=True)
     RECORD.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
-    ok(t(f"スキルをそろえました（{int(time.time() - t0) // 60}分）", f"done in {int(time.time() - t0)}s"))
+
+
+def heads(repos):
+    """配布元のいまの印（コミット）。6時間は覚えておく（GitHub への問い合わせを減らす）。"""
+    try:
+        c = json.loads(CACHE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        c = {}
+    if time.time() - c.get("_at", 0) > 6 * 3600:
+        c = {"_at": time.time()}
+        for r in sorted(set(repos)):
+            h = head_of(r)
+            if h:
+                c[r] = h
+        CACHE.parent.mkdir(parents=True, exist_ok=True)
+        CACHE.write_text(json.dumps(c), encoding="utf-8")
+    return c
+
+
+def installed(i, rec, plug):
+    if i in BREW:
+        b = {"poppler": "pdftotext", "whisper-cpp": "whisper-cli"}.get(i, i)
+        return bool(shutil.which(b) or any(Path(d, b).exists() for d in ("/opt/homebrew/bin", "/usr/local/bin")))
+    if i in dict(CASKS):
+        return Path(dict(CASKS)[i]).exists()
+    if i == "defuddle":
+        return bool(shutil.which("defuddle"))
+    if "@" in i:
+        return i in plug
+    if i in ("nanobanana", "vault-rag"):
+        return (HOME / ".local/bin" / i).exists()
+    if i == "playwright":
+        try:
+            return "playwright" in (HOME / ".claude.json").read_text(encoding="utf-8")
+        except OSError:
+            return False
+    if "/" in i:   # 中のスキルを全部入れるもの（動画づくり）
+        return i in (rec.get("upstream") or {}).values()
+    return (SKILLS / i / "SKILL.md").exists()
+
+
+def dash():
+    rec = load_rec()
+    try:
+        plug = set((json.loads((HOME / ".claude/plugins/installed_plugins.json").read_text(encoding="utf-8")).get("plugins") or {}).keys())
+    except (OSError, ValueError):
+        plug = set()
+    known = set(rec.get("known", []))
+    ups = {up_id(r, n): r for r, _, n in UPSTREAM}
+    hd = heads(ups.values()) if rec.get("sha") else {}
+    out = []
+    for i, g in rows_all(WIN):
+        inst = installed(i, rec, plug)
+        repo = ups.get(i)
+        upd = bool(inst and repo and rec.get("sha", {}).get(repo) and hd.get(repo) and hd[repo] != rec["sha"][repo])
+        nm = NAMES.get(i) or NAMES.get(i.split("@")[0]) or i
+        out.append({"id": i, "group": g, "name": nm, "installed": inst, "new": bool(known) and i not in known, "update": upd})
+    print(json.dumps({"items": out, "updated_at": rec.get("updated_at"), "changed": rec.get("changed", []),
+                      "auto": rec.get("auto", True)}, ensure_ascii=False))
+
+
+def update(auto=False):
+    """まとめて更新：スキルのまとまり（プラグイン）と配布元のスキルを取り直す。道具（Homebrew）は触らない。"""
+    rec = load_rec()
+    old = dict(rec.get("sha", {}))
+    ids = [p for _, p in PLUGINS] + [up_id(r, n) for r, _, n in UPSTREAM]
+    catalog(WIN, only=set(ids))
+    plugins(update=True)
+    rec["upstream"] = {**rec.get("upstream", {}), **upstream()}
+    names = {r: NAMES.get(up_id(r, n), up_id(r, n)) for r, _, n in UPSTREAM}
+    changed = sorted({names[r] for r, h in SHA.items() if old.get(r) and h != old[r]})
+    if auto:
+        rec["last_auto"] = time.strftime("%Y-%m-%d")
+    remember(rec, changed)
+    try:
+        CACHE.unlink()
+    except OSError:
+        pass
+    ok(t(f"まとめて更新しました（変わったもの：{len(changed)}件）", f"updated: {changed}"))
+
+
+def add(ids):
+    """新着を取り込む：指定したものだけ入れる。"""
+    ids = set(ids)
+    catalog(WIN, only=ids)
+    rec = load_rec()
+    if not WIN and ids & (set(BREW) | set(dict(CASKS)) | {"defuddle"}):
+        tools()
+    if not WIN and ids & {"nanobanana", "vault-rag"}:
+        own_tools()
+    if not WIN and "playwright" in ids:
+        mcps()
+    if ids & {p for _, p in PLUGINS}:
+        plugins(only=ids)
+    if ids & {up_id(r, n) for r, _, n in UPSTREAM}:
+        rec["upstream"] = {**rec.get("upstream", {}), **upstream(only=ids)}
+    remember(rec)
+    ok(t("取り込みました", "added"))
+
+
+def schedule(on=True):
+    """週1回（月曜 9:00）の自動の「まとめて更新」。"""
+    if os.getenv("FOX_SKIP_LAUNCHD"):
+        return
+    me = str(Path(__file__).resolve())
+    rec = load_rec(); rec["auto"] = on
+    RECORD.parent.mkdir(parents=True, exist_ok=True); RECORD.write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
+    if WIN:
+        if on:
+            py = Path(sys.executable).with_name("pythonw.exe")
+            subprocess.run(["schtasks", "/Create", "/F", "/SC", "WEEKLY", "/D", "MON", "/ST", "09:00", "/TN", "fox-kit-skills-update",
+                            "/TR", f'"{py if py.exists() else sys.executable}" "{me}" update --auto'], capture_output=True, creationflags=0x08000000)
+        else:
+            subprocess.run(["schtasks", "/Delete", "/F", "/TN", "fox-kit-skills-update"], capture_output=True, creationflags=0x08000000)
+        return
+    import plistlib
+    label = "com.fox-kit.skills-update"
+    f = HOME / "Library/LaunchAgents" / f"{label}.plist"
+    subprocess.run(["launchctl", "bootout", f"gui/{os.getuid()}/{label}"], capture_output=True)
+    if not on:
+        f.unlink(missing_ok=True); return
+    f.parent.mkdir(parents=True, exist_ok=True)
+    with open(f, "wb") as fh:
+        plistlib.dump({"Label": label, "ProgramArguments": ["/usr/bin/python3", me, "update", "--auto"],
+                       "StartCalendarInterval": {"Weekday": 1, "Hour": 9, "Minute": 0},
+                       "StandardOutPath": str(LOG), "StandardErrorPath": str(LOG),
+                       "EnvironmentVariables": {"PATH": f"{HOME}/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin", "HOME": str(HOME)}}, fh)
+    subprocess.run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(f)], capture_output=True)
 
 
 def demo():
@@ -429,4 +603,13 @@ def status():
 if __name__ == "__main__":
     LOG.parent.mkdir(parents=True, exist_ok=True)
     cmd = sys.argv[1] if len(sys.argv) > 1 else "status"
-    {"install": install, "install-win": install_win, "status": status, "key": key, "demo": demo}.get(cmd, status)()
+    if cmd == "dash-json":
+        dash()
+    elif cmd == "update":
+        update(auto="--auto" in sys.argv)
+    elif cmd == "add":
+        add(sys.argv[2:])
+    elif cmd == "schedule":
+        schedule((sys.argv[2:] or ["on"])[0] != "off")
+    else:
+        {"install": install, "install-win": install_win, "status": status, "key": key, "demo": demo}.get(cmd, status)()
