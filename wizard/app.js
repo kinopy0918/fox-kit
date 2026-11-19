@@ -454,19 +454,20 @@
           ? `<div class="sub-card auto"><b>次にやることは1つだけ：${agent}と最初のお話（20分）</b>
                <p>AIがあなたの仕事について聞きます。話しておくと、あなた専用に動けます。</p>
                <div class="row"><button class="btn" data-reopen="talk">AIと話す</button></div></div>`
-          : where
-          ? `<div class="sub-card auto"><b>これからは、${where} で ${agent} に話しかけます</b>
-               <p>スマホからでもOK。「〇〇の資料を作って」のように頼むだけです。</p>
-               <div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} を開く</a></div></div>`
-          : `<div class="sub-card auto"><b>これからは、Antigravity で ${agent} に話しかけます</b>
-               <p>Antigravity（アンチグラビティ）は、AIと話すためのアプリです。開いたら「New session」を押し、頼みごとを書いて送るだけ。</p>
+          : `<div class="sub-card auto"><b>これからは、Antigravity で ${agent} と一緒に作ります</b>
+               <p>Antigravity（アンチグラビティ）は、AIと話しながら資料や仕組みを作るアプリです。</p>
+               <ol class="do"><li>下のボタンで開く（次からは${W() ? "スタートメニュー" : "Dock"}の Antigravity）</li><li>左の「New session」を押す</li><li>「〇〇を作って」と書いて送る</li></ol>
                <div class="row"><button class="btn" id="openAg">Antigravity を開く</button></div></div>`;
-        if (B()) return `${first}
+        const office = ((S.data.mac || {}).use || (S.data.auto || {}).use) === "office";
+        const phone = office && !where && !talkLater ? `<div class="sub-card"><b>置きっぱなしのパソコンなら：スマホから頼めるように（10分）</b>
+               <p>Discord とつなぐと、外出先からスマホで ${agent} に頼めます。パソコンは電源につないだままにしておきます。</p>
+               <div class="row"><button class="btn sub" data-reopen="channel">Discord とつなぐ</button></div></div>` : "";
+        if (B()) return `${first}${phone}
              <details class="sub-card"><summary><b>ほかにできること</b>（あとで大丈夫です）</summary>
                ${meetCard}${talkLater ? "" : ""}${laterCard}${noteCard}
                <ul class="done-list">
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」に置きます <button class="btn sub" id="openBase">フォルダを開く</button></li>` : ""}
-               ${where ? `<li>パソコンの前では、Antigravity でも話せます <button class="btn sub" id="openAg">Antigravity を開く</button></li>` : `<li>スマホから話したくなったら、AIに「スマホから頼めるようにしたい」</li>`}
+               ${where ? `<li>外出先からは ${where} でも頼めます <a class="btn sub" href="${esc(ch.link)}" target="_blank">${where} を開く</a></li>` : (office ? "" : `<li>スマホから頼みたくなったら、AIに「スマホから頼めるようにしたい」（パソコンを置きっぱなしにする人向け）</li>`)}
                <li>この画面は、デスクトップの「AIの設定画面」でいつでも開けます</li>
                </ul></details>
              <p class="hint">この画面は閉じて大丈夫です。デスクトップの「AIの設定画面」で、いつでも開き直せます。</p>`;
