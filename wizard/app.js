@@ -389,7 +389,23 @@
       },
     }),
     channel: () => channelView(),
-    talk: () => ({
+    talk: () => B() ? {
+      title: "AIと最初のお話（Antigravity で）",
+      lead: `ここからは Antigravity で話します。${esc(S.answers.agent || "AI")} があなたの仕事について聞きます（20分ほど）。`,
+      html: `<ol class="do">
+               <li>下のボタンを押す（Antigravity が開き、最初の一言がコピーされます）</li>
+               <li>左の「New session」を押す</li>
+               <li>入力欄に貼って（${W() ? k("Ctrl") + "+" + k("V") : k("⌘") + "+" + k("V")}）送る</li>
+               <li>あとは AI の質問に答えるだけ。ChatGPT などを使っていたら、AI がその記録から下書きを作ります</li></ol>
+             <div class="row"><button class="btn" id="agtalk">Antigravity で始める</button><button class="btn sub" id="fin">話し終えた（またはあとで）</button></div>
+             <p class="hint" id="agnote"></p>`,
+      bind: (el) => {
+        $("#agtalk", el).onclick = async () => { const r = await act("talk", { antigravity: true });
+          $("#agnote").textContent = r.ok ? "Antigravity を開きました。「" + r.words + "」をコピーしてあります。貼って送ってください。"
+            : "Antigravity が見つかりませんでした。Dock かアプリケーションから開き、「" + (r.words || "はじめまして。初期設定をお願いします。") + "」と送ってください。"; };
+        $("#fin", el).onclick = async () => { await act("talk", { finish: true }); refresh(true); };
+      },
+    } : ({
       title: t("AIと最初のお話", "初期設定の聞き取り（fox-setup）"),
       lead: t("AIがあなたの仕事について聞きます（20分ほど）。前に ChatGPT・Gemini・Claude を使っていたなら、その記録から下書きを作って確かめる形にもできます。AIが「初期設定が終わりました」と言ったら、下の「ここで終える」を押してください。", "claude -p --resume（この画面のチャット）。fox-setup が完了を告げたら終える"),
       html: `<div class="chat" id="chat"></div><div class="err" id="err"></div>
@@ -451,9 +467,10 @@
                <ul class="done-list">${S.notices.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
         const agent = esc(S.answers.agent || "AI");
         const first = talkLater
-          ? `<div class="sub-card auto"><b>次にやることは1つだけ：${agent}と最初のお話（20分）</b>
+          ? `<div class="sub-card auto"><b>次にやることは1つだけ：Antigravity で ${agent}と最初のお話（20分）</b>
                <p>AIがあなたの仕事について聞きます。話しておくと、あなた専用に動けます。</p>
-               <div class="row"><button class="btn" data-reopen="talk">AIと話す</button></div></div>`
+               <ol class="do"><li>下のボタンで Antigravity を開く（最初の一言がコピーされます）</li><li>左の「New session」を押す</li><li>貼って送る。あとは質問に答えるだけ</li></ol>
+               <div class="row"><button class="btn" id="agtalk2">Antigravity で始める</button></div><p class="hint" id="agnote2"></p></div>`
           : `<div class="sub-card auto"><b>これからは、Antigravity で ${agent} と一緒に作ります</b>
                <p>Antigravity（アンチグラビティ）は、AIと話しながら資料や仕組みを作るアプリです。</p>
                <ol class="do"><li>下のボタンで開く（次からは${W() ? "スタートメニュー" : "Dock"}の Antigravity）</li><li>左の「New session」を押す</li><li>「〇〇を作って」と書いて送る</li></ol>
@@ -490,6 +507,8 @@
       })(),
       bind: (el) => {
         const o = $("#openBase", el); if (o) o.onclick = () => act("storage", { open_base: true });
+        const at = $("#agtalk2", el); if (at) at.onclick = async () => { const r = await act("talk", { antigravity: true });
+          $("#agnote2").textContent = r.ok ? "開きました。「" + r.words + "」をコピーしてあります。貼って送ってください。" : "Antigravity が見つかりませんでした。Dock から開いてください。"; };
         el.querySelectorAll("#openAg").forEach((x) => (x.onclick = async () => { const r = await act("storage", { open_ag: true }); if (r && r.ok === false) alert("Antigravity が見つかりませんでした。AIに「Antigravity を入れて」と頼んでください"); }));
         el.querySelectorAll("[data-reopen]").forEach((b) => (b.onclick = async () => { await act("reopen", { target: b.dataset.reopen }); view = null; refresh(true); }));
       },

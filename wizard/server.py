@@ -73,6 +73,31 @@ def open_path(target: str):
     else:
         subprocess.run(["open", target], **NOWIN)
 
+def open_antigravity() -> bool:
+    """Antigravity（AIと一緒に作るアプリ）を開く。見つからなければ False。"""
+    if WIN:
+        for d in (Path(os.environ.get("LOCALAPPDATA", "")) / "Programs", Path(os.environ.get("ProgramFiles", ""))):
+            hit = next((x for x in d.glob("Antigravity*") if (x / "bin").is_dir()), None) if d.is_dir() else None
+            exe = next(iter(sorted(hit.glob("Antigravity*.exe"))), None) if hit else None
+            if exe:
+                open_path(str(exe)); return True
+        return False
+    app = Path("/Applications/Antigravity IDE.app")
+    if app.is_dir():
+        open_path(str(app)); return True
+    return False
+
+
+def to_clipboard(text: str):
+    try:
+        if WIN:
+            subprocess.run(["clip"], input=text.encode("utf-16le"), **NOWIN)
+        else:
+            subprocess.run(["pbcopy"], input=text.encode("utf-8"))
+    except OSError:
+        pass
+
+
 LOCK = threading.Lock()
 JOBS: dict[str, dict] = {}          # 実行中・終わった作業
 LOGIN = {"proc": None, "url": ""}   # ログインの途中経過
@@ -429,17 +454,7 @@ def act(step: str, body: dict) -> dict:
                 sto.detect()
             return {"ok": True, **json.loads(f.getvalue())}
         if body.get("open_ag"):   # 完了画面の「Antigravity を開く」
-            if WIN:
-                for d in (Path(os.environ.get("LOCALAPPDATA", "")) / "Programs", Path(os.environ.get("ProgramFiles", ""))):
-                    hit = next((x for x in d.glob("Antigravity*") if (x / "bin").is_dir()), None) if d.is_dir() else None
-                    exe = next(iter(sorted(hit.glob("Antigravity*.exe"))), None) if hit else None
-                    if exe:
-                        open_path(str(exe)); return {"ok": True}
-                return {"ok": False}
-            app = Path("/Applications/Antigravity IDE.app")
-            if app.is_dir():
-                open_path(str(app)); return {"ok": True}
-            return {"ok": False}
+            return {"ok": open_antigravity()}
         if body.get("open_base"):
             base = st["data"].get("storage", {}).get("base")
             if base and Path(base).is_dir():
@@ -687,10 +702,19 @@ def meet(body: dict, st: dict) -> dict:
 TALK = {"sid": None}
 
 
+FIRST_WORDS = "はじめまして。初期設定をお願いします。"
+
+
 def talk(body: dict, st: dict) -> dict:
     msg = (body.get("message") or "").strip()
     if body.get("finish"):
         mark("talk"); return {"ok": True}
+    if body.get("antigravity"):   # 最初のお話は Antigravity で：開いて、最初の一言をコピーしておく
+        to_clipboard(FIRST_WORDS)
+        ok = open_antigravity()
+        with LOCK:
+            s2 = load(); s2["data"].setdefault("talk", {})["in_ag"] = True; save(s2)
+        return {"ok": ok, "words": FIRST_WORDS}
     if not msg:
         ch = st["data"].get("channel", {})
         linked = ch.get("platform") in ("discord", "slack") and not ch.get("skipped")
