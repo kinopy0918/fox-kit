@@ -4,7 +4,7 @@
 html,body{overflow-x:clip}   /* hidden だと上の進み具合の帯がスクロールに付いてこない */
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 "Noto Sans JP",system-ui,sans-serif}
 .bar{position:sticky;top:0;z-index:9;background:var(--bg);border-bottom:1px solid var(--line)}
-.bar .in{max-width:none;margin:0 auto;padding:10px clamp(16px,3vw,40px);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.bar .in{max-width:1470px;margin:0 auto;padding:10px clamp(16px,3vw,40px);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .brand{font-size:17px;margin-right:auto}.brand span{font-weight:500;color:var(--ink2);font-size:14px;margin-left:6px}
 .prog{min-width:220px;flex:1;max-width:460px}
 .prog-t{font-size:13px;color:var(--ink2);display:flex;justify-content:space-between;gap:12px}
@@ -12,7 +12,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.85 "Noto Sans JP
 #progRest{white-space:nowrap;flex:none}
 .prog-b{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
 .prog-b i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
-.wrap{max-width:none;margin:0 auto;padding:24px clamp(16px,3vw,40px) 80px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px}
+.wrap{max-width:1470px;margin:0 auto;padding:24px clamp(16px,3vw,40px) 80px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:24px}
 .steps{display:flex;flex-direction:column;gap:4px;position:sticky;top:76px;align-self:start}
 /* 幅が狭いとき：「いまやること」を先に、段の一覧はその下へ（一覧はやり直しの入口なので隠さない） */
 @media (max-width:760px){.wrap{grid-template-columns:minmax(0,1fr)}.steps{order:2;position:static}}
