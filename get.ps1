@@ -401,13 +401,14 @@ if ($Wizard) {
   Start-Process -FilePath $pyw -ArgumentList "`"$KitDir\wizard\server.py`"" -WindowStyle Hidden
   # あとから開き直す入口：デスクトップに「設定画面」のショートカット（「あとでやる」にした段へ戻れる）
   try {
-    $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'AIの設定画面.lnk'
+    Remove-Item (Join-Path ([Environment]::GetFolderPath('Desktop')) 'AIの設定画面.lnk') -ErrorAction SilentlyContinue   # 前の名前
+    $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'FoxKit.lnk'
     $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
     $sc.TargetPath = $pyw; $sc.Arguments = "`"$KitDir\wizard\server.py`""; $sc.WorkingDirectory = $HOME
-    $sc.Description = 'AI秘書の設定画面（あとでやる、にした設定の続き）'
+    $sc.Description = 'FoxKit（AI秘書の設定の続きと、新しい版への更新）'
     $ico = Join-Path $KitDir 'assets\fox-kit.ico'; if (Test-Path $ico) { $sc.IconLocation = "$ico,0" }
     $sc.Save()
-  } catch { LogLine "ショートカットを作れませんでした: $($_.Exception.Message)"; Warn 'デスクトップに「AIの設定画面」のショートカットを作れませんでした（あとから開き直すときは、同じ1行をもう一度貼ってください）' }
+  } catch { LogLine "ショートカットを作れませんでした: $($_.Exception.Message)"; Warn 'デスクトップに「FoxKit」のショートカットを作れませんでした（あとから開き直すときは、同じ1行をもう一度貼ってください）' }
   for ($i = 0; $i -lt 40 -and -not (Test-Path $urlFile); $i++) { Start-Sleep -Milliseconds 500 }
   Write-Host ''
   if (Test-Path $urlFile) {

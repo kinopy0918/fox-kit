@@ -453,7 +453,7 @@
         const keyOnly = !S.data.packs?.skipped && S.data.gemini?.skipped;   // スキルは入っていて、画像づくりの鍵だけまだ
         const later = S.steps.filter((x) => x.skipped && !(x.id === "talk" && talkLater)).map((x) => (x.id === "packs" && keyOnly ? { ...x, title: "画像づくりの鍵を登録する" } : x));
         const laterCard = later.length ? `<div class="sub-card"><b>あとでやる、にした設定（${later.length}つ）</b>
-               <p>押すと、その段に戻って続きができます。いまやらなくても、この画面はあとから開き直せます（デスクトップの「AIの設定画面」をダブルクリックするか、AI に「設定画面を開いて」と言う）。</p>
+               <p>押すと、その段に戻って続きができます。いまやらなくても、この画面はあとから開き直せます（デスクトップの「FoxKit」をダブルクリックするか、AI に「設定画面を開いて」と言う）。</p>
                <div class="row">${later.map((x) => `<button class="btn sub" data-reopen="${x.id}">${esc(x.title)}</button>`).join("")}</div></div>` : "";
         const talkCard = talkLater ? `<div class="sub-card auto"><b>最後に1つ：AIと最初のお話（20分ほど）</b>
                <p>AIがあなたの仕事について聞きます。ここで話しておくと、AIがあなた専用に動けるようになります（ChatGPT などを使っていたなら、その記録から下書きを作って「こうですか？」と確かめる形でも進められます）。</p>
@@ -479,16 +479,16 @@
         const phone = office && !where && !talkLater ? `<div class="sub-card"><b>置きっぱなしのパソコンなら：スマホから頼めるように（10分）</b>
                <p>Discord とつなぐと、外出先からスマホで ${agent} に頼めます。パソコンは電源につないだままにしておきます。</p>
                <div class="row"><button class="btn sub" data-reopen="channel">Discord とつなぐ</button></div></div>` : "";
-        if (B()) return `${first}${phone}
+        if (B()) return `<div id="upd"></div>${first}${phone}
              <details class="sub-card"><summary><b>ほかにできること</b>（あとで大丈夫です）</summary>
                ${meetCard}${talkLater ? "" : ""}${laterCard}${noteCard}
                <ul class="done-list">
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」に置きます <button class="btn sub" id="openBase">フォルダを開く</button></li>` : ""}
                ${where ? `<li>外出先からは ${where} でも頼めます <a class="btn sub" href="${esc(ch.link)}" target="_blank">${where} を開く</a></li>` : (office ? "" : `<li>スマホから頼みたくなったら、AIに「スマホから頼めるようにしたい」（パソコンを置きっぱなしにする人向け）</li>`)}
-               <li>この画面は、デスクトップの「AIの設定画面」でいつでも開けます</li>
+               <li>この画面は、デスクトップの「FoxKit」でいつでも開けます。新しい版の更新もここからできます</li>
                </ul></details>
-             <p class="hint">この画面は閉じて大丈夫です。デスクトップの「AIの設定画面」で、いつでも開き直せます。</p>`;
-        return `${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
+             <p class="hint">この画面は閉じて大丈夫です。デスクトップの「FoxKit」で、いつでも開き直せます。</p>`;
+        return `<div id="upd"></div>${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
@@ -507,6 +507,21 @@
       })(),
       bind: (el) => {
         const o = $("#openBase", el); if (o) o.onclick = () => act("storage", { open_base: true });
+        const u = $("#upd", el);
+        if (u) {   // 新しい版があれば、ここから更新できる（ターミナルは使わない）
+          const j = job("kitupdate");
+          if (j && j.state === "running") { UPD = true; u.innerHTML = `<div class="sub-card">${running("kitupdate", "新しい版にしています。終わると、この画面が自動で開き直します（2〜5分）。")}</div>`; }
+          else if (j && j.state === "error") { UPD = false; u.innerHTML = `<div class="sub-card">${failNote("kitupdate")}</div>`; }
+          else act("kitupdate", { check: true }).then((r) => {
+            if (!r || !r.ok) return;
+            u.innerHTML = r.newer
+              ? `<div class="sub-card auto"><b>新しい版 ${esc(r.latest)} があります</b>（いまは ${esc(r.current)}）
+                 <p>押すと、新しい版にして、この画面が自動で開き直します。あなたが育てた記憶や設定はそのまま残ります。</p>
+                 <div class="row"><button class="btn" id="doUpd">更新する</button></div></div>`
+              : `<p class="hint">いまの版：${esc(r.current)}（最新です）</p>`;
+            const b = $("#doUpd", u); if (b) b.onclick = async () => { b.disabled = true; UPD = true; const x = await act("kitupdate", { run: true }); if (!x.ok) { UPD = false; b.disabled = false; alert(x.error || "更新を始められませんでした"); } refresh(true); };
+          });
+        }
         const at = $("#agtalk2", el); if (at) at.onclick = async () => { const r = await act("talk", { antigravity: true });
           $("#agnote2").textContent = r.ok ? "開きました。「" + r.words + "」をコピーしてあります。貼って送ってください。" : "Antigravity が見つかりませんでした。Dock から開いてください。"; };
         el.querySelectorAll("#openAg").forEach((x) => (x.onclick = async () => { const r = await act("storage", { open_ag: true }); if (r && r.ok === false) alert("Antigravity が見つかりませんでした。AIに「Antigravity を入れて」と頼んでください"); }));
@@ -783,6 +798,7 @@
     def.bind($("#body"));
   }
   let lost = 0;   // 続けて失敗した回数（1回の取りこぼしでは騒がない）
+  let UPD = false;   // 更新で開き直している間は、つながらなくても「切れました」を出さずに待つ
   function lostCard(old) {
     const done = S && S.current === "done";
     const line = W() ? 'irm https://kinopy0918.github.io/fox-kit/get.ps1 | iex' : '/bin/zsh -c "$(curl -fsSL https://kinopy0918.github.io/fox-kit/get.sh)"';
@@ -791,7 +807,7 @@
       <h1>${done ? "設定画面は閉じました" : old ? "この画面は古くなりました" : "設定画面とつながらなくなりました"}</h1>
       <p class="lead">${done ? "設定は終わっているので、このタブは閉じて大丈夫です。" : "ここまでに入れた内容は覚えています。開き直せば、続きから始まります。"}</p>
       <div class="sub-card"><b>${done ? "あとから設定画面を開くには" : "開き直すには"}</b>
-        <ol class="do"><li>${W() ? "スタートメニューで「PowerShell」を開く（デスクトップに「AIの設定画面」があれば、それを押すだけでも開きます）" : "「ターミナル」を開く（画面右上の虫めがねで「ターミナル」と打つ）"}</li>
+        <ol class="do"><li>${W() ? "スタートメニューで「PowerShell」を開く（デスクトップに「FoxKit」があれば、それを押すだけでも開きます）" : "「ターミナル」を開く（画面右上の虫めがねで「ターミナル」と打つ）"}</li>
         <li>下の1行を貼り付けて Enter</li></ol>
         <pre class="log" id="oneLine">${esc(line)}</pre>
         <div class="row"><button class="btn" id="copyLine">この1行をコピー</button><button class="btn sub" id="reloadNow">もう一度つないでみる</button></div></div></div>`;
@@ -804,8 +820,9 @@
       const s = await api("/api/state");
       if (!s || !s.steps) { lostCard(true); return; }      // URL の鍵が合わない＝前に開いた古い画面
       const back = lost >= 3;
+      if (UPD && !(s.jobs || {}).kitupdate) UPD = false;   // 開き直した新しい画面につながった
       S = s; lost = 0; draw(force || back);
-    } catch (e) { if (++lost === 3) lostCard(false); }
+    } catch (e) { if (UPD) return; if (++lost === 3) lostCard(false); }
   }
   refresh(true);
   setInterval(() => refresh(false), 2000);

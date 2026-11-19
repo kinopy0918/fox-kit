@@ -1,5 +1,11 @@
 # 変更履歴
 
+## 0.7.0（FoxKit から更新・2026-11-19）
+
+- **デスクトップの入口の名前を「FoxKit」に**（前の「AIの設定画面」は消して置き直す）。Mac も Windows も
+- **FoxKit を開くと、新しい版があれば「更新する」が出る**：押すと新しい版を取ってきて入れ替え（前の版は1つだけ控え）、画面が同じ場所で自動で開き直し、新しいスキルと作法を配り直す。ターミナルは使わない
+- 困ったとき：「新しい版にしたい」は FoxKit から
+
 ## 0.6.9（Antigravity の中の Claude Code も確認なしで・2026-11-19）
 
 - Antigravity の中の Claude Code が「毎回確認」で始まっていた。キットの設定（`~/.claude/settings.json` の defaultMode）に合わせて、確認なしで始まるようにした（`claudeCode.initialPermissionMode`・`claudeCode.allowDangerouslySkipPermissions`）

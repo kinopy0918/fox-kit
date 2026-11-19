@@ -159,10 +159,11 @@ __free="$(df -k "$HOME" 2>/dev/null | awk 'NR==2{print int($4/1048576)}')"
 [[ -n "$__free" && "$__free" -lt 10 ]] && warn "このMacの空きが少なくなっています（残り ${__free}GB）。道具を入れるのに10GBほど使います。足りないと途中で止まるので、先に要らないファイルを片づけるのがおすすめです。"
 
 
-# ------------------------------------------------------------------ あとから開き直す入口（デスクトップの「AIの設定画面」）
-# ダブルクリックで設定画面が続きから開く（Windows の「AIの設定画面」ショートカットと同じ役目）。
+# ------------------------------------------------------------------ あとから開き直す入口（デスクトップの「FoxKit」）
+# ダブルクリックで設定画面が続きから開く。新しい版の更新もここから（Windows の「FoxKit」ショートカットと同じ役目）。
 desktop_app() {
-  local app="$HOME/Desktop/AIの設定画面.app" src
+  local app="$HOME/Desktop/FoxKit.app" src
+  rm -rf "$HOME/Desktop/AIの設定画面.app"   # 前の名前
   src="$(mktemp -t fox-app).applescript"
   cat > "$src" <<APPLESCRIPT
 do shell script "pkill -f " & quoted form of "$KIT_DIR/wizard/server.py" & " ; nohup /usr/bin/python3 " & quoted form of "$KIT_DIR/wizard/server.py" & " > " & quoted form of "$HOME/Library/Logs/fox-wizard.log" & " 2>&1 &"
@@ -177,9 +178,9 @@ APPLESCRIPT
       touch "$app"
       /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app" >/dev/null 2>&1
     fi
-    ok "デスクトップに「AIの設定画面」を置きました（閉じてしまっても、これをダブルクリックすれば続きから開きます）"
+    ok "デスクトップに「FoxKit」を置きました（閉じても、これをダブルクリックすれば続きから開きます。新しい版の更新もここから）"
   else
-    warn "デスクトップに「AIの設定画面」を置けませんでした（開き直すときは、同じ1行をもう一度貼ってください）"
+    warn "デスクトップに「FoxKit」を置けませんでした（開き直すときは、同じ1行をもう一度貼ってください）"
   fi
   rm -f "$src"
 }
@@ -199,7 +200,7 @@ if [[ -z "${FOX_TERMINAL:-}" && -z "$__ENV_OWNER" && -z "$__ENV_UPDATE" && -z "$
   echo
   c "1;32" "  ブラウザで設定画面が開きました。ここから先は画面の案内どおりに進めてください。"; echo
   echo "  （開かないときは、このURLをブラウザに貼ってください：$(cat "$HOME/.config/fox-kit/wizard.url" 2>/dev/null)）"
-  echo "  この黒い画面は閉じても大丈夫です。設定画面を閉じてしまったら、デスクトップの「AIの設定画面」をダブルクリックすると続きから開きます。"
+  echo "  この黒い画面は閉じても大丈夫です。設定画面を閉じてしまったら、デスクトップの「FoxKit」をダブルクリックすると続きから開きます。"
   exit 0
 fi
 

@@ -41,7 +41,7 @@ WIN = os.name == "nt" or bool(os.getenv("FOX_WIZARD_FAKE_WIN"))   # 後者は Ma
 LOGDIR = (HOME / ".config/fox-kit/logs") if WIN else (HOME / "Library/Logs/fox-wizard")
 LOGDIR.mkdir(parents=True, exist_ok=True)
 CONF.mkdir(parents=True, exist_ok=True)
-TOKEN = secrets.token_urlsafe(16)
+TOKEN = os.getenv("FOX_WIZARD_TOKEN") or secrets.token_urlsafe(16)   # 更新で開き直すときは同じ鍵を引き継ぐ（開いている画面がそのまま続く）
 ASKPASS = HERE / "askpass.sh"
 sys.path.insert(0, str(KIT / "tools/fox-bridge"))
 sys.path.insert(0, str(KIT / "claude/skills/fox-setup"))
@@ -508,6 +508,17 @@ def act(step: str, body: dict) -> dict:
     if step == "channel":
         return channel(body, st)
 
+    if step == "kitupdate":
+        cur = kit_version()
+        if body.get("run"):
+            new = latest_version()
+            if not new or new == cur:
+                return {"ok": False, "error": "いまが最新の版です"}
+            run_job("kitupdate", [PY, str(KIT / "wizard/selfupdate.py"), str(KIT), new], env=env_for(st), on_ok=restart_soon)
+            return {"ok": True, "started": True, "latest": new}
+        new = latest_version()
+        return {"ok": True, "current": cur, "latest": new, "newer": bool(new and new != cur and newer(new, cur))}
+
     if step == "talk":
         return talk(body, st)
 
@@ -839,6 +850,36 @@ def kit_version() -> str:
         return ""
 
 
+def latest_version() -> str:
+    try:
+        v = urllib.request.urlopen(f"https://kinopy0918.github.io/fox-kit/VERSION?x={int(time.time())}", timeout=15).read().decode().strip()
+        return v if re.fullmatch(r"\d+(\.\d+)*", v) else ""
+    except Exception:
+        return ""
+
+
+def newer(a: str, b: str) -> bool:
+    try:
+        return tuple(map(int, a.split("."))) > tuple(map(int, (b or "0").split(".")))
+    except ValueError:
+        return False
+
+
+SRV = {}
+
+
+def restart_soon():
+    """更新のあと、同じ場所・同じ鍵で設定画面を開き直す（開いている画面はそのまま続く）。"""
+    port = SRV["srv"].server_address[1]
+    script = str(KIT / "wizard/server.py")
+    code = "import time,sys,runpy;time.sleep(2);sys.argv=[sys.argv[1],'--no-open'];runpy.run_path(sys.argv[0],run_name='__main__')"
+    env = {**os.environ, "FOX_WIZARD_PORT": str(port), "FOX_WIZARD_TOKEN": TOKEN}
+    kw = {"creationflags": 0x00000008 | 0x08000000} if WIN else {"start_new_session": True}
+    out = open(LOGDIR / "restart.log", "a")
+    subprocess.Popen([PY, "-c", code, script], env=env, cwd=str(HOME), stdout=out, stderr=out, **kw)
+    threading.Timer(0.8, lambda: os._exit(0)).start()
+
+
 def rebuild_if_new_kit():
     """キットが新しい版になっていたら、組み立ての段だけをもう一度回す（新しいスキル・手順を ~/.claude へ配るため）"""
     with LOCK:
@@ -850,7 +891,14 @@ def rebuild_if_new_kit():
 def main():
     rebuild_if_new_kit()
     port = int(os.getenv("FOX_WIZARD_PORT", "0"))
-    srv = ThreadingHTTPServer(("127.0.0.1", port), H)
+    for _ in range(20):   # 開き直しのときは、前の画面が場所を空けるまで少し待つ
+        try:
+            srv = ThreadingHTTPServer(("127.0.0.1", port), H); break
+        except OSError:
+            time.sleep(0.5)
+    else:
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    SRV["srv"] = srv
     url = f"http://127.0.0.1:{srv.server_address[1]}/?t={TOKEN}"
     (CONF / "wizard.url").write_text(url, encoding="utf-8")
     if not WIN:
