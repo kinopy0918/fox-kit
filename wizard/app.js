@@ -398,7 +398,7 @@
              <div id="finNote" class="note" hidden><b>✓ 初期設定が終わりました。</b>下の「ここで終える」を押してください。この先は Slack・Discord のチャンネルで話しかければ続きができます。</div>
              <p class="hint">途中でやめても大丈夫です。続きは、あとで AI に「初期設定の続きをして」と言えば、終わったところから再開します。</p>`,
       bind: (el) => {
-        local.chat = local.chat || (S.data.talk?.log || []).map((m) => ({ ...m }));   // 開き直しても、前の会話を出す
+        local.chat = local.chat || (S.data.talk?.log || []).filter((m) => !(m.who === "ai" && /^覚えました。?$/.test((m.text || "").trim()))).map((m) => ({ ...m }));   // 開き直しても、前の会話を出す（裏の「覚えました」は出さない）
         const draw = () => { $("#chat").innerHTML = local.chat.map((m) => `<div class="msg ${m.who}">${m.who === "ai" ? md(m.text) : esc(m.text)}</div>`).join(""); $("#chat").scrollTop = 1e9; };
         const send = async (text) => {
           if (text) local.chat.push({ who: "me", text });
@@ -420,7 +420,7 @@
           }
         };
         draw(); finCheck();
-        if (!local.chat.length && !S.data.talk?.sid) send("");   // 前の会話があるときは、最初の依頼を送り直さない
+        if (!local.chat.length && !S.data.talk?.started) send("");   // まだ始めていなければ、AIから最初の質問をさせる（裏の頼みごとだけでは「始めた」にしない）
         $("#send", el).onclick = () => { const v = $("#msg").value.trim(); if (!v) return; $("#msg").value = ""; send(v); };
         $("#msg", el).onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); $("#send").click(); } };
         $("#fin", el).onclick = async () => { await act("talk", { finish: true }); refresh(true); };

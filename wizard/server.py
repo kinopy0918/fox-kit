@@ -696,9 +696,12 @@ def talk(body: dict, st: dict) -> dict:
     with LOCK:
         s2 = load(); t2 = s2["data"].setdefault("talk", {}); t2["sid"] = j.get("session_id")
         lg = t2.setdefault("log", [])
-        if body.get("message") and not body.get("quiet"):
-            lg.append({"who": "me", "text": body["message"]})
-        lg.append({"who": "ai", "text": j["result"]}); t2["log"] = lg[-60:]
+        if not body.get("quiet"):   # 裏で頼んだこと（覚えて・試しの仕事）の返事は、会話に出さない
+            t2["started"] = True
+            if body.get("message"):
+                lg.append({"who": "me", "text": body["message"]})
+            lg.append({"who": "ai", "text": j["result"]})
+        t2["log"] = lg[-60:]
         save(s2)
     return {"ok": True, "reply": j["result"]}
 
