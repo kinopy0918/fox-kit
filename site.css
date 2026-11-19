@@ -212,3 +212,11 @@ body.phone .phone-only{display:block}
 @media(max-width:760px){.need>div.wide{grid-column:auto}}
 /* FoxKitとは：下の「用意するもの」の枠に輪が重ならないよう、輪を右上に置く */
 @media(min-width:761px){.hero:has(.need2)::before,.hero:has(.need2)::after{top:40px;transform:none}}
+/* 横幅いっぱいにしたときの釣り合い（2026-11-19） */
+@media(min-width:1100px){
+  .hero .lead,.hero p.lead{max-width:min(48em,calc(100% - 300px))}
+  .hero::before,.hero::after{width:220px;height:220px;right:72px}
+  main>p,main>section>p,main .cap{max-width:64em}          /* 1行が長すぎないように */
+  html .about .shot{grid-template-columns:minmax(0,1fr) minmax(440px,44%)}   /* 画面写真を文の幅に合わせて大きく */
+}
+html .about .end .lead{margin:0 auto!important}           /* 最後の一文を真ん中に（ボタンとそろえる） */
