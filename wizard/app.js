@@ -259,11 +259,11 @@
             <p class="hint">${d.morning === "8:00" ? "毎朝のまとめで、今日やれる一歩を出すのに使います。" : "AIが、何を優先して手伝うかを決めるのに使います。"}</p></div>` : "";
         html = `<div class="msg ai" style="max-width:100%">覚えておきました。違っていたり、消してほしいものがあれば、いつでも言ってください。<br>今、お手伝いできることがあります。押すと、その場でやります。</div>
           ${offers}<div class="err" id="err"></div>
-          <div class="sub-card"><b>明日の朝8時に、1日のまとめをお送りしましょうか？</b>
-            <p>今日の予定と準備・返事が要るメール・やり残しをまとめます。${W() ? "" : "やることは Mac の「リマインダー」にも入れます（iPhone なら通知が鳴ります）。ノートPCでも、朝に開いた瞬間に動きます。やめたくなったら、AI に「毎朝のまとめを止めて」と言えば止まります。"}</p>
-            ${d.morning === "8:00" ? `<p class="okmsg">✓ 毎朝8時に登録しました</p>` : d.morning === "no" ? `<p class="hint">いりません、にしました</p>`
+          <div class="sub-card"><b>毎朝の1日のまとめは、スマホの Claude Duet で受け取るのがおすすめです</b>
+            <p>Duet（Claude のスマホのアプリ）が、今日の予定・返事が要るメール・やり残しを毎朝まとめて、向こうから知らせてくれます。頼み方は、最後の画面でコピーできます。Duet を使わないなら、このパソコンでまとめることもできます。${W() ? "" : "やることは Mac の「リマインダー」にも入れます（iPhone なら通知が鳴ります）。ノートPCでも、朝に開いた瞬間に動きます。やめたくなったら、AI に「毎朝のまとめを止めて」と言えば止まります。"}</p>
+            ${d.morning === "8:00" ? `<p class="okmsg">✓ 毎朝8時に登録しました</p>` : d.morning === "duet" ? `<p class="okmsg">✓ Duet で受け取ります（最後の画面で頼み方をコピーできます）</p>` : d.morning === "no" ? `<p class="hint">いりません、にしました</p>`
               : W() ? `<p class="hint">毎朝のまとめは、Windows ではまだ使えません（これから対応します）。「次へ」を押してください。</p><div class="row"><button class="btn" id="mNo">次へ</button></div>`
-              : `<div class="row"><button class="btn" id="mYes">お願いします</button><button class="btn sub" id="mNo">いりません</button></div>`}</div>${goal}`;
+              : `<div class="row"><button class="btn" id="mDuet">Duet で受け取る（おすすめ）</button><button class="btn sub" id="mYes">このパソコンでまとめる（朝8時）</button><button class="btn sub" id="mNo">いりません</button></div>`}</div>${goal}`;
       }
       return {
         title: "秘書とつながる", lead: kept ? "押したものから順に、その場でやります。" : `${me}が、あなたの予定とメールから仕事の様子をつかみます（5分ほど）。`, html,
@@ -280,6 +280,7 @@
           }));
           on("mYes", async () => { const r = await act("meet", { do: "morning", on: true }); r.ok ? refresh(true) : ($("#err").textContent = r.error); });
           on("mNo", async () => { await act("meet", { do: "morning", on: false }); refresh(true); });
+          on("mDuet", async () => { await act("meet", { do: "morning", duet: true }); refresh(true); });
           el.querySelectorAll("[data-g]").forEach((b) => (b.onclick = async () => { await act("meet", { do: "goal", goal: b.dataset.g }); refresh(true); }));
           on("gGo", async () => { const v = $("#gfree").value.trim(); if (v) { await act("meet", { do: "goal", goal: v }); refresh(true); } });
         },
@@ -461,7 +462,7 @@
         const m = S.data.meet || {}, did = Object.keys(m.done_offers || {}).map((i) => m.result?.offers?.[i]?.label).filter(Boolean).map((s) => s.replace(/ます$/, "ました"));   // 「〜します」「〜を作ります」→「〜しました」「〜を作りました」
         const meetCard = m.kept ? `<div class="sub-card auto"><b>${esc(S.answers.agent || "AI")}のページ</b>
                <p><b>今日やったこと</b></p><ul class="done-list"><li>あなたについて ${m.kept.length}つ覚えました</li>${did.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-               <p><b>次の予定</b></p><ul class="done-list">${m.morning === "8:00" ? "<li>明日の朝8時：1日のまとめ（資料の保存先の「毎朝のまとめ」フォルダと、通知）</li>" : ""}
+               <p><b>次の予定</b></p><ul class="done-list">${m.morning === "8:00" ? "<li>明日の朝8時：1日のまとめ（資料の保存先の「毎朝のまとめ」フォルダと、通知）</li>" : m.morning === "duet" ? "<li>毎朝のまとめ：スマホの Claude Duet から届きます（下の「Duet で頼めます」の3つ目の文を送ってください）</li>" : ""}
                ${S.answers.goal ? `<li>目標「${esc(S.answers.goal)}」：${m.morning === "8:00" ? "毎朝のまとめで、今日やれる一歩を出します" : "覚えました。お手伝いの優先順位に使います"}</li>` : ""}</ul></div>` : "";
         const noteCard = (S.notices || []).length ? `<div class="sub-card"><b>前からお使いだった設定について</b>
                <ul class="done-list">${S.notices.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
@@ -482,25 +483,29 @@
                  <li>Claude Duet を開いて、最初のメッセージとして送る <button class="btn sub" data-duet="first">3つ目をコピー</button></li></ol>
                <p class="hint" id="duetnote">Duet が使えない（プランや地域の都合）ときは、この段は飛ばして大丈夫です。</p></div>`;
         const office = ((S.data.mac || {}).use || (S.data.auto || {}).use) === "office";
+        const remoteCard = office && !W() ? `<div class="sub-card"><b>置きっぱなしのパソコンなら：スマホの Duet から、このパソコンで作業させる（10分）</b>
+               <p>Duet の「セッション」から、このパソコンの ${agent} に作業を頼めるようにします。下のボタンのあと、Claude のアプリで3つ押すだけです（設定 →「Code」→「Remote Control」→ スイッチ2つをオン →「フォルダを追加」で「ai-remote」）。</p>
+               <p>メールやドライブのアカウントが2つ以上ある・Gmail 以外のメールがあるなら、${agent} に「Duet から全部のメールを見たい」と言ってください。つなぎ口（コネクタ）を一緒に入れます。</p>
+               <div class="row"><button class="btn sub" id="mkRemote">入口を作る</button></div><p class="hint" id="remotenote"></p></div>` : "";
         const phone = office && !where && !talkLater ? `<div class="sub-card"><b>置きっぱなしのパソコンなら：スマホから頼めるように（10分）</b>
                <p>Discord とつなぐと、外出先からスマホで ${agent} に頼めます。パソコンは電源につないだままにしておきます。</p>
                <div class="row"><button class="btn sub" data-reopen="channel">Discord とつなぐ</button></div></div>` : "";
-        if (B()) return `<div id="upd"></div>${first}${duetCard}${phone}<div id="dash"></div>
+        if (B()) return `<div id="upd"></div>${first}${duetCard}${remoteCard}${phone}<div id="dash"></div>
              <details class="sub-card"><summary><b>ほかにできること</b>（あとで大丈夫です）</summary>
                ${meetCard}${talkLater ? "" : ""}${laterCard}${noteCard}
                <ul class="done-list">
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」に置きます <button class="btn sub" id="openBase">フォルダを開く</button></li>` : ""}
-               ${where ? `<li>外出先からは ${where} でも頼めます <a class="btn sub" href="${esc(ch.link)}" target="_blank">${where} を開く</a></li>` : (office ? "" : `<li>スマホから頼みたくなったら、AIに「スマホから頼めるようにしたい」（パソコンを置きっぱなしにする人向け）</li>`)}
+               ${where ? `<li>外出先からは ${where} でも頼めます <a class="btn sub" href="${esc(ch.link)}" target="_blank">${where} を開く</a></li>` : (office ? "" : `<li>スマホからは Claude Duet で頼めます（上のカードの3つの文を貼る）</li>`)}
                <li>この画面は、デスクトップの「FoxKit」でいつでも開けます。新しい版の更新もここからできます</li>
                </ul></details>
              <p class="hint">この画面は閉じて大丈夫です。デスクトップの「FoxKit」で、いつでも開き直せます。</p>`;
-        return `<div id="upd"></div><div id="dash"></div>${meetCard}${talkCard}${laterCard}${noteCard}${duetCard}<div class="sub-card"><b>これからの使い方</b>
+        return `<div id="upd"></div><div id="dash"></div>${meetCard}${talkCard}${laterCard}${noteCard}${duetCard}${remoteCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
-                 : W() ? `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話したくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>
+                 : W() ? `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホからは、上の Claude Duet で頼めます。</li>
                <li>見せたい画面があれば ${k("Ctrl")} + ${k("Shift")} + ${k("2")}。範囲を選ぶと、その画像が AI に届きます。</li>`
-                 : `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホから話したくなったら、AI に「スマホから頼めるようにしたい」と言えばつなげます。</li>`}
+                 : `<li><b>${esc(S.answers.agent || "AI")} には Antigravity から話しかけます</b>（下の「Antigravity の使い方」）。スマホからは、上の Claude Duet で頼めます。</li>`}
                ${base ? `<li>資料は ${drive} の「${esc(folder)}」フォルダに整理して置きます。${S.data.storage?.skipped ? `<b>Google ドライブが見つからなかったので、いまはこの${PC()}の中に置いています。</b>Google ドライブに変えるときは、上の「資料の保存先」を押してください（アプリの入れ方から案内します）。` : ""}<div class="row"><button class="btn sub" id="openBase">フォルダを開く</button></div></li>` : ""}
                </ul></div>
              <details class="sub-card"${B() && !W() && where ? "" : " open"}><summary><b>Antigravity の使い方（${W() ? "" : "パソコンの前で使うとき"}いちばん便利な入口）</b></summary>
@@ -529,6 +534,8 @@
             const b = $("#doUpd", u); if (b) b.onclick = async () => { b.disabled = true; UPD = true; const x = await act("kitupdate", { run: true }); if (!x.ok) { UPD = false; b.disabled = false; alert(x.error || "更新を始められませんでした"); } refresh(true); };
           });
         }
+        const mr = $("#mkRemote", el); if (mr) mr.onclick = async () => { mr.disabled = true; const r = await act("remote", {});
+          $("#remotenote").textContent = r.ok ? "できました。Claude のアプリで3つ押してください（上の説明のとおり）。" : (r.error || "作れませんでした"); mr.disabled = false; };
         let duetTexts = null;   // 押されたときに1回だけ取りに行く
         el.querySelectorAll("[data-duet]").forEach((b) => (b.onclick = async () => {
           duetTexts = duetTexts || (await act("duet", {}));

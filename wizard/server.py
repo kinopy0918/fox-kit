@@ -505,6 +505,14 @@ def act(step: str, body: dict) -> dict:
             run_job("rag-index", [str(rag), "index"], env=env_for(st))
         return {"ok": True, "base": base}
 
+    if step == "remote":   # 置きっぱなしのパソコン：Duet のセッションから作業させる入口（~/ai-remote）
+        rp = HOME / "Tools/fox-remote/remote.py"
+        if WIN or not rp.exists():
+            return {"ok": False, "error": "いまは Mac だけです"}
+        r = subprocess.run(["/usr/bin/python3", str(rp), "install", "--agent", a.get("agent", "FOX")], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=60)
+        return {"ok": r.returncode == 0, "error": (r.stderr or "").strip()[-200:]}
+
     if step == "duet":   # スマホの Claude Duet・Claude アプリに貼る3つの文（完了画面のコピー用）
         fb = HOME / "Tools/fox-base/fox_base.py"
         if not fb.exists():
@@ -725,7 +733,9 @@ def meet(body: dict, st: dict) -> dict:
             done_ = dict(load()["data"].get("meet", {}).get("done_offers") or {}); done_[str(i)] = r["reply"]
             set_data("meet", done_offers=done_)
         return r
-    if do == "morning":        # 毎朝のまとめ（Mac の予定に登録）
+    if do == "morning":        # 毎朝のまとめ（Mac の予定に登録）。Duet で受け取るなら登録しない（重なるため）
+        if body.get("duet"):
+            set_data("meet", morning="duet"); return {"ok": True}
         if not body.get("on"):
             set_data("meet", morning="no"); return {"ok": True}
         r = subprocess.run([PY, str(MORNING), "install", "8:00"], capture_output=True, text=True, encoding="utf-8", errors="replace",
