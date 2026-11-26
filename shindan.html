@@ -18,6 +18,7 @@
 .res{border-radius:18px;padding:24px clamp(16px,4vw,28px);margin:18px 0;color:#fff;background:var(--grad);box-shadow:var(--shadow)}
 .res h2{display:block;margin:0 0 10px;font-size:22px}
 .res p{margin:8px 0;color:rgba(255,255,255,.92)}
+.res ul{margin:8px 0;padding-left:1.2em;color:rgba(255,255,255,.92)} .res li{margin:4px 0}
 .res a.go{display:inline-block;margin-top:12px;padding:13px 22px;border-radius:999px;background:#fff;color:var(--navy);font-weight:600;text-decoration:none}
 .again{background:none;border:0;color:var(--ink2);text-decoration:underline;cursor:pointer;font:inherit;padding:8px 0}
 [hidden]{display:none!important}
@@ -27,28 +28,49 @@
 <header class="top"><div class="in"><span class="brand">AIの選び方</span></div></header>
 <main>
 <section class="hero">
-<span class="kick">3つの質問</span>
+<span class="kick">かんたんな質問</span>
 <h1>あなたに合う、AIの始め方。</h1>
-<p class="lead">3つ答えると、合う始め方が1つわかります。1分です。</p>
+<p class="lead">3〜6問に答えると、合う始め方が1つわかります。1分です。</p>
 </section>
 
 <section class="qcard" id="q1">
-<div class="num">質問 1 / 3</div>
+<div class="num">質問 1</div>
 <h2><i class="ic" data-i="chat"></i> いまのAI（ChatGPT など）で足りていますか？</h2>
 <div class="ans"><button data-go="r-keep">はい、足りている</button><button data-go="q2">いいえ</button><button data-go="q2">わからない・使っていない</button></div>
 </section>
 
 <section class="qcard" id="q2" hidden>
-<div class="num">質問 2 / 3</div>
+<div class="num">質問 2</div>
 <h2><i class="ic" data-i="laptop"></i> パソコンで、AIと一緒にいろいろ作りたいですか？</h2>
 <p class="sub">資料・表・お店の仕組みなど。スマホで投稿文や返信が作れれば十分なら「いいえ」。</p>
 <div class="ans"><button data-go="q3">はい</button><button data-go="r-muse">いいえ</button><button data-go="r-muse">わからない</button></div>
 </section>
 
 <section class="qcard" id="q3" hidden>
-<div class="num">質問 3 / 3</div>
+<div class="num">質問 3</div>
 <h2><i class="ic" data-i="card"></i> 月20ドル（約3,000円）の AI 契約を払えますか？</h2>
-<div class="ans"><button data-go="r-fox">はい</button><button data-go="r-muse">いいえ</button><button data-go="r-muse">わからない</button></div>
+<div class="ans"><button data-go="q4">はい</button><button data-go="r-muse">いいえ</button><button data-go="r-muse">わからない</button></div>
+</section>
+
+<section class="qcard" id="q4" hidden>
+<div class="num">質問 4</div>
+<h2><i class="ic" data-i="laptop"></i> AI用に、置きっぱなしにできるパソコンはありますか？</h2>
+<p class="sub">事務所や家で、電源につないだまま閉じずに置いておけるパソコン。持ち歩くノートパソコン1台だけなら「いいえ」。</p>
+<div class="ans"><button data-go="q5" data-set="fixed">はい</button><button data-go="q6">いいえ</button><button data-go="q6">わからない</button></div>
+</section>
+
+<section class="qcard" id="q5" hidden>
+<div class="num">質問 5</div>
+<h2><i class="ic" data-i="chat"></i> 会社やお店のみんなで使いますか？</h2>
+<p class="sub">同じ部屋（Discord）で、みんなが AI に頼む使い方。自分ひとりで使うなら「いいえ」。</p>
+<div class="ans"><button data-go="q6" data-set="team">はい</button><button data-go="q6">いいえ</button></div>
+</section>
+
+<section class="qcard" id="q6" hidden>
+<div class="num">質問 6</div>
+<h2><i class="ic" data-i="card"></i> メールやドライブのアカウントは、いくつありますか？</h2>
+<p class="sub">会社ごと・事業ごとに分かれているなら「2つ以上」。Gmail 以外のメール（会社のドメインのメールなど）がある人も「2つ以上」を選んでください。</p>
+<div class="ans"><button data-go="r-fox">Gmail と Google ドライブが1つずつ</button><button data-go="r-fox" data-set="multi">2つ以上・Gmail 以外がある</button><button data-go="r-fox">わからない</button></div>
 </section>
 
 <section class="res" id="r-keep" hidden>
@@ -65,6 +87,7 @@
 <section class="res" id="r-fox" hidden>
 <h2><i class="ic" data-i="laptop"></i> パソコンのAI秘書「fox-kit」がおすすめ</h2>
 <p>パソコンで、AIと一緒に資料や仕組みを作れます。お店のやり方も覚えます。<br>入れるのに約1時間。12月17日の勉強会で一緒に入れます。</p>
+<div class="tier" id="tier"></div>
 <p><i class="ic" data-i="lock"></i> 手順書のパスワードは、勉強会でお伝えします。</p>
 <a class="go" href="index.html">手順書を開く</a>
 </section>
@@ -73,7 +96,7 @@
 </main>
 <script>
 (function(){
-  var all=["q1","q2","q3","r-keep","r-muse","r-fox"];
+  var all=["q1","q2","q3","q4","q5","q6","r-keep","r-muse","r-fox"], got={};
   function show(id){
     all.forEach(function(x){document.getElementById(x).hidden=(x!=="q1"&&x!==id&&!document.getElementById(x).dataset.done);});
     document.getElementById(id).hidden=false;
@@ -84,10 +107,22 @@
     b.onclick=function(){
       var card=b.closest(".qcard"); card.dataset.done="1";
       card.querySelectorAll("button").forEach(function(x){x.disabled=(x!==b);x.classList.toggle("picked",x===b);x.style.opacity=(x===b?"1":".45");});
+      if(b.dataset.set) got[b.dataset.set]=1;
+      if(b.dataset.go==="r-fox") tier();
       show(b.dataset.go);
     };
   });
-  document.getElementById("again").onclick=function(){
+  // 答えから「段」とコネクタの要否を出す（計画書 FoxKit_Duet取り込み計画 の4つの段）
+  function tier(){
+    var t = got.fixed ? (got.team ? "組織で使う形" : "置きっぱなしのパソコンがある形") : "ノートパソコンとスマホの形";
+    var li = ["パソコンでは <b>Antigravity</b>、スマホでは <b>Claude Duet</b> で話しかけます（どちらも同じ前提で動きます）"];
+    if (got.fixed) li.push("Duet から、置きっぱなしのパソコンに作業を頼めるようにします（Remote Control）");
+    if (got.team) li.push("みんなの部屋は <b>Discord</b>。一人ひとりの秘書は Duet です");
+    if (got.multi) li.push(got.fixed ? "メール・ドライブを全部 Duet から見られるように、専用のつなぎ口（コネクタ）を入れます"
+                                     : "アカウントが複数あるので、置きっぱなしのパソコンを用意すると、全部を Duet から見られます（あとから足せます）");
+    document.getElementById("tier").innerHTML = "<p><b>あなたに合う形：" + t + "</b></p><ul>" + li.map(function(x){return "<li>"+x+"</li>";}).join("") + "</ul>";
+  }
+  document.getElementById("again").onclick=function(){ got={};
     all.forEach(function(x){var el=document.getElementById(x);el.hidden=(x!=="q1");delete el.dataset.done;
       el.querySelectorAll("button").forEach(function(btn){btn.disabled=false;btn.classList.remove("picked");btn.style.opacity="";});});
     this.hidden=true; window.scrollTo({top:0,behavior:"smooth"});
