@@ -115,7 +115,11 @@ def addmail(a):
             c.logout()
         except Exception as e:
             raise SystemExit(f"  ✕ ログインできませんでした（{e}）。パスワードか、サーバー名（{srv['imap_host']}）を確かめてください")
-        subprocess.run(["security", "add-generic-password", "-U", "-s", "fox-connector", "-a", addr, "-w", pw], check=True)
+        if "\n" in pw:
+            raise SystemExit("  ✕ パスワードに改行が入っています")
+        # パスワードは引数に載せない（ps で同じパソコンのほかの人から見えるため）。-w を最後に置くと標準入力から2回読む
+        subprocess.run(["security", "add-generic-password", "-U", "-s", "fox-connector", "-a", addr, "-w"],
+                       input=f"{pw}\n{pw}\n", text=True, capture_output=True, check=True, timeout=60)
     accts = [x for x in rd("accounts.json", []) if x["user"] != addr]
     accts.append({"label": label, "user": addr, "name": a.name or "", **srv})
     wr("accounts.json", accts)
