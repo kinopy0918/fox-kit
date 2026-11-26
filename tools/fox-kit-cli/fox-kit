@@ -10,6 +10,8 @@
 #   fox-kit packs     … スキルと道具をそろえる（install / status / key＝Geminiの鍵）
 #   fox-kit guide     … 手順書を開く
 #   fox-kit duet      … スマホの Claude Duet・Claude アプリに貼る3つの文を出す
+#   fox-kit remote    … Duet から、このパソコンで作業させる入口を作る（置きっぱなしのパソコン用）
+#   fox-kit connector … メール・ドライブのつなぎ口（setup / addmail / adduser / start / link / status）
 #   fox-kit confirm   … AIが作業の前に毎回確認するようにする（fox-kit confirm off で、確認なしに戻す）
 #   fox-kit uninstall … このキットを外す（記憶と資料は残す。外したものは消さずに1つのフォルダへ移す）
 #   fox-kit check     … 会社で使う前の点検（AI入国審査9項目のうち、このパソコンで確かめられる分）
@@ -67,6 +69,8 @@ case "$cmd" in
   mac)     "$HOME/Tools/fox-mac/mac.sh" "${2:-}" ;;
   packs)   python3 "$HOME/Tools/fox-packs/packs.py" "${2:-install}" ;;
   guide)   open "$GUIDE" ;;
+  remote)    /usr/bin/python3 "$HOME/Tools/fox-remote/remote.py" "${2:-install}" ;;
+  connector) shift; /usr/bin/python3 "$HOME/Tools/fox-connector/connector.py" "${@:-status}" ;;
   duet)    w="$HOME/.config/fox-kit/wizard.json"
            o="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['answers'].get('owner',''))" "$w" 2>/dev/null)"
            g="$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['answers'].get('agent','FOX'))" "$w" 2>/dev/null)"

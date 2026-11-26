@@ -185,7 +185,8 @@ def stop_all(p: dict):
         return
     py = sys.executable
     for script, args in (("fox-bridge/connect.py", ["--stop"]), ("fox-home/home.py", ["uninstall"]),
-                         ("fox-morning/morning.py", ["uninstall"]), ("fox-routine/routine.py", ["uninstall"]), ("fox-base/fox_base.py", ["stop"])):
+                         ("fox-morning/morning.py", ["uninstall"]), ("fox-routine/routine.py", ["uninstall"]), ("fox-base/fox_base.py", ["stop"]),
+                         ("fox-remote/remote.py", ["uninstall"]), ("fox-connector/connector.py", ["uninstall"])):
         s = TOOLS / script
         if s.exists():
             run([py, str(s), *args], timeout=120)
