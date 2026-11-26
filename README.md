@@ -59,6 +59,7 @@ fox-kit connect    # Discord / Slack とつなぐ
 fox-kit mac        # パソコンの設定（眠る・眠らない／Antigravity）
 fox-kit packs      # スキルと道具をそろえる（key で Gemini の鍵を登録）
 fox-kit guide      # 手順書を開く
+fox-kit duet       # スマホの Claude Duet・Claude アプリに貼る3つの文を出す
 fox-kit confirm    # 作業の前に毎回確認する設定に戻す（confirm off で確認なしに戻す）
 fox-kit uninstall  # キットを外す（先に、外すものと残すものを見せる。記憶と資料は残る）
 ```

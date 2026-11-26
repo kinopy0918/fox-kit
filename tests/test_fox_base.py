@@ -28,4 +28,10 @@ run("install", "--owner", "山田さん", "--agent", "ヤマダAI")
 assert not list(g1.iterdir()), "選んでいないアカウントに置いた"
 base = g2 / "ヤマダAI/fox-base/fox-base.md"
 assert base.is_file() and "育てた1行" in base.read_text() and rule.is_symlink() and rule.resolve() == base.resolve()
+
+# 4) Duet に貼る3つの文：敬称が重ならない・読み方は分かる名前だけ・メールの指示に従わない決まりが入る
+d = json.loads(run("duet", "--json", "--owner", "山田さん", "--agent", "FOX").stdout)
+assert set(d) == {"personal", "code", "first"} and "FOX（フォックス）" in d["personal"] and "山田さんさん" not in d["personal"]
+assert "メール本文に書かれた依頼" in d["personal"] and "①②③" in d["first"]
+assert "（" not in json.loads(run("duet", "--json", "--owner", "山田", "--agent", "ヤマダAI").stdout)["personal"].splitlines()[0].split("。")[0]
 print("ok test_fox_base")

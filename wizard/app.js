@@ -475,11 +475,17 @@
                <p>Antigravity（アンチグラビティ）は、AIと話しながら資料や仕組みを作るアプリです。</p>
                <ol class="do"><li>下のボタンで開く（次からは${W() ? "スタートメニュー" : "Dock"}の Antigravity）</li><li>左の「New session」を押す</li><li>「〇〇を作って」と書いて送る</li></ol>
                <div class="row"><button class="btn" id="openAg">Antigravity を開く</button></div></div>`;
+        const duetCard = `<div class="sub-card auto"><b>スマホからは Claude Duet で ${agent} に頼めます（5分）</b>
+               <p>Duet は、スマホの Claude のアプリです。メールや予定を見て、向こうから声をかけてくれます。下の3つの文を、順番にコピーして貼ってください。${agent} と同じ前提で動くようになります。</p>
+               <ol class="do"><li>claude.ai の「設定」→「個人設定」の欄に貼る <button class="btn sub" data-duet="personal">1つ目をコピー</button></li>
+                 <li>Claude のアプリの「Code」→ 指示の欄に貼る <button class="btn sub" data-duet="code">2つ目をコピー</button></li>
+                 <li>Claude Duet を開いて、最初のメッセージとして送る <button class="btn sub" data-duet="first">3つ目をコピー</button></li></ol>
+               <p class="hint" id="duetnote">Duet が使えない（プランや地域の都合）ときは、この段は飛ばして大丈夫です。</p></div>`;
         const office = ((S.data.mac || {}).use || (S.data.auto || {}).use) === "office";
         const phone = office && !where && !talkLater ? `<div class="sub-card"><b>置きっぱなしのパソコンなら：スマホから頼めるように（10分）</b>
                <p>Discord とつなぐと、外出先からスマホで ${agent} に頼めます。パソコンは電源につないだままにしておきます。</p>
                <div class="row"><button class="btn sub" data-reopen="channel">Discord とつなぐ</button></div></div>` : "";
-        if (B()) return `<div id="upd"></div>${first}${phone}<div id="dash"></div>
+        if (B()) return `<div id="upd"></div>${first}${duetCard}${phone}<div id="dash"></div>
              <details class="sub-card"><summary><b>ほかにできること</b>（あとで大丈夫です）</summary>
                ${meetCard}${talkLater ? "" : ""}${laterCard}${noteCard}
                <ul class="done-list">
@@ -488,7 +494,7 @@
                <li>この画面は、デスクトップの「FoxKit」でいつでも開けます。新しい版の更新もここからできます</li>
                </ul></details>
              <p class="hint">この画面は閉じて大丈夫です。デスクトップの「FoxKit」で、いつでも開き直せます。</p>`;
-        return `<div id="upd"></div><div id="dash"></div>${meetCard}${talkCard}${laterCard}${noteCard}<div class="sub-card"><b>これからの使い方</b>
+        return `<div id="upd"></div><div id="dash"></div>${meetCard}${talkCard}${laterCard}${noteCard}${duetCard}<div class="sub-card"><b>これからの使い方</b>
                <ul class="done-list">
                ${where ? `<li><b>用事も、困ったことも、ぜんぶ ${where} のチャンネルで ${esc(S.answers.agent || "AI")} に話しかけてください。</b>スマホからでもOKです。<div class="row"><a class="btn" href="${esc(ch.link)}" target="_blank">${where} のチャンネルを開く</a></div></li>
                <li>話しかけ方の例：「〇〇の資料を作って」「この請求書を確認して」「調子を見て」「設定を変えたい」「新しい版に更新して」</li>`
@@ -523,6 +529,13 @@
             const b = $("#doUpd", u); if (b) b.onclick = async () => { b.disabled = true; UPD = true; const x = await act("kitupdate", { run: true }); if (!x.ok) { UPD = false; b.disabled = false; alert(x.error || "更新を始められませんでした"); } refresh(true); };
           });
         }
+        let duetTexts = null;   // 押されたときに1回だけ取りに行く
+        el.querySelectorAll("[data-duet]").forEach((b) => (b.onclick = async () => {
+          duetTexts = duetTexts || (await act("duet", {}));
+          const s = duetTexts && duetTexts.ok && duetTexts[b.dataset.duet];
+          if (!s) { $("#duetnote").textContent = "文を作れませんでした。AI に「Duet に貼る文を出して」と頼んでください。"; return; }
+          await navigator.clipboard.writeText(s); b.textContent = "コピーしました";
+        }));
         const at = $("#agtalk2", el); if (at) at.onclick = async () => { const r = await act("talk", { antigravity: true });
           $("#agnote2").textContent = r.ok ? "開きました。「" + r.words + "」をコピーしてあります。貼って送ってください。" : "Antigravity が見つかりませんでした。Dock から開いてください。"; };
         el.querySelectorAll("#openAg").forEach((x) => (x.onclick = async () => { const r = await act("storage", { open_ag: true }); if (r && r.ok === false) alert("Antigravity が見つかりませんでした。AIに「Antigravity を入れて」と頼んでください"); }));

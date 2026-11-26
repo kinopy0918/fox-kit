@@ -505,6 +505,18 @@ def act(step: str, body: dict) -> dict:
             run_job("rag-index", [str(rag), "index"], env=env_for(st))
         return {"ok": True, "base": base}
 
+    if step == "duet":   # スマホの Claude Duet・Claude アプリに貼る3つの文（完了画面のコピー用）
+        fb = HOME / "Tools/fox-base/fox_base.py"
+        if not fb.exists():
+            return {"ok": False}
+        r = subprocess.run([PY if WIN else "/usr/bin/python3", str(fb), "duet", "--json", "--owner", a.get("owner", "") or "あなた",
+                            "--agent", a.get("agent", "FOX")], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                           timeout=30, **NOWIN)
+        try:
+            return {"ok": True, **json.loads(r.stdout.strip().splitlines()[-1])}
+        except (ValueError, IndexError):
+            return {"ok": False}
+
     if step == "channel":
         return channel(body, st)
 
